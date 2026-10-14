@@ -44,12 +44,19 @@ from macrosys.mechanisms import (
 )
 from macrosys.mechanisms import Shock as PropagationShock
 from macrosys.mechanisms.library import Library, load_library
+from macrosys.pricing.errors import NoPricedInError
+from macrosys.pricing.implied import StoreImpliedPaths
+from macrosys.pricing.priced_in import PricedIn as MarketPricedIn
+from macrosys.pricing.priced_in import priced_in
+from macrosys.skeleton.preflight import ensure_runbook
 from macrosys.skeleton.report import render_report, write_report
 from macrosys.skeleton.routing import Route, route_for
-from macrosys.skeleton.stubs import STUB_PROVENANCE, Clock, build_stub_world
+from macrosys.skeleton.stubs import STUB_PROVENANCE, UTIL_ENTITY, Clock, build_stub_world
 from macrosys.store.manifest import Manifest, build_manifest, write_manifest
+from macrosys.store.observations import ObservationStore
 from macrosys.store.schema import create_schema
-from macrosys.store.state import WorldStateStore
+from macrosys.store.state import SnapshotStateView, WorldStateStore
+from macrosys.world.refresh import refresh_world_state
 
 # Walking-skeleton pin. Not a git sha: other packages move under the same checkout, and the
 # replay tuple for this pass is the stub world, the library hash, and this label (spec §4.4).
@@ -78,6 +85,8 @@ class SkeletonResult(BaseModel):
     mechanism_ids: list[str]
     identity_checks: dict[str, float]
     missing_parameter: str | None = None
+    utilization_provenance: str | None = None
+    gate_reasons: dict[str, str] = {}
 
 
 def run_once(
@@ -89,14 +98,20 @@ def run_once(
     library_dir: str | Path = "mechanisms",
     mandate_path: str | Path = "config/mandate.example.yaml",
     clock: Clock | None = None,
+    refresh_world: bool = False,
+    acknowledge_runbook_change: bool = False,
+    runbook_path: str | Path = "docs/runbook.md",
+    runbook_hash_path: str | Path | None = None,
 ) -> SkeletonResult:
     """Run shock → propagation → gap → gates → ledger → manifest → report (spec §1.1, §13 S0.1).
 
     ``as_of`` is a calendar date, taken as 23:59:59 UTC, or an aware datetime. ``clock``, when
     passed, supplies ``ingested_at`` for the stub observations; the default is ``as_of`` itself,
-    so a replay does not call the wall clock. The priced-in range is a stub constructed to
-    overlap the propagated change, and the gap is expected minus that range (spec §7.7). A gap
-    that includes zero, or blocking missing evidence, yields ``no_trade`` (spec §11.3).
+    so a replay does not call the wall clock. The priced-in block comes from ``priced_in`` on
+    the stub snapshot (spec §7.3). The gap is ``PricedIn.to_gap`` (expected minus implied). A
+    ``NoPricedInError`` is blocking missing evidence and the decision is still no-trade. The
+    runbook hash is checked before propagation (spec §11.7). ``refresh_world`` materializes
+    world state from recipes after the observations are loaded (spec §4.3).
     """
     as_of_dt = as_of_datetime(as_of)
     if shock.information_cutoff > as_of_dt:
@@ -112,14 +127,24 @@ def run_once(
     ledger_file.parent.mkdir(parents=True, exist_ok=True)
 
     route = route_for(shock)
+    ensure_runbook(
+        _existing(runbook_path),
+        Path(runbook_hash_path) if runbook_hash_path is not None else out / "runbook.sha256",
+        acknowledge=acknowledge_runbook_change,
+    )
     conn = duckdb.connect(database=":memory:")
     try:
         create_schema(conn)
         world = build_stub_world(conn, as_of_dt, clock=clock)
+        if refresh_world:
+            refresh_world_state(conn, as_of_dt)
         state = WorldStateStore(conn).view(as_of_dt)
+        utilization_provenance = _utilization_provenance(state)
         path = route.propagation_path(library)
         converters = list(route.converters)
         horizon = validate_path(path, library, converters).horizon
+        param_version = _parameter_version(route)
+        run_id = _run_id(shock, as_of_dt, library.version, route, param_version)
         missing: str | None = None
         propagation: PropagationRun | None = None
         try:
@@ -131,13 +156,11 @@ def run_once(
                 ),
                 state,
                 path,
+                run_id=run_id,
             )
         except MissingParameterError as exc:
             missing = exc.parameter
-        param_version = _parameter_version(route)
-        run_id = _run_id(shock, as_of_dt, library.version, route, param_version)
-        if propagation is not None:
-            propagation = propagation.model_copy(update={"run_id": run_id})
+        market, priced_error = _resolve_priced_in(route, horizon, conn, as_of_dt)
         thesis = _thesis(
             shock,
             as_of_dt,
@@ -149,6 +172,8 @@ def run_once(
             missing,
             run_id,
             param_version,
+            market,
+            priced_error,
         )
         decision = _decision(thesis, mandate, horizon, propagation is not None)
         manifest = build_manifest(conn, out / "raw", library.version, param_version, CODE_COMMIT)
@@ -172,6 +197,9 @@ def run_once(
         entry_hash=entry.entry_hash,
         manifest_digest=manifest.digest,
         digest=digest,
+        priced_sources=list(thesis.priced_in.source),
+        priced_notes=thesis.priced_in.method_notes,
+        priced_confidence=thesis.priced_in.confidence,
     )
     report_path = out / "report.md"
     write_report(report_path, text)
@@ -188,6 +216,8 @@ def run_once(
         mechanism_ids=route.mechanism_ids(),
         identity_checks={} if propagation is None else dict(propagation.identity_checks),
         missing_parameter=missing,
+        utilization_provenance=utilization_provenance,
+        gate_reasons=_gate_reasons(propagation),
     )
 
 
@@ -293,40 +323,70 @@ def _as_closed_range(qty: Quantity) -> Quantity:
     )
 
 
-def _priced_stub(expected: Quantity) -> Quantity:
-    """A stub priced-in range that overlaps ``expected`` and crosses zero (spec §7.7, §13 S0.1).
+def _resolve_priced_in(
+    route: Route,
+    horizon: Horizon,
+    conn: duckdb.DuckDBPyConnection,
+    as_of: datetime,
+) -> tuple[MarketPricedIn | None, NoPricedInError | None]:
+    """Market-implied change for the route's entity, or the named gap (spec §7.3)."""
+    implied = StoreImpliedPaths(ObservationStore(conn).snapshot(as_of))
+    try:
+        return priced_in(
+            route.effect_entity,
+            route.effect_variable,
+            _window(horizon),
+            implied,
+            as_of.date(),
+        ), None
+    except NoPricedInError as exc:
+        return None, exc
 
-    S0.1's acceptance test is a gap that straddles zero. This range is built so that
-    expected − priced includes zero for any finite expected change. It is not a curve, a
-    consensus print, or an implied-growth estimate. [J]
-    """
-    mid = expected.mid
-    return Quantity(
-        value=None,
-        unit=expected.unit,
-        low=min(-1.0, mid - 1.0),
-        high=max(1.0, mid + 1.0),
-        provenance=STUB_PROVENANCE,
+
+def _thesis_priced(
+    expected: Quantity,
+    market: MarketPricedIn | None,
+    error: NoPricedInError | None,
+) -> tuple[PricedIn, Quantity, MissingEvidence | None]:
+    """Map the resolver onto the thesis record and compute the gap (spec §7.3, §7.7)."""
+    if market is not None:
+        gap = market.to_gap(expected)
+        return (
+            PricedIn(
+                source=list(market.sources),
+                implied_change=market.implied_change,
+                method_notes=market.method_notes,
+                confidence=market.confidence,
+            ),
+            gap,
+            None,
+        )
+    assert error is not None
+    placeholder = Quantity(value=0.0, unit=expected.unit, provenance=STUB_PROVENANCE)
+    note = f"NoPricedInError: {error}"
+    return (
+        PricedIn(
+            source=["NoPricedInError"],
+            implied_change=placeholder,
+            method_notes=note,
+            confidence=None,
+        ),
+        expected.sub(placeholder, provenance="priced_in"),
+        MissingEvidence(description=note, blocking=True),
     )
 
 
-def _gap(expected: Quantity, priced: Quantity) -> Quantity:
-    """Interval subtraction, expected minus priced, in ``expected.unit`` (spec §7.7)."""
-    if expected.unit != priced.unit:
-        priced = priced.to(expected.unit)
-    e_lo = expected.low if expected.low is not None else expected.value
-    e_hi = expected.high if expected.high is not None else expected.value
-    p_lo = priced.low if priced.low is not None else priced.value
-    p_hi = priced.high if priced.high is not None else priced.value
-    if e_lo is None or e_hi is None or p_lo is None or p_hi is None:
-        raise ValueError("gap needs a low and a high on both the expected change and the priced-in range")
-    return Quantity(
-        value=None,
-        unit=expected.unit,
-        low=float(e_lo) - float(p_hi),
-        high=float(e_hi) - float(p_lo),
-        provenance=STUB_PROVENANCE,
-    )
+def _utilization_provenance(state: SnapshotStateView) -> str | None:
+    view = state
+    if not view.has(UTIL_ENTITY, "capacity_utilization"):
+        return None
+    return view.get(UTIL_ENTITY, "capacity_utilization").provenance
+
+
+def _gate_reasons(propagation: PropagationRun | None) -> dict[str, str]:
+    if propagation is None:
+        return {}
+    return {step.mechanism_id: step.gate.reason for step in propagation.steps}
 
 
 def _horizon_months(horizon: Horizon, mandate: Mandate) -> float:
@@ -367,17 +427,18 @@ def _thesis(
     missing: str | None,
     run_id: str,
     param_version: str,
+    market: MarketPricedIn | None,
+    priced_error: NoPricedInError | None,
 ) -> Thesis:
     expected = _effect(route, propagation)
-    priced = _priced_stub(expected)
-    gap = _gap(expected, priced)
+    priced, gap, priced_missing = _thesis_priced(expected, market, priced_error)
     months = _horizon_months(horizon, mandate)
+    missing_evidence: list[MissingEvidence] = []
     if missing is None:
         claim = (
-            f"Stub pass {shock.id}: propagated {route.effect_variable} minus a stub priced-in "
-            f"range does not clear zero over {months:g} months (spec §7.7, §11.3)."
+            f"Stub pass {shock.id}: propagated {route.effect_variable} minus the priced-in "
+            f"quantity over {months:g} months (spec §7.7, §11.3)."
         )
-        missing_evidence: list[MissingEvidence] = []
     else:
         owner = _parameter_owner(library, route, missing)
         unset = [item.name for item in library.get(owner).parameters if item.source == "TODO_estimate"]
@@ -386,7 +447,7 @@ def _thesis(
             f"Stub pass {shock.id}: {owner} refused to run because parameter {missing} is "
             f"TODO_estimate, so this is not a trade (spec §3.1, §11.3)."
         )
-        missing_evidence = [
+        missing_evidence.append(
             MissingEvidence(
                 description=(
                     f"{owner} parameter {missing} is TODO_estimate; the mechanism refuses to run "
@@ -394,7 +455,9 @@ def _thesis(
                 ),
                 blocking=True,
             )
-        ]
+        )
+    if priced_missing is not None:
+        missing_evidence.append(priced_missing)
     high = expected.high if expected.high is not None else expected.mid
     low = expected.low if expected.low is not None else expected.mid
     width = abs(float(high) - float(low))
@@ -411,14 +474,7 @@ def _thesis(
             change=expected,
             window_q=_window(horizon),
         ),
-        priced_in=PricedIn(
-            source=[STUB_PROVENANCE],
-            implied_change=priced,
-            method_notes=(
-                "Stub range built to overlap the propagated change and to cross zero. "
-                "Not a futures curve, a survey, or an implied-growth reading (spec §7.3, §13 S0.1)."
-            ),
-        ),
+        priced_in=priced,
         gap=gap,
         competing_effects_accepted=[
             CompetingEffect(

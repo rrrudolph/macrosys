@@ -4,8 +4,9 @@ One command runs the whole decision loop on made-up numbers, writes the artefact
 no-trade. A second command runs that same loop on three different shocks. The shocks differ. The
 code does not.
 
-The numbers are stubs. Each one is labelled `stub:S0.1`. They are there so the loop can be
-replayed. They are not forecasts, and they are not a reading of any market.
+The economic inputs are stubs, labelled `stub:S0.1`. They are not forecasts. The demand demo's
+priced-in quantity is read from stub copper futures through the pricing resolver, not invented
+inside the decision loop.
 
 ## Run it
 
@@ -13,6 +14,7 @@ From the repository root, with the virtualenv installed:
 
 ```powershell
 .\.venv\Scripts\python -m macrosys skeleton run --shock demand --as-of 2026-10-14 --out out\demand
+.\.venv\Scripts\python -m macrosys skeleton run --shock demand --as-of 2026-10-14 --out out\refresh --refresh
 .\.venv\Scripts\python -m macrosys skeleton demo --out out\demo
 .\.venv\Scripts\python -m macrosys ledger verify out\demand\ledger.jsonl
 .\.venv\Scripts\python -m macrosys library list
@@ -20,13 +22,16 @@ From the repository root, with the virtualenv installed:
 ```
 
 `--shock` is `demand`, `fx`, or `transport`. `--as-of` is a calendar day. The demo always uses
-14 October 2026, so two runs of the demo match.
+14 October 2026, so two runs of the demo match. `--refresh` rebuilds world state from the
+recipes after the observations are loaded. The first run records a hash of `docs/runbook.md`
+under the output directory. If that file later changes, the run stops unless you pass
+`--acknowledge-runbook-change`. Acknowledging one run does not replace the stored hash.
 
 `skeleton run` writes three files into `--out`:
 
 | File | What it is |
 |---|---|
-| `report.md` | One page: the shock, the mechanism path (units and horizons), identity residuals, the gap, which gate failed, the ledger hash, and the manifest digest. |
+| `report.md` | One page: the shock, the mechanism path (units and horizons), identity residuals, the priced-in sources, method, and confidence (or the blocking reason), the gap, which gate failed, the ledger hash, and the manifest digest. |
 | `manifest.json` | A fingerprint of the stub database, the mechanism-library hash, the parameter hash, and the skeleton label `S0.1`. |
 | `ledger.jsonl` | The thesis, frozen. Each line carries the hash of the previous line. `ledger verify` recomputes that chain. |
 
@@ -44,9 +49,9 @@ else in the run looks at the shock type.
 
 | Shock | What it stands in for | Path | Why it does not trade |
 |---|---|---|---|
-| `demand` | Contracted investment, in the style of an AI-capex boom (spec §12.1). | Supply-use identity `A04`, then bottleneck pricing `B03`. | The gap between the propagated price change and a stub "already priced" range includes zero. |
-| `fx` | A 15% currency depreciation, the sketch in spec §12.3. | Exchange-rate pass-through `B16`. | `B16` refuses to run. Its pass-through coefficients are still `TODO_estimate`. The thesis records that as blocking missing evidence. |
-| `transport` | A supply disruption that draws inventories (spec §12.5). | `A04`, then the inventory cycle `B04`, then `B03`. | Same as demand: the gap includes zero. |
+| `demand` | Contracted investment, in the style of an AI-capex boom (spec §12.1). The priced variable is copper. | Supply-use identity `A04`, then bottleneck pricing `B03`. | Copper (`Cu`) is on the futures map, so the priced-in block is the C07 curve from stub `CME:HG:YYYY-MM` settlements. The gap is that curve minus the propagated price change. The expression check is still pending, so the run does not trade. |
+| `fx` | A 15% currency depreciation, the sketch in spec §12.3. | Exchange-rate pass-through `B16`. | `B16` refuses to run. Its pass-through coefficients are still `TODO_estimate`. There is also no mapped market quantity for this entity. Both are blocking missing evidence. |
+| `transport` | A supply disruption that draws inventories (spec §12.5). | `A04`, then the inventory cycle `B04`, then `B03`. | The entity `freight` has no series-map entry, so the resolver raises `NoPricedInError`. That is blocking missing evidence, and the decision is no-trade. |
 
 The demand shock's size is 15 billion USD of investment, and the transport shock's size is a
 5 billion USD inventory change. Those are the levels that make the supply-use identity close in
@@ -59,10 +64,16 @@ fill those in with the example scenario already stored on the `B03` record, rela
 `stub:S0.1`. That is a stand-in so the loop can finish. It is not an estimate. `B16` is left
 empty so the refusal is visible.
 
-The stub world behind every run is five estimated series: capacity utilization 0.80, inventory
-cover 45 days, a cost share 0.18, a policy rate 4.5 percent, and an FX rate 5.40. Publication is
-the day before `as-of`. Ingestion is `as-of` itself (or a clock you pass in). Quality is
-`estimated`.
+The stub world behind every run is five estimated series written straight into world state:
+capacity utilization 0.80 (as a share), inventory cover 45 days, a cost share 0.18, a policy rate
+4.5 percent, and an FX rate 5.40. Publication is the day before `as-of`. Ingestion is `as-of`
+itself (or a clock you pass in). Quality on those rows is `estimated`.
+
+The demand priced-in path also loads stub COMEX copper settlements, one series per contract
+month, quality `estimated`, provenance `stub:S0.1`. A separate `FRED:TCU` print of 85 percent is
+stored as `reconstructed_pubtime`, because the capacity recipe only accepts that flag or `ok`.
+With `--refresh`, the recipe turns 85 percent into a 0.85 share on the US economy and replaces
+the stub 0.80. `B03` then reads that recipe row. Without `--refresh`, it reads the stub 0.80.
 
 ## Where each step sits in the spec
 
@@ -75,7 +86,10 @@ the day before `as-of`. Ingestion is `as-of` itself (or a clock you pass in). Qu
 | Path check: units, horizons, competing effects | §3.4 |
 | Propagation, including an identity residual | §3.4 rule 7. An identity that does not close fails the run. |
 | A parameter that is still `TODO_estimate` refuses to run | §3.1. The FX pass records this instead of inventing a coefficient. |
-| Thesis: expected change, priced-in range, gap = expected − priced | §7.7, §7.3 |
+| Thesis: expected change, priced-in from the resolver, gap = expected − priced | §7.7, §7.3 |
+| No mapped market quantity becomes blocking missing evidence | §7.3, §11.3 |
+| `--refresh` materializes world state from recipes | §4.3, §11.2 |
+| Runbook hash checked before propagation | §11.7 |
 | Four gates, no-trade unless all of them pass | §11.3, and the loop in §1.1 |
 | Weekly decision, nothing sent to a broker | §11.2 |
 | Frozen forecast ledger | §10.2 |
@@ -83,5 +97,6 @@ the day before `as-of`. Ingestion is `as-of` itself (or a clock you pass in). Qu
 | Same inputs, same digest | §4.4 |
 | One command; then the same command on three shocks | §13 S0.1 and S0.2 |
 
-The expression gate fails as well, because holdings exposure is not computed in this pass. The
-recorded failure is the earlier one: the gap, or the missing `B16` parameter. No order is sent.
+The expression gate fails as well, because holdings exposure is not computed in this pass. For
+copper that can be the recorded failure, once the priced-in curve is in place. For the FX and
+freight shocks the recorded failure is earlier: blocking missing evidence. No order is sent.

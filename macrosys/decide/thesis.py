@@ -100,6 +100,8 @@ class PricedIn(BaseModel):
     source: list[str] = Field(min_length=1)
     implied_change: Quantity
     method_notes: str = Field(min_length=1)
+    # Set by the pricing resolver (spec §7.3). None when no market quantity was resolved.
+    confidence: Literal["low", "medium", "high"] | None = None
 
     @model_validator(mode="before")
     @classmethod

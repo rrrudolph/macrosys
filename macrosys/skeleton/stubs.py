@@ -21,8 +21,13 @@ from macrosys.store.state import WorldStateStore
 
 STUB_PROVENANCE = "stub:S0.1"
 
-# The industry B03's applicability gate reads. Routing binds the same key.
-UTIL_ENTITY = EntityKey(entity_type="industry", entity_id="USA:C26")
+# B03's gate and the usa_capacity_utilization recipe both use this key (spec §4.3).
+UTIL_ENTITY = EntityKey(entity_type="economy", entity_id="USA")
+
+# Months of CME:HG:YYYY-MM settlements so a 0–2 quarter window sits on the curve.
+_COPPER_MONTHS = 8
+# 85 percent of capacity. The recipe divides by 100 and writes a 0.85 share.
+_TCU_PCT = 85.0
 
 
 class Clock(Protocol):
@@ -128,6 +133,8 @@ def build_stub_world(
             for row in readings
         ]
     )
+    _seed_priced_in(store, ref_start, ref_end, published_at, ingested_at, as_of.date())
+    _seed_utilization_input(store, ref_start, ref_end, published_at, ingested_at)
     state = WorldStateStore(conn)
     for row in readings:
         state.write(
@@ -154,6 +161,103 @@ def _meta(row: StubReading) -> SeriesMeta:
     )
 
 
+def _seed_priced_in(
+    store: ObservationStore,
+    ref_start: date,
+    ref_end: date,
+    published_at: datetime,
+    ingested_at: datetime,
+    as_of: date,
+) -> None:
+    """Copper futures the C07 resolver reads for entity Cu (spec §7.3, series_map.yaml).
+
+    The quote's reference period is before ``as_of``. The contract month is only in the
+    series id. Prints are estimated stubs, provenance ``stub:S0.1``.
+    """
+    months = _month_starts(as_of, _COPPER_MONTHS)
+    rows = []
+    meta = []
+    for index, month in enumerate(months):
+        series_id = f"CME:HG:{month:%Y-%m}"
+        value = 100.0 + index
+        meta.append(
+            SeriesMeta(
+                series_id=series_id,
+                source_id="stub",
+                native_id=series_id,
+                title=f"COMEX copper {month:%Y-%m} (stub)",
+                unit="USD",
+                frequency="M",
+                concept="futures_price",
+                tier="research",
+            )
+        )
+        rows.append(
+            _observation_raw(
+                series_id, value, "USD", ref_start, ref_end, published_at, ingested_at, "estimated"
+            )
+        )
+    store.upsert_series(meta)
+    store.append(rows)
+
+
+def _seed_utilization_input(
+    store: ObservationStore,
+    ref_start: date,
+    ref_end: date,
+    published_at: datetime,
+    ingested_at: datetime,
+) -> None:
+    """FRED:TCU so the capacity recipe can run (spec §4.3).
+
+    The recipe accepts ``ok`` and ``reconstructed_pubtime`` only, so this one print is not
+    ``estimated``. The value is still a stub. Provenance is ``stub:S0.1``.
+    """
+    series_id = "FRED:TCU"
+    store.upsert_series(
+        [
+            SeriesMeta(
+                series_id=series_id,
+                source_id="stub",
+                native_id="TCU",
+                title="Capacity utilization percent (stub)",
+                unit="pct",
+                frequency="M",
+                geography="USA",
+                concept="capacity_utilization",
+                tier="research",
+            )
+        ]
+    )
+    store.append(
+        [
+            _observation_raw(
+                series_id,
+                _TCU_PCT,
+                "pct",
+                ref_start,
+                ref_end,
+                published_at,
+                ingested_at,
+                "reconstructed_pubtime",
+            )
+        ]
+    )
+
+
+def _month_starts(origin: date, count: int) -> list[date]:
+    """Month-start dates from the month that contains ``origin``. Matches the pricing resolver."""
+    year, month = origin.year, origin.month
+    out: list[date] = []
+    for _ in range(count):
+        out.append(date(year, month, 1))
+        month += 1
+        if month == 13:
+            month = 1
+            year += 1
+    return out
+
+
 def _observation(
     row: StubReading,
     ref_start: date,
@@ -161,17 +265,39 @@ def _observation(
     published_at: datetime,
     ingested_at: datetime,
 ) -> Observation:
-    payload = f"{STUB_PROVENANCE}|{row.series_id}|{row.value}|{row.unit}".encode()
+    return _observation_raw(
+        row.series_id,
+        row.value,
+        row.unit,
+        ref_start,
+        ref_end,
+        published_at,
+        ingested_at,
+        "estimated",
+    )
+
+
+def _observation_raw(
+    series_id: str,
+    value: float,
+    unit: str,
+    ref_start: date,
+    ref_end: date,
+    published_at: datetime,
+    ingested_at: datetime,
+    quality_flag: str,
+) -> Observation:
+    payload = f"{STUB_PROVENANCE}|{series_id}|{value}|{unit}|{quality_flag}".encode()
     return Observation(
-        series_id=row.series_id,
+        series_id=series_id,
         ref_period_start=ref_start,
         ref_period_end=ref_end,
-        value=row.value,
-        unit=row.unit,
+        value=value,
+        unit=unit,
         published_at=published_at,
         ingested_at=ingested_at,
         vintage_id=STUB_PROVENANCE,
         source_url=STUB_PROVENANCE,
         source_hash=hashlib.sha256(payload).hexdigest(),
-        quality_flag="estimated",
+        quality_flag=quality_flag,  # type: ignore[arg-type]
     )

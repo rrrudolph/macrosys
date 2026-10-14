@@ -56,6 +56,12 @@ FRED_UNIT_MAP: dict[str, str] = {
     "Index 1982-1984=100": "index",
     "Index 2017=100": "index",
     "Basis Points": "bp",
+    "Ratio": "ratio",                       # e.g. ISRATIO (inventories/sales)
+    "Percent of Capacity": "pct",           # TCU
+    "Millions of Barrels": "mbbl",
+    "Thousand Barrels per Day": "kbd",
+    "U.S. Dollars to One Euro": "ratio",    # DEXUSEU
+    "Japanese Yen to One U.S. Dollar": "ratio",
 }
 
 _FREQ = {

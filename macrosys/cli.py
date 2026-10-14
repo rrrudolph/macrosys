@@ -41,6 +41,12 @@ def _parser() -> argparse.ArgumentParser:
     run_p.add_argument("--shock", required=True, choices=["demand", "fx", "transport"])
     run_p.add_argument("--as-of", required=True, dest="as_of", help="YYYY-MM-DD")
     run_p.add_argument("--out", required=True, help="directory for the report, manifest, and ledger")
+    run_p.add_argument("--refresh", action="store_true", help="derive world state from recipes")
+    run_p.add_argument(
+        "--acknowledge-runbook-change",
+        action="store_true",
+        help="allow this run when docs/runbook.md no longer matches the recorded hash",
+    )
     demo_p = sk.add_parser("demo", help="run the three transfer shocks and write an index")
     demo_p.add_argument("--out", required=True)
 
@@ -54,12 +60,13 @@ def _parser() -> argparse.ArgumentParser:
     lib.add_parser("list", help="print id, class, and confidence")
     lib.add_parser("validate", help="load the library and report the version hash")
 
-    try:
-        from macrosys.pipeline.cli_commands import register_cli
-    except ImportError:
-        pass
-    else:
-        register_cli(sub)
+    # Optional command groups register themselves (each package owns its own commands).
+    for module in ("macrosys.pipeline.cli_commands", "macrosys.exec.cli_commands"):
+        try:
+            register = __import__(module, fromlist=["register_cli"]).register_cli
+        except ImportError:
+            continue
+        register(sub)
     return parser
 
 
@@ -80,7 +87,14 @@ def _skeleton(args: argparse.Namespace) -> int:
         print("as-of must be YYYY-MM-DD", file=sys.stderr)
         return 2
     shock = shock_by_name(str(args.shock))
-    result = run_once(shock, as_of, ledger_path=out / "ledger.jsonl", out_dir=out)
+    result = run_once(
+        shock,
+        as_of,
+        ledger_path=out / "ledger.jsonl",
+        out_dir=out,
+        refresh_world=bool(args.refresh),
+        acknowledge_runbook_change=bool(args.acknowledge_runbook_change),
+    )
     print(result.decision.action)
     print(result.digest)
     return 0

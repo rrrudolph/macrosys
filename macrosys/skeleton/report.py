@@ -32,6 +32,9 @@ def render_report(
     entry_hash: str,
     manifest_digest: str,
     digest: str,
+    priced_sources: list[str],
+    priced_notes: str,
+    priced_confidence: str | None,
 ) -> str:
     """Render the one-page decision note for one skeleton run (spec §1.1, §13 S0.1)."""
     lines: list[str] = [
@@ -81,7 +84,7 @@ def render_report(
             "## Gap",
             "",
             f"Expected {expected.provenance or 'propagation'}: {_qty(expected)}.",
-            f"Priced in (stub range, {STUB_PROVENANCE}): {_qty(priced)}.",
+            _priced_block(priced_sources, priced_notes, priced_confidence, priced),
             f"Gap (expected minus priced): {_qty(gap)}.",
             "",
             "## Gates",
@@ -115,6 +118,14 @@ def write_report(path: Path, text: str) -> None:
     dest = Path(path)
     dest.parent.mkdir(parents=True, exist_ok=True)
     dest.write_text(text, encoding="utf-8", newline="\n")
+
+
+def _priced_block(sources: list[str], notes: str, confidence: str | None, priced: Quantity) -> str:
+    implied = f"Implied change: {_qty(priced)}."
+    if confidence is None:
+        return f"Priced in blocked. {notes}\n{implied}"
+    joined = ", ".join(sources)
+    return f"Sources: {joined}.\nMethod: {notes}\nConfidence: {confidence}.\n{implied}"
 
 
 def _qty(q: Quantity) -> str:
