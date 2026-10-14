@@ -1,20 +1,33 @@
 """Holdings snapshots and the country/currency vocabularies they must use (spec §4.2, §9.1, §9.3).
 
-Holdings are claims about a fund's book, not market observations. ``HoldingRow`` matches the
-``holding_snapshot`` grain so a later sources package can reconcile N-PORT and issuer files onto
-the same record. Weights are NAV shares in 0..1, not percentages. ``ingested_at`` is intentionally
-absent: the ticket fixes the field list, and ingestion time belongs on the loader that writes the row.
+Holdings are claims about a fund's book, not market observations. ``HoldingRow`` is the core
+record in ``macrosys.core.contracts``, with country, currency, and timestamp checks added on the
+way in so N-PORT and issuer files land on the same grain. Weights are NAV shares in 0..1, not
+percentages. ``ingested_at`` is intentionally absent: the field list is the core record's, and
+ingestion time belongs on the loader that writes the row.
 """
 
 from __future__ import annotations
 
 import math
-from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
-AssetClass = Literal["equity", "fixed_income", "cash", "derivative", "commodity", "fund", "other"]
+from macrosys.core.contracts import AssetClass
+from macrosys.core.contracts import HoldingRow as _CoreHoldingRow
+
+# Re-exported so callers share the core asset-class vocabulary (spec §9.1).
+__all__ = [
+    "AssetClass",
+    "HoldingRow",
+    "ISO3_COUNTRIES",
+    "WeightCheck",
+    "check_weights",
+    "normalize_ccy",
+    "normalize_country",
+]
+
 WeightFlag = Literal["ok", "weight_sum_out_of_band", "derivatives_present"]
 
 # Curated economies that show up in ETF holdings, plus every current euro-area member.
@@ -231,29 +244,17 @@ def normalize_ccy(value: str) -> str:
         raise ValueError(f"unknown currency {value!r}") from None
 
 
-class HoldingRow(BaseModel):
-    """One line of a holdings snapshot (spec §4.2, §9.1).
+class HoldingRow(_CoreHoldingRow):
+    """Core holdings record, plus the instruments checks on the way in (spec §4.2, §9.1, §9.3).
 
-    ``weight`` is a share of NAV. ``country`` is ISO3 or ``EA`` after normalization, or null when
-    the line has no country (cash, or a futures contract whose exposure is the underlying).
-    ``published_at`` is timezone-aware. Market value, when present, is in ``ccy_mv``.
+    The fields are ``macrosys.core.contracts.HoldingRow``. Country and currency are normalised to
+    ISO3 / ``EA`` and ISO 4217, ``published_at`` must be timezone-aware, and unknown fields are
+    rejected. ``weight`` is a share of NAV. ``country`` is null when the line has no country
+    (cash, or a futures contract whose exposure is the underlying). Market value, when present,
+    is in ``ccy_mv``.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
-
-    instrument_id: str
-    as_of: date
-    published_at: datetime
-    source: str
-    holding_key: str
-    name: str
-    weight: float
-    country: str | None
-    sector: str | None
-    ccy: str
-    asset_class: AssetClass
-    market_value: float | None
-    ccy_mv: str | None
 
     @field_validator("country", mode="before")
     @classmethod

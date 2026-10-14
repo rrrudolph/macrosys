@@ -8,35 +8,37 @@ from __future__ import annotations
 
 import math
 from datetime import date
-from typing import Literal
 
 import numpy as np
 import pandas as pd
-from pydantic import BaseModel, ConfigDict, field_validator, model_validator
+from pydantic import ConfigDict, field_validator, model_validator
 
+from macrosys.core.contracts import ActionType
+from macrosys.core.contracts import CorporateAction as _CoreCorporateAction
 from macrosys.instruments._index import values_on_dates
 from macrosys.instruments.holdings import normalize_ccy
 
-ActionType = Literal["split", "cash_div", "capital_gain"]
 PRICE_DISCREPANCY_FLAG = "price_discrepancy"
 
+__all__ = [
+    "PRICE_DISCREPANCY_FLAG",
+    "ActionType",
+    "CorporateAction",
+    "compare_with_vendor_adjusted",
+    "total_return_series",
+]
 
-class CorporateAction(BaseModel):
-    """One split or distribution (spec §9.1 ``corporate_action``).
 
-    ``ratio`` is new shares per old share for a split (2.0 means 2-for-1) and is otherwise null.
-    ``amount`` is cash per share for ``cash_div`` and ``capital_gain``, in ``ccy``, quoted in the
-    same share units as the raw close on ``ex_date``.
+class CorporateAction(_CoreCorporateAction):
+    """Core corporate-action record, plus the split and distribution checks (spec §9.1).
+
+    The fields are ``macrosys.core.contracts.CorporateAction``. ``ratio`` is new shares per old
+    share for a split (2.0 means 2-for-1) and is otherwise null. ``amount`` is cash per share for
+    ``cash_div`` and ``capital_gain``, in ``ccy``, quoted in the same share units as the raw close
+    on ``ex_date``. ``ccy`` is normalised to ISO 4217. Unknown fields are rejected.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
-
-    instrument_id: str
-    ex_date: date
-    type: ActionType
-    ratio: float | None = None
-    amount: float | None = None
-    ccy: str | None = None
 
     @field_validator("ccy", mode="before")
     @classmethod
