@@ -16,7 +16,7 @@ import duckdb
 
 from macrosys.core.contracts import EntityKey, QualityFlag, SeriesMeta, SourceTier
 
-SCHEMA_VERSION = 1
+SCHEMA_VERSION = 2
 
 _IDENT = re.compile(r"^[a-z_][a-z0-9_]*$")
 
@@ -104,7 +104,10 @@ _STATEMENTS: tuple[str, ...] = (
         expense_ratio DOUBLE,
         benchmark TEXT,
         issuer TEXT,
-        listing_tz TEXT
+        listing_tz TEXT,
+        hedged_pair_of TEXT,
+        role TEXT,
+        underlying TEXT
     )
     """,
     """
@@ -119,6 +122,9 @@ _STATEMENTS: tuple[str, ...] = (
         sector TEXT,
         ccy TEXT,
         asset_class TEXT,
+        name TEXT,
+        market_value DOUBLE,
+        ccy_mv TEXT,
         PRIMARY KEY (instrument_id, as_of, holding_key, source)
     )
     """,
@@ -138,13 +144,15 @@ _STATEMENTS: tuple[str, ...] = (
         ingested_at TIMESTAMPTZ NOT NULL,
         tier TEXT NOT NULL,
         quality_flag TEXT NOT NULL DEFAULT 'ok',
+        session_note TEXT,
         PRIMARY KEY (instrument_id, trade_date, source),
         CHECK (tier IN ("""
     + _TIER_SQL
     + """)),
         CHECK (quality_flag IN ("""
     + _QUALITY_SQL
-    + """))
+    + """)),
+        CHECK (tier <> 'research' OR quality_flag = 'unofficial')
     )
     """,
     """
@@ -219,6 +227,37 @@ _STATEMENTS: tuple[str, ...] = (
     )
     """,
     """
+    CREATE TABLE IF NOT EXISTS data_flag (
+        as_of DATE NOT NULL,
+        kind TEXT NOT NULL,
+        instrument_id TEXT NOT NULL,
+        detail TEXT NOT NULL,
+        PRIMARY KEY (as_of, kind, instrument_id)
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS quarantine (
+        sha256 TEXT PRIMARY KEY,
+        source_id TEXT NOT NULL,
+        series_id TEXT,
+        reason TEXT NOT NULL,
+        quarantined_at TIMESTAMPTZ NOT NULL
+    )
+    """,
+    """
+    CREATE TABLE IF NOT EXISTS job_run (
+        job_id TEXT PRIMARY KEY,
+        kind TEXT NOT NULL,
+        started_at TIMESTAMPTZ NOT NULL,
+        ended_at TIMESTAMPTZ NOT NULL,
+        status TEXT NOT NULL,
+        manifest_digest TEXT,
+        detail TEXT,
+        CHECK (kind IN ('daily', 'weekly')),
+        CHECK (status IN ('ok', 'blocked', 'error'))
+    )
+    """,
+    """
     CREATE INDEX IF NOT EXISTS idx_observation_series_published
         ON observation (series_id, published_at)
     """,
@@ -226,6 +265,25 @@ _STATEMENTS: tuple[str, ...] = (
     CREATE INDEX IF NOT EXISTS idx_world_state_lookup
         ON world_state (entity_type, entity_id, state_var, as_of)
     """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_price_bar_tier
+        ON price_bar (instrument_id, tier, trade_date)
+    """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_holding_published
+        ON holding_snapshot (instrument_id, published_at)
+    """,
+)
+
+# Columns added after the first schema. CREATE TABLE IF NOT EXISTS does not alter an existing table.
+_ADDED_COLUMNS: tuple[tuple[str, str, str], ...] = (
+    ("price_bar", "session_note", "TEXT"),
+    ("holding_snapshot", "name", "TEXT"),
+    ("holding_snapshot", "market_value", "DOUBLE"),
+    ("holding_snapshot", "ccy_mv", "TEXT"),
+    ("instrument", "hedged_pair_of", "TEXT"),
+    ("instrument", "role", "TEXT"),
+    ("instrument", "underlying", "TEXT"),
 )
 
 
@@ -247,6 +305,8 @@ def create_schema(conn: duckdb.DuckDBPyConnection) -> None:
     ensure_utc(conn)
     for statement in _STATEMENTS:
         conn.execute(statement)
+    for table, column, typedef in _ADDED_COLUMNS:
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN IF NOT EXISTS {column} {typedef}")
     conn.execute(
         """
         INSERT INTO schema_version (version, applied_at)

@@ -1,0 +1,32 @@
+# Daily and weekly jobs (spec §9.4). This file is configuration, not a scheduler.
+# Wire cron or Windows Task Scheduler, after the CLI owner calls register_cli, to:
+#   macrosys daily --config config/pipeline.yaml
+#   macrosys weekly --config config/pipeline.yaml
+
+db_path: data/store/macrosys.duckdb
+raw_root: raw
+manifest_dir: data/manifests
+library_version: "0.0.1"
+parameter_set: default
+code_commit: local
+price_lookback_days: 10
+cross_check_tol: 0.01
+cross_check_instruments: [SPY, TLT, GLD, CPER, UUP]
+series:
+  - source_id: FRED
+    max_lag_days: 45
+    series_ids:
+      - FRED:GDPC1
+      - FRED:CPIAUCSL
+      - FRED:FEDFUNDS
+  - source_id: ECB
+    max_lag_days: 5
+    series_ids:
+      - ECB:EXR.D.USD.EUR.SP00.A
+  - source_id: CFTC
+    max_lag_days: 10
+    series_ids:
+      - CFTC:TFF:088691:open_interest
+prices:
+  - source_id: TIINGO
+    instrument_ids: [SPY, TLT, GLD, CPER, UUP]

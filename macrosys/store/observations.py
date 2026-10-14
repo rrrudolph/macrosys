@@ -187,6 +187,11 @@ class ObservationStore:
         self._conn = conn
         ensure_utc(conn)
 
+    @property
+    def conn(self) -> duckdb.DuckDBPyConnection:
+        """DuckDB connection the observation tables live on."""
+        return self._conn
+
     def append(self, rows: list[Observation]) -> int:
         """Insert observations, skipping natural-key duplicates (spec §9.1, §9.4).
 

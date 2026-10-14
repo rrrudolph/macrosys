@@ -111,6 +111,25 @@ class FileRawStore:
             raise ValueError(f"raw payload hash mismatch at {payload.path}: stored {digest}, record {payload.sha256}")
         return data
 
+    def list(self, source_id: str | None = None) -> list[RawPayload]:
+        """Return stored payloads, optionally for one source, ordered by fetch time (spec §9.1).
+
+        Sidecar JSON is the record. Replay uses this list so a parser fix re-reads bytes already
+        on disk instead of downloading them again.
+        """
+        raw = self.root / "raw"
+        base = raw / source_id if source_id is not None else raw
+        if not base.is_dir():
+            return []
+        payloads: list[RawPayload] = []
+        for sidecar in base.rglob("*.json"):
+            stem = sidecar.name.removesuffix(".json")
+            if not _SHA256.fullmatch(stem):
+                continue
+            payloads.append(RawPayload.model_validate_json(sidecar.read_text(encoding="utf-8")))
+        payloads.sort(key=lambda payload: (payload.fetched_at, payload.sha256))
+        return payloads
+
     def exists(self, sha256: str) -> bool:
         """True when a content file named ``sha256`` is already under this store (spec §9.4 dedup)."""
         if not isinstance(sha256, str) or not _SHA256.fullmatch(sha256):
