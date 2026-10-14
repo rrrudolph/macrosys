@@ -1,0 +1,16 @@
+{
+  "objections": [
+    {
+      "field": "priced_in",
+      "kind": "priced_in_underestimated",
+      "detail": "The futures curve already embeds most of the move.",
+      "cites": ["C07"]
+    },
+    {
+      "field": "gap",
+      "kind": "unit_error",
+      "detail": "The gap unit looks wrong.",
+      "cites": []
+    }
+  ]
+}

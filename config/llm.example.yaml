@@ -1,0 +1,45 @@
+# LLM configuration (spec §8.3, §9.7). Copy to llm.yaml and keep secrets in the environment.
+# Prices were read 2026-10-14. Model ids and prices stay in this file, not in code.
+as_of: 2026-10-14
+monthly_budget_usd: 25
+# Four characters per token, then the ~30% newer-tokenizer factor (spec §8.3).
+chars_per_token: 4
+tokenizer_factor: 1.3
+# Role 3 keeps this so the other roles cannot spend the whole month (spec §9.7).
+critique_reserve_usd: 1
+# Retrieved context cap so a role prompt cannot grow without a bound (spec §8.3).
+retrieval_token_budget: 8000
+# Spec §3.4 rule 4 default materiality. A design parameter, not a law.
+materiality_threshold:
+  value: 0.01
+  unit: share
+  provenance: spec_3.4_rule4
+roles:
+  extract: claude-haiku-5.5
+  propose: claude-sonnet-5.5
+  critique: claude-opus-5.5
+  narrate: claude-sonnet-5.5
+# USD per million tokens. cache_read null bills cache reads at the input rate:
+# spec §8.3 publishes input and output prices only.
+prices:
+  claude-haiku-5.5:
+    input_usd_per_mtok: 0.10
+    output_usd_per_mtok: 0.50
+    cache_read_usd_per_mtok: null
+  claude-sonnet-5.5:
+    input_usd_per_mtok: 2
+    output_usd_per_mtok: 10
+    cache_read_usd_per_mtok: null
+  claude-opus-5.5:
+    input_usd_per_mtok: 4
+    output_usd_per_mtok: 20
+    cache_read_usd_per_mtok: null
+  # Indicative: third-party aggregators, not OpenAI's own page (spec §8.3).
+  gpt-5:
+    input_usd_per_mtok: 1.25
+    output_usd_per_mtok: 10
+    cache_read_usd_per_mtok: null
+  gpt-5-mini:
+    input_usd_per_mtok: 0.25
+    output_usd_per_mtok: 2
+    cache_read_usd_per_mtok: null

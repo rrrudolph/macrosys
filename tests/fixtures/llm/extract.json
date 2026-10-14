@@ -1,0 +1,26 @@
+{
+  "candidates": [
+    {
+      "type": "demand",
+      "subtype": "investment",
+      "origin": {"entity_type": "economy", "entity_id": "USA"},
+      "size": {"value": 12.5, "unit": "USD_bn", "low": null, "high": null},
+      "stage": "contracted",
+      "start": "2026-01-15",
+      "source_spans": [
+        {"doc_id": "doc-capex", "quote": "announced a 12.5 USD billion investment"}
+      ]
+    },
+    {
+      "type": "demand",
+      "subtype": "investment",
+      "origin": {"entity_type": "economy", "entity_id": "USA"},
+      "size": {"value": 99, "unit": "USD_bn", "low": null, "high": null},
+      "stage": "contracted",
+      "start": "2026-01-15",
+      "source_spans": [
+        {"doc_id": "doc-capex", "quote": "the program is now contracted"}
+      ]
+    }
+  ]
+}
