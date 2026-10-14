@@ -37,6 +37,8 @@ observed_structure:
     dominant_competing: B11_monetary_transmission
     source_url: "https://www.census.gov/construction/nrc/index.html"
     source_note: "Census new residential construction: housing starts rose after mid-2020. Sign of residential activity over the next several quarters is positive. No starts level is stored."
+    mechanism_id: B14_housing
+    output: d_residential
   - entity:
       type: economy
       id: USA
@@ -46,9 +48,23 @@ observed_structure:
     dominant_competing: B13_financial_accelerator
     source_url: "https://www.fhfa.gov/data/hpi"
     source_note: "FHFA house price index: US house prices rose over 2020-22. Sign is positive. The later 2022 rate rise is the competing monetary channel, not a stored magnitude."
+    mechanism_id: B03_bottleneck_pricing
+    output: d_price
 mechanism_path_hint:
   - B14_housing
   - B11_monetary_transmission
+  - B03_bottleneck_pricing
+replay:
+  B14_housing:
+    shock_input: d_permits
+  B11_monetary_transmission:
+    shock_input: d_policy
+    shock_value: 1.0
+    shock_unit: pp
+  B03_bottleneck_pricing:
+    shock_input: d_demand
+    inputs:
+      u: {value: 0.85, unit: share}
 fixture_observations: fixtures/us_housing_2020.csv
 notes: >
   The shock size is a case_fixture sign-carrier for replay, not a measured magnitude.

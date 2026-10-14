@@ -27,7 +27,7 @@ def test_case_files_validate():
             assert parsed.netloc
 
 
-def test_replay_scores_fiscal_and_blocks_cny_without_counting_blocks_as_misses():
+def test_replay_scores_fiscal_and_cny_signs():
     by_id = {case.case_id: case for case in CASES}
     runner = CaseRunner()
     fiscal = runner.replay(by_id["us_fiscal_2021"], LIBRARY)
@@ -35,13 +35,21 @@ def test_replay_scores_fiscal_and_blocks_cny_without_counting_blocks_as_misses()
     assert fiscal.n_scored >= 1
     assert fiscal.n_sign_correct >= 1
     assert fiscal.n_sign_wrong == 0
-    assert fiscal.n_blocked >= 1
-    assert any(item.parameter == "multiplier" for item in fiscal.blocked)
+    assert fiscal.errors == []
     assert fiscal.rank_correlation is None
+    assert cny.n_scored >= 1
+    assert cny.n_sign_correct >= 1
+    assert cny.n_sign_wrong == 0
+    assert cny.errors == []
+    assert cny.rank_correlation is None
+
+
+def test_replay_without_operating_ranges_still_refuses_cny():
+    by_id = {case.case_id: case for case in CASES}
+    cny = CaseRunner(operating=False).replay(by_id["cny_2015"], LIBRARY)
     assert cny.n_blocked >= 1
     assert cny.n_sign_wrong == 0
     assert any(item.parameter == "pt_import" for item in cny.blocked)
-    assert cny.rank_correlation is None
 
 
 def test_held_out_split_adds_up():

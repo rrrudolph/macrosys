@@ -37,6 +37,8 @@ observed_structure:
     dominant_competing: B04_inventory_cycle
     source_url: "https://www.bbc.com/news/world-middle-east-56505413"
     source_note: "BBC: the Ever Given blocked the Suez Canal from 23 March 2021 and was refloated within days. Transit fell while the ship was stuck; the horizon is inside one quarter."
+    mechanism_id: B25_transport
+    output: d_freight
   - entity:
       type: commodity
       id: freight
@@ -46,10 +48,22 @@ observed_structure:
     dominant_competing: B04_inventory_cycle
     source_url: "https://www.reuters.com/world/middle-east/suez-canal-says-container-ship-ever-given-partially-refloated-2021-03-29/"
     source_note: "Reuters: the ship was partially refloated on 29 March 2021. The disruption did not persist for multiple quarters."
+    mechanism_id: B25_transport
+    output: d_freight
 mechanism_path_hint:
   - B25_transport
+replay:
+  B25_transport:
+    shock_input: utilization_pct
+    shock_value: 1.0
+    shock_unit: pct
+    inputs:
+      fob: {value: 70.0, unit: USD}
+      freight: {value: 20.0, unit: USD}
+      insurance: {value: 10.0, unit: USD}
 fixture_observations: fixtures/suez_2021.csv
 notes: >
   The shock size is a case_fixture sign-carrier for replay, not a measured magnitude.
+  B25 is fed a positive fleet-utilization sign-carrier: the blockage tightened the fleet. The case shock remains the transit decline.
   Observation rows are case_fixture placeholders with quality_flag estimated.
   Observed outcomes record signs, ordering, and the dominant competing channel only.

@@ -37,6 +37,8 @@ observed_structure:
     dominant_competing: B06_demand_elasticity
     source_url: "https://www.imf.org/en/blogs/articles/2024/03/07/red-sea-attacks-disrupt-global-trade"
     source_note: "IMF blog March 2024: Red Sea attacks diverted traffic around the Cape and raised freight rates. The inflation effect was described as limited relative to the freight move. Sign of freight is positive."
+    mechanism_id: B25_transport
+    output: d_freight
   - entity:
       type: commodity
       id: freight
@@ -49,8 +51,26 @@ observed_structure:
 mechanism_path_hint:
   - B25_transport
   - B04_inventory_cycle
+replay:
+  B25_transport:
+    shock_input: utilization_pct
+    shock_value: 1.0
+    shock_unit: pct
+    inputs:
+      fob: {value: 70.0, unit: USD}
+      freight: {value: 20.0, unit: USD}
+      insurance: {value: 10.0, unit: USD}
+  B04_inventory_cycle:
+    shock_input: d_sales
+    shock_value: 1.0
+    shock_unit: USD_bn
+    inputs:
+      inventory: {value: 100.0, unit: USD_bn}
+      sales: {value: 200.0, unit: USD_bn}
+      target_ratio: {value: 0.5, unit: share}
 fixture_observations: fixtures/red_sea_2024.csv
 notes: >
   The shock size is a case_fixture sign-carrier for replay, not a measured magnitude.
+  B25 is fed a positive fleet-utilization sign-carrier: the diversion tightened the fleet. The case shock remains the transit decline.
   Observation rows are case_fixture placeholders with quality_flag estimated.
   Observed outcomes record signs, ordering, and the dominant competing channel only.

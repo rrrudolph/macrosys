@@ -1,0 +1,68 @@
+# Operating sign ranges (spec §3.3, §10.1).
+#
+# Each range is strictly signed the way the mechanism's formula already is, so a case can
+# be scored. The width is not a fitted magnitude and not a literature point. The weekly
+# decision job does not load this file. A pass here is a direction check, not permission
+# to trade.
+parameters:
+  B03_bottleneck_pricing:
+    eps_s_slack: {low: 1.0, high: 3.0, unit: ratio, source: operating_sign:spec_3.3_B03}
+    eps_s_tight: {low: 0.05, high: 0.4, unit: ratio, source: operating_sign:spec_3.3_B03}
+    eps_d: {low: 0.3, high: 1.0, unit: ratio, source: operating_sign:spec_3.3_B03}
+    u_cap: {low: 0.90, high: 0.95, unit: share, source: operating_sign:spec_3.3_B03}
+  B05_capacity_pipeline:
+    slippage: {low: 0.15, high: 0.40, unit: share, source: operating_sign:spec_3.3_B05}
+  B06_demand_elasticity:
+    eps_sr: {low: -0.4, high: -0.1, unit: ratio, source: operating_sign:spec_3.3_B06}
+    eps_lr: {low: -1.2, high: -0.5, unit: ratio, source: operating_sign:spec_3.3_B06}
+    speed: {low: 0.25, high: 0.60, unit: share, source: operating_sign:spec_3.3_B06}
+  B07_substitution:
+    sigma: {low: 0.05, high: 0.30, unit: ratio, source: operating_sign:spec_3.3_B07}
+  B08_pass_through:
+    capture: {low: 0.20, high: 0.60, unit: share, source: operating_sign:spec_3.3_B08}
+  B10_phillips:
+    slope_wage: {low: 0.05, high: 0.30, unit: ratio, source: operating_sign:spec_3.3_B10}
+    slope_core: {low: 0.05, high: 0.25, unit: ratio, source: operating_sign:spec_3.3_B10}
+  B11_monetary_transmission:
+    multiplier: {low: 0.20, high: 1.00, unit: ratio, source: operating_sign:spec_3.3_B11}
+  B12_bank_credit:
+    elasticity: {low: 0.20, high: 1.00, unit: ratio, source: operating_sign:spec_3.3_B12}
+  B13_financial_accelerator:
+    elasticity: {low: 0.20, high: 1.00, unit: ratio, source: operating_sign:spec_3.3_B13}
+  B14_housing:
+    elasticity: {low: 0.50, high: 1.50, unit: ratio, source: operating_sign:spec_3.3_B14}
+  B16_fx_passthrough:
+    pt_import: {low: 0.60, high: 1.00, unit: share, source: operating_sign:spec_3.3_B16_import_high}
+    pt_cpi: {low: 0.10, high: 0.40, unit: share, source: operating_sign:spec_3.3_B16_cpi_partial}
+  B18_global_financial_cycle:
+    elasticity: {low: 0.20, high: 1.00, unit: ratio, source: operating_sign:spec_3.3_B18}
+  B19_carry:
+    carry_coeff: {low: 0.20, high: 1.00, unit: ratio, source: operating_sign:spec_3.3_B19}
+    crash_coeff: {low: 0.20, high: 1.00, unit: ratio, source: operating_sign:spec_3.3_B19}
+  B20_momentum:
+    continuation: {low: 0.20, high: 1.00, unit: ratio, source: operating_sign:spec_3.3_B20}
+    reversal: {low: 0.20, high: 1.00, unit: ratio, source: operating_sign:spec_3.3_B20}
+  B21_positioning:
+    multiplier: {low: 0.20, high: 1.00, unit: ratio, source: operating_sign:spec_3.3_B21}
+  B22_intermediary_capacity:
+    elasticity: {low: 0.20, high: 1.00, unit: ratio, source: operating_sign:spec_3.3_B22}
+  B23_expectations:
+    overreaction: {low: 0.20, high: 1.00, unit: ratio, source: operating_sign:spec_3.3_B23}
+  B24_supply_chain:
+    loss_coeff: {low: 0.50, high: 1.50, unit: ratio, source: operating_sign:spec_3.3_B24}
+    cushion: {low: 0.00, high: 0.10, unit: ratio, source: operating_sign:spec_3.3_B24}
+  B25_transport:
+    freight_elasticity: {low: 0.50, high: 2.00, unit: ratio, source: operating_sign:spec_3.3_B25}
+  B26_productivity:
+    pass_through: {low: 0.20, high: 0.80, unit: share, source: operating_sign:spec_3.3_B26}
+  B27_funding_squeeze:
+    elasticity: {low: 0.50, high: 1.50, unit: ratio, source: operating_sign:spec_3.3_B27}
+  C04_breakeven:
+    irp: {low: 0.05, high: 0.30, unit: pct, source: operating_sign:spec_3.3_C04}
+    liquidity: {low: 0.05, high: 0.30, unit: pct, source: operating_sign:spec_3.3_C04}
+  C05_equity_duration:
+    duration: {low: 10.0, high: 30.0, unit: y, source: operating_sign:spec_3.3_C05}
+  C09_policy_path:
+    risk_premium: {low: 0.05, high: 0.25, unit: pct, source: operating_sign:spec_3.3_C09_small}
+  C11_ppp:
+    half_life: {low: 3.0, high: 6.0, unit: y, source: operating_sign:spec_3.3_C11_several_years}

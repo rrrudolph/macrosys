@@ -37,6 +37,8 @@ observed_structure:
     dominant_competing: B11_monetary_transmission
     source_url: "https://www.ecb.europa.eu/pub/economic-bulletin/focus/2022/html/ecb.ebbox202204_01~68ef3c3dc6.en.html"
     source_note: "ECB Economic Bulletin box, April 2022: European energy prices jumped and passed into inflation. Sign of energy prices and near-term inflation is positive. No euro figure is stored."
+    mechanism_id: B03_bottleneck_pricing
+    output: d_price
   - entity:
       type: economy
       id: EA
@@ -46,9 +48,21 @@ observed_structure:
     dominant_competing: B11_monetary_transmission
     source_url: "https://www.iea.org/reports/gas-market-report-q3-2022"
     source_note: "IEA Gas Market Report Q3 2022: European gas supply tightened after Russian flows were cut. The price sign is positive."
+    mechanism_id: B03_bottleneck_pricing
+    output: d_price
 mechanism_path_hint:
   - B03_bottleneck_pricing
   - B10_phillips
+replay:
+  B03_bottleneck_pricing:
+    shock_input: d_demand
+    inputs:
+      u: {value: 0.85, unit: share}
+  B10_phillips:
+    shock_input: supply_shock
+    inputs:
+      unemployment_gap: {value: 0.0, unit: pp}
+      inflation_expectations: {value: 0.0, unit: pct}
 fixture_observations: fixtures/eu_energy_2022.csv
 notes: >
   The shock size is a case_fixture sign-carrier for replay, not a measured magnitude.

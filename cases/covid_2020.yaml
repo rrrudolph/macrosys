@@ -37,6 +37,9 @@ observed_structure:
     dominant_competing: B24_supply_chain
     source_url: "https://www.bea.gov/news/2020/gross-domestic-product-2nd-quarter-2020-advance-estimate"
     source_note: "BEA: real GDP contracted in 2020Q2. The case stores the negative sign, not the published percent."
+    mechanism_id: B24_supply_chain
+    output: output_loss
+    polarity: opposite
   - entity:
       type: economy
       id: USA
@@ -46,9 +49,24 @@ observed_structure:
     dominant_competing: B24_supply_chain
     source_url: "https://www.federalreserve.gov/monetarypolicy/fomcminutes20200429.htm"
     source_note: "FOMC minutes 28-29 April 2020: the drop combined a collapse in spending with supply constraints. Demand is the shock type here; supply is the competing channel."
+    mechanism_id: B24_supply_chain
+    output: output_loss
+    polarity: opposite
 mechanism_path_hint:
   - B11_monetary_transmission
   - B24_supply_chain
+replay:
+  B11_monetary_transmission:
+    shock_input: d_policy
+    shock_value: -1.0
+    shock_unit: pp
+  B24_supply_chain:
+    shock_input: disruption
+    shock_value: 1.0
+    shock_unit: pct
+    inputs:
+      specificity: {value: 1.0, unit: share}
+      inventory_days: {value: 0.0, unit: d}
 fixture_observations: fixtures/covid_2020.csv
 notes: >
   The shock size is a case_fixture sign-carrier for replay, not a measured magnitude.

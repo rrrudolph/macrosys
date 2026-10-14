@@ -37,6 +37,8 @@ observed_structure:
     dominant_competing: B10_phillips
     source_url: "https://www.federalreserve.gov/newsevents/pressreleases/monetary20220316a.htm"
     source_note: "FOMC statement 16 March 2022: the Committee raised the funds-rate target, the start of the hiking cycle. Sign of the policy rate over the following quarters is positive."
+    mechanism_id: C09_policy_path
+    output: policy_rate
   - entity:
       type: currency
       id: USD
@@ -49,6 +51,22 @@ observed_structure:
 mechanism_path_hint:
   - B11_monetary_transmission
   - B19_carry
+  - C09_policy_path
+replay:
+  B11_monetary_transmission:
+    shock_input: d_policy
+    shock_value: 1.0
+    shock_unit: pp
+  B19_carry:
+    shock_input: interest_differential
+    shock_value: 1.0
+    shock_unit: share
+    inputs:
+      risk_off: {value: 0.0, unit: share}
+  C09_policy_path:
+    shock_input: futures_rate
+    shock_value: 1.0
+    shock_unit: pct
 fixture_observations: fixtures/fed_2022.csv
 notes: >
   The shock size is a case_fixture sign-carrier for replay, not a measured magnitude.

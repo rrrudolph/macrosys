@@ -37,6 +37,8 @@ observed_structure:
     dominant_competing: A07_central_bank_balance_sheet
     source_url: "https://www.federalreserve.gov/publications/files/svb-review-20230428.pdf"
     source_note: "Federal Reserve SVB review (April 2023): uninsured deposit outflows and securities losses produced funding failure. The stress sign is positive. No deposit total is stored."
+    mechanism_id: B27_funding_squeeze
+    output: d_spread
   - entity:
       type: institution
       id: FED
@@ -49,6 +51,20 @@ observed_structure:
 mechanism_path_hint:
   - B27_funding_squeeze
   - A07_central_bank_balance_sheet
+replay:
+  B27_funding_squeeze:
+    shock_input: funding_stress
+    shock_value: 1.0
+    shock_unit: bp
+  A07_central_bank_balance_sheet:
+    shock_input: assets
+    shock_value: 100.0
+    shock_unit: USD_bn
+    inputs:
+      reserves: {value: 40.0, unit: USD_bn}
+      currency: {value: 30.0, unit: USD_bn}
+      gov_deposits: {value: 20.0, unit: USD_bn}
+      other: {value: 10.0, unit: USD_bn}
 fixture_observations: fixtures/svb_2023.csv
 notes: >
   The shock size is a case_fixture sign-carrier for replay, not a measured magnitude.

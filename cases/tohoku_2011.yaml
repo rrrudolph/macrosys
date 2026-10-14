@@ -44,6 +44,8 @@ observed_structure:
     dominant_competing: B04_inventory_cycle
     source_url: "https://www.boj.or.jp/en/mopo/outlook/gor1104.htm"
     source_note: "BOJ April 2011 Outlook: production fell after the earthquake and was expected to recover as supply chains restarted. Sign only."
+    mechanism_id: B04_inventory_cycle
+    output: production_response
   - entity:
       type: economy
       id: JPN
@@ -53,9 +55,28 @@ observed_structure:
     dominant_competing: B24_supply_chain
     source_url: "https://www.federalreserve.gov/monetarypolicy/fomcminutes20110427.htm"
     source_note: "FOMC minutes 26-27 April 2011: the disaster disrupted global supply chains, especially autos, and was discussed as temporary. Sign only."
+    mechanism_id: B24_supply_chain
+    output: output_loss
+    polarity: opposite
 mechanism_path_hint:
   - B24_supply_chain
   - B04_inventory_cycle
+replay:
+  B24_supply_chain:
+    shock_input: disruption
+    shock_value: 1.0
+    shock_unit: pct
+    inputs:
+      specificity: {value: 1.0, unit: share}
+      inventory_days: {value: 0.0, unit: d}
+  B04_inventory_cycle:
+    shock_input: d_sales
+    shock_value: -1.0
+    shock_unit: USD_bn
+    inputs:
+      inventory: {value: 100.0, unit: USD_bn}
+      sales: {value: 200.0, unit: USD_bn}
+      target_ratio: {value: 0.5, unit: share}
 fixture_observations: fixtures/tohoku_2011.csv
 notes: >
   The shock size is a case_fixture sign-carrier for replay, not a measured magnitude.

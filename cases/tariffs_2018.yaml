@@ -37,6 +37,8 @@ observed_structure:
     dominant_competing: B08_pass_through
     source_url: "https://www.aeaweb.org/articles?id=10.1257/jep.33.4.187"
     source_note: "Amiti, Redding, and Weinstein (JEP 2019): the 2018 tariffs raised US import prices, with incidence largely on US buyers. Sign of import prices is positive. No tariff rate is stored."
+    mechanism_id: B08_pass_through
+    output: passed_on
   - entity:
       type: economy
       id: USA
@@ -46,9 +48,18 @@ observed_structure:
     dominant_competing: B08_pass_through
     source_url: "https://ustr.gov/issue-areas/enforcement/section-301-investigations/tariff-actions"
     source_note: "USTR Section 301 tariff actions: the July 2018 list was an enacted trade measure. The price sign is taken from the JEP paper, not from this page."
+    mechanism_id: B08_pass_through
+    output: passed_on
 mechanism_path_hint:
   - B08_pass_through
   - B02_cost_share
+replay:
+  B08_pass_through:
+    shock_input: d_cost
+  B02_cost_share:
+    shock_input: d_price
+    inputs:
+      s_ij: {value: 0.25, unit: share}
 fixture_observations: fixtures/tariffs_2018.csv
 notes: >
   The shock size is a case_fixture sign-carrier for replay, not a measured magnitude.

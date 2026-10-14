@@ -16,7 +16,8 @@ import duckdb
 import pandas as pd
 from pydantic import BaseModel, ConfigDict, Field
 
-from macrosys.cases.schema import Case, StructurePoint, default_cases_dir
+from macrosys.cases.operating import OperatingSet, load_operating_parameters
+from macrosys.cases.schema import Case, ObservedPoint, ReplayStep, StructurePoint, default_cases_dir
 from macrosys.core.contracts import Observation
 from macrosys.core.quantity import Quantity
 from macrosys.mechanisms import (
@@ -67,6 +68,8 @@ class CaseResult(BaseModel):
     dominant_competing_listed: bool | None
     refresh_skipped: int
     refresh_written: int
+    unmapped: list[str] = Field(default_factory=list)
+    n_unmapped: int = 0
 
 
 class GroupAggregate(BaseModel):
@@ -105,9 +108,20 @@ class _StepOut(BaseModel):
 class CaseRunner:
     """Replay one case from its fixture and its information cutoff (spec §10.1 item 2)."""
 
-    def __init__(self, recipes: list[Recipe] | None = None, case_root: str | Path | None = None) -> None:
+    def __init__(
+        self,
+        recipes: list[Recipe] | None = None,
+        case_root: str | Path | None = None,
+        operating: OperatingSet | None | bool = True,
+    ) -> None:
         self.recipes = recipes
         self.case_root = Path(case_root) if case_root is not None else default_cases_dir()
+        if operating is True:
+            self.operating: OperatingSet = load_operating_parameters()
+        elif operating is False or operating is None:
+            self.operating = {}
+        else:
+            self.operating = operating
 
     def replay(self, case: Case, library: Library, as_of: datetime | None = None) -> CaseResult:
         """Refresh state at ``as_of`` and score the hinted path (spec §10.1 item 2, §9.2).
@@ -136,7 +150,7 @@ class CaseRunner:
                     f"case_fixture:{case.case_id} quality:{row.quality_flag}",
                 )
             state = state_store.view(instant)
-            steps, blocked, errors = _propagate(case, library, state)
+            steps, blocked, errors = _propagate(case, library, state, self.operating)
         finally:
             conn.close()
         return _score(case, instant, steps, blocked, errors, report)
@@ -185,7 +199,9 @@ def _aggregate(label: str, results: list[CaseResult]) -> GroupAggregate:
     )
 
 
-def _propagate(case: Case, library: Library, state) -> tuple[list[_StepOut], list[BlockedMechanism], list[str]]:
+def _propagate(
+    case: Case, library: Library, state, operating: OperatingSet
+) -> tuple[list[_StepOut], list[BlockedMechanism], list[str]]:
     ids = list(case.mechanism_path_hint or [])
     if not ids:
         try:
@@ -227,11 +243,19 @@ def _propagate(case: Case, library: Library, state) -> tuple[list[_StepOut], lis
         except KeyError:
             errors.append(f"{mechanism_id}: unknown mechanism")
             continue
-        target = spec.inputs[0].name
-        path = _single_path(mechanism_id, spec.competing)
+        binding = case.replay.get(mechanism_id)
+        target = binding.shock_input if binding is not None and binding.shock_input else spec.inputs[0].name
+        path = _single_path(
+            mechanism_id,
+            spec.competing,
+            overrides=dict(operating.get(mechanism_id, {})),
+            fixed_inputs=_fixed_inputs(binding),
+            origin_type=case.shock.origin.entity_type,
+            origin_id=case.shock.origin.entity_id,
+        )
         try:
             run = Propagator(library).run(
-                PropagationShock(shock_id=case.shock.id, magnitude=case.shock.size, target_input=target),
+                PropagationShock(shock_id=case.shock.id, magnitude=_magnitude(case, binding), target_input=target),
                 state,
                 path,
             )
@@ -253,15 +277,31 @@ def _propagate(case: Case, library: Library, state) -> tuple[list[_StepOut], lis
     return steps, blocked, errors
 
 
-def _single_path(mechanism_id: str, competing: list[str]) -> PropagationPath:
+def _single_path(
+    mechanism_id: str,
+    competing: list[str],
+    *,
+    overrides: dict[str, Quantity],
+    fixed_inputs: dict[str, Quantity],
+    origin_type: str,
+    origin_id: str,
+) -> PropagationPath:
     """One mechanism with its competitors accepted so the path closes (spec §3.4 rule 3).
 
     The acceptance threshold is a closure token for replay, not an estimated economic magnitude.
-    Provenance is ``case_replay``.
+    Provenance is ``case_replay``. Operating ranges arrive as parameter overrides. Companion
+    inputs are fixed levels from the case file.
     """
     token = Quantity(value=0.01, unit="share", provenance=_CLOSURE)
     return PropagationPath(
-        steps=[MechanismInstance(mechanism_id=mechanism_id)],
+        steps=[
+            MechanismInstance(
+                mechanism_id=mechanism_id,
+                parameter_overrides=overrides,
+                fixed_inputs=fixed_inputs,
+                bindings={"entity_type": origin_type, "entity_id": origin_id},
+            )
+        ],
         accepted_competing=[
             AcceptedCompeting(mechanism=name, observable="not on this case path", threshold=token)
             for name in competing
@@ -283,13 +323,33 @@ def _score(
     horizon_errors: list[float] = []
     dominant: list[bool] = []
     predicted: list[float] = []
-    for point in case.expected_structure:
-        match = _find(point, case, steps)
+    unmapped: list[str] = []
+    seen: set[tuple[str, str, str, str | None, str | None, str, int]] = set()
+    opened: set[str] = set()
+    for point in case.observed_structure:
+        # Two write-ups of one outcome are one fact. A second source with the same sign
+        # does not add a second trial (spec §10.1 item 10).
+        key = (
+            point.entity.type,
+            point.entity.id,
+            point.variable,
+            point.mechanism_id,
+            point.output,
+            point.polarity,
+            point.sign,
+        )
+        match = _match_observed(point, case, steps)
         if match is None:
+            if point.variable not in opened:
+                unmapped.append(point.variable)
+                opened.add(point.variable)
             continue
+        if key in seen:
+            continue
+        seen.add(key)
         step, quantity = match
         scored += 1
-        if _sign(quantity) == point.sign:
+        if _agrees(quantity, point):
             correct += 1
         midpoint = 0.5 * (point.horizon_q[0] + point.horizon_q[1])
         horizon_errors.append(abs(step.peak_q - midpoint))
@@ -321,6 +381,8 @@ def _score(
         dominant_competing_listed=dominant_listed,
         refresh_skipped=len(report.skipped),
         refresh_written=len(report.written),
+        unmapped=unmapped,
+        n_unmapped=len(unmapped),
     )
 
 
@@ -332,6 +394,46 @@ def _rank(predicted: list[float], case: Case) -> float | None:
     """
     del predicted, case
     return None
+
+
+def _magnitude(case: Case, binding: ReplayStep | None) -> Quantity:
+    """Shock quantity for one mechanism (spec §10.1). A case may retarget the sign-carrier."""
+    if binding is not None and binding.shock_value is not None and binding.shock_unit is not None:
+        return Quantity(value=binding.shock_value, unit=binding.shock_unit, provenance="case_fixture")
+    return case.shock.size
+
+
+def _fixed_inputs(binding: ReplayStep | None) -> dict[str, Quantity]:
+    """Companion inputs declared on the case, labelled as fixtures (spec §10.1)."""
+    if binding is None:
+        return {}
+    return {
+        name: Quantity(value=level.value, unit=level.unit, provenance="case_fixture")
+        for name, level in binding.inputs.items()
+    }
+
+
+def _agrees(quantity: Quantity, point: ObservedPoint) -> bool:
+    """True when the propagated sign matches the observed sign under ``polarity`` (spec §10.1)."""
+    sign = _sign(quantity)
+    if point.polarity == "opposite":
+        return sign == -point.sign
+    return sign == point.sign
+
+
+def _match_observed(
+    point: ObservedPoint, case: Case, steps: list[_StepOut]
+) -> tuple[_StepOut, Quantity] | None:
+    """Find the step output this observed row names (spec §10.1 item 2)."""
+    if point.mechanism_id and point.output:
+        for step in steps:
+            if step.mechanism_id != point.mechanism_id:
+                continue
+            quantity = step.outputs.get(point.output)
+            if quantity is not None:
+                return step, quantity
+        return None
+    return _find(point, case, steps)
 
 
 def _find(point: StructurePoint, case: Case, steps: list[_StepOut]) -> tuple[_StepOut, Quantity] | None:

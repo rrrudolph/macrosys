@@ -17,10 +17,12 @@ import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from macrosys.core.contracts import EntityKey, QualityFlag
+from macrosys.core.units import assert_unit
 from macrosys.decide.shock import Shock
 from macrosys.mechanisms.spec import MECHANISM_ID
 
 Sign = Literal[-1, 0, 1]
+Polarity = Literal["same", "opposite"]
 EntityType = Literal[
     "economy",
     "industry",
@@ -91,16 +93,66 @@ class StructurePoint(BaseModel):
         return self
 
 
+class FixtureLevel(BaseModel):
+    """A sign-carrier input for one mechanism on a case replay (spec §10.1). Not a published reading."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    value: float
+    unit: str
+
+    @field_validator("unit")
+    @classmethod
+    def _unit(cls, value: str) -> str:
+        assert_unit(value)
+        return value
+
+
+class ReplayStep(BaseModel):
+    """How one hinted mechanism receives the case shock and its other inputs (spec §10.1 item 2)."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    shock_input: str | None = None
+    shock_value: float | None = None
+    shock_unit: str | None = None
+    inputs: dict[str, FixtureLevel] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def _shock(self) -> Self:
+        if self.shock_value is not None and not self.shock_unit:
+            raise ValueError("shock_unit is required when shock_value is set")
+        if self.shock_unit is not None:
+            assert_unit(self.shock_unit)
+        return self
+
+
 class ObservedPoint(StructurePoint):
-    """What subsequently happened, with the public source of the sign (spec §10.1 item 2)."""
+    """What subsequently happened, with the public source of the sign (spec §10.1 item 2).
+
+    ``mechanism_id`` and ``output`` name the propagated quantity this row is compared with.
+    ``polarity`` is ``opposite`` when the mechanism reports a loss and the row reports the
+    level that fell.
+    """
 
     source_url: str
     source_note: str = Field(min_length=1)
+    mechanism_id: str | None = None
+    output: str | None = None
+    polarity: Polarity = "same"
 
     @field_validator("source_url")
     @classmethod
     def _url(cls, value: str) -> str:
         return _http_url(value)
+
+    @model_validator(mode="after")
+    def _link(self) -> Self:
+        if self.mechanism_id is not None and not MECHANISM_ID.match(self.mechanism_id):
+            raise ValueError(f"mechanism_id {self.mechanism_id!r} is not a mechanism id")
+        if self.polarity == "opposite" and not self.output:
+            raise ValueError("polarity opposite requires output")
+        return self
 
 
 class StateRow(BaseModel):
@@ -138,6 +190,7 @@ class Case(BaseModel):
     fixture_observations: str = Field(min_length=1)
     notes: str = Field(min_length=1)
     state_rows: list[StateRow] = Field(default_factory=list)
+    replay: dict[str, ReplayStep] = Field(default_factory=dict)
 
     @model_validator(mode="before")
     @classmethod
@@ -166,6 +219,9 @@ class Case(BaseModel):
             for mechanism_id in self.mechanism_path_hint:
                 if not MECHANISM_ID.match(mechanism_id):
                     raise ValueError(f"mechanism_path_hint {mechanism_id!r} is not a mechanism id")
+        for mechanism_id in self.replay:
+            if not MECHANISM_ID.match(mechanism_id):
+                raise ValueError(f"replay key {mechanism_id!r} is not a mechanism id")
         return self
 
 

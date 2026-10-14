@@ -37,6 +37,8 @@ observed_structure:
     dominant_competing: A01_expenditure_identity
     source_url: "https://www.congress.gov/bill/117th-congress/house-bill/1319"
     source_note: "Congress.gov: the American Rescue Plan Act was enacted in March 2021. Federal spending and transfers rose. Sign of the fiscal impulse is positive. No dollar cost is stored."
+    mechanism_id: B15_fiscal_multiplier
+    output: d_demand
   - entity:
       type: economy
       id: USA
@@ -46,9 +48,18 @@ observed_structure:
     dominant_competing: A01_expenditure_identity
     source_url: "https://www.cbo.gov/publication/57056"
     source_note: "CBO cost estimate for the American Rescue Plan: the law increased the deficit. This case uses the sign of the fiscal impulse, not CBO's dollar total."
+    mechanism_id: B15_fiscal_multiplier
+    output: d_demand
 mechanism_path_hint:
   - B15_fiscal_multiplier
   - B11_monetary_transmission
+replay:
+  B15_fiscal_multiplier:
+    shock_input: d_fiscal
+  B11_monetary_transmission:
+    shock_input: d_policy
+    shock_value: 0.25
+    shock_unit: pp
 fixture_observations: fixtures/us_fiscal_2021.csv
 notes: >
   The shock size is a case_fixture sign-carrier for replay, not a measured magnitude.

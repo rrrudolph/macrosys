@@ -37,8 +37,15 @@ observed_structure:
     dominant_competing: B17_terms_of_trade
     source_url: "https://www.bis.org/publ/qtrpdf/r_qt1509.htm"
     source_note: "BIS September 2015 quarterly review: the August fixing change was followed by renminbi depreciation. A weaker CNY raises the local-currency price of USD-invoiced imports. Sign only."
+    mechanism_id: B16_fx_passthrough
+    output: d_import_price
 mechanism_path_hint:
   - B16_fx_passthrough
+replay:
+  B16_fx_passthrough:
+    shock_input: d_fx
+    inputs:
+      invoicing_share: {value: 1.0, unit: share}
 fixture_observations: fixtures/cny_2015.csv
 notes: >
   The shock size is a case_fixture sign-carrier for replay, not a measured magnitude.
