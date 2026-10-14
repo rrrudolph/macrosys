@@ -1,0 +1,51 @@
+code,description,isic_rev4
+A01,Agriculture and hunting,01
+A02,Forestry and logging,02
+A03,Fishing and aquaculture,03
+B05,Mining of coal and lignite,05
+B06,Extraction of crude petroleum and natural gas,06
+B07,Mining of metal ores,07
+B08,Other mining and quarrying,08
+B09,Mining support service activities,09
+C10T12,Manufacture of food products; beverages and tobacco products,"10, 11, 12"
+C13T15,"Manufacture of textiles, wearing apparel, leather and related products","13, 14, 15"
+C16,Manufacture of wood and of products of wood and cork,16
+C17_18,Manufacture of paper and paper products; Printing and reproduction of recorded media,"17, 18"
+C19,Manufacture of coke and refined petroleum products,19
+C20,Manufacture of chemicals and chemical products,20
+C21,Manufacture of basic pharmaceutical products and pharmaceutical preparations,21
+C22,Manufacture of rubber and plastic products,22
+C23,Manufacture of other non-metallic mineral products,23
+C24A,Manufacture of basic iron and steel,"241, 2431"
+C24B,Manufacture of basic precious and other non-ferrous metals,"242, 2432"
+C25,Manufacture of fabricated metal products,25
+C26,"Manufacture of computer, electronic and optical products",26
+C27,Manufacture of electrical equipment,27
+C28,Manufacture of machinery and equipment n.e.c.,28
+C29,"Manufacture of motor vehicles, trailers and semi-trailers",29
+C301,Building of ships and boats,301
+C302T309,Manufacture of other transport equipment,302 to 309
+C31T33,Manufacture of furniture; other manufacturing; repair and installation of machinery and equipment,"31, 32, 33"
+D,"Electricity, gas, steam and air conditioning supply",35
+E,"Water supply; sewerage, waste management and remediation activities","36, 37, 38, 39"
+F,Construction,"41, 42, 43"
+G,Wholesale and retail trade; repair of motor vehicles and motorcycles,"45, 46, 47"
+H49,Land transport and transport via pipelines,49
+H50,Water transport,50
+H51,Air transport,51
+H52,Warehousing and support activities for transportation,52
+H53,Postal and courier activities,53
+I,Accommodation and food service activities,"55, 56"
+J58T60,"Publishing, Motion picture, video, television programme production and broadcasting activities","58, 59, 60"
+J61,Telecommunications,61
+J62_63,Computer programming and information service activities,"62, 63"
+K,Financial and insurance activities,"64, 65, 66"
+L,Real estate activities,68
+M,"Professional, scientific and technical activities",69 to 75
+N,Administrative and support service activities,77 to 82
+O,Public administration and defence; compulsory social security,84
+P,Education,85
+Q,Human health and social work activities,"86, 87, 88"
+R,"Arts, entertainment and recreation activities","90, 91, 92, 93"
+S,Other service activities,"94, 95, 96"
+T,Activities of households as employers; undifferentiated goods- and services-producing activities of households for own use,"97, 98"
