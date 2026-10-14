@@ -1,0 +1,51 @@
+id: C08_variance_premium
+name: Variance risk premium
+class: pricing
+scope:
+- instrument
+inputs:
+- name: implied_variance
+  unit: share
+- name: expected_realized
+  unit: share
+outputs:
+- name: variance_risk_premium
+  unit: share
+form: variance_risk_premium = implied_variance - expected_realized
+parameters: []
+horizon:
+  impact: 0
+  peak: 0
+  decay: null
+state_dependence: []
+assumptions:
+- the premium is positive on average for equity indexes; this record does not hardcode
+  that average
+competing: []
+evidence:
+- implied variance
+- a realized-variance expectation
+falsification: a thesis that volatility will rise without beating the premium already
+  in implied variance is not a pricing gap
+uncertainty:
+  type: measurement
+  note: expected realized variance is a model input; the premium is the residual
+confidence: M
+references: []
+monotone:
+  implied_variance: 1
+  expected_realized: -1
+tests:
+  example:
+    inputs:
+      implied_variance:
+        unit: share
+        value: 0.04
+      expected_realized:
+        unit: share
+        value: 0.03
+    params: {}
+    expected:
+      variance_risk_premium:
+        unit: share
+        value: 0.01

@@ -1,0 +1,80 @@
+id: A02_sectoral_balances
+name: Sectoral balances
+class: identity
+scope:
+- economy
+inputs:
+- name: s_private
+  unit: USD_bn
+- name: i_private
+  unit: USD_bn
+- name: taxes
+  unit: USD_bn
+- name: government
+  unit: USD_bn
+- name: imports
+  unit: USD_bn
+- name: exports
+  unit: USD_bn
+- name: net_primary_income
+  unit: USD_bn
+outputs:
+- name: residual
+  unit: USD_bn
+form: residual = (S_private - I_private) + (T - G) + (M - X + net primary income)
+parameters:
+- name: tolerance
+  unit: USD_bn
+  value: 1.0e-06
+  source: accounting_identity
+horizon:
+  impact: 0
+  peak: 0
+  decay: null
+state_dependence: []
+assumptions:
+- one vintage and one unit across the three sector balances
+competing: []
+evidence:
+- flow of funds or national accounts by sector
+falsification: a residual outside tolerance means a sector is missing or the external
+  balance is on the wrong sign
+uncertainty:
+  type: measurement
+  note: sector boundaries and net primary income
+confidence: M
+references: []
+monotone: {}
+tests:
+  example:
+    inputs:
+      s_private:
+        unit: USD_bn
+        value: 20
+      i_private:
+        unit: USD_bn
+        value: 18
+      taxes:
+        unit: USD_bn
+        value: 10
+      government:
+        unit: USD_bn
+        value: 12
+      imports:
+        unit: USD_bn
+        value: 8
+      exports:
+        unit: USD_bn
+        value: 8
+      net_primary_income:
+        unit: USD_bn
+        value: 0
+    params:
+      tolerance:
+        unit: USD_bn
+        value: 1.0e-06
+        provenance: accounting_identity
+    expected:
+      residual:
+        unit: USD_bn
+        value: 0

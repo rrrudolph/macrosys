@@ -13,7 +13,7 @@ horizon: {impact: 1, peak: 2, decay: null}
 state_dependence: []
 assumptions:
   - the coefficient is the absolute Okun relationship; the sign is negative
-  - participation and hours margins are not in this library slice
+  - participation and hours absorb part of the adjustment and are not separate mechanism ids
 competing: []
 evidence: [payrolls, claims, hours, output gap]
 falsification: "growth slows for two quarters with no change in hours or hiring indicators"

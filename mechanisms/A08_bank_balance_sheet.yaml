@@ -1,0 +1,81 @@
+id: A08_bank_balance_sheet
+name: Bank balance sheet
+class: identity
+scope:
+- economy
+inputs:
+- name: loans
+  unit: USD_bn
+- name: securities
+  unit: USD_bn
+- name: reserves
+  unit: USD_bn
+- name: other
+  unit: USD_bn
+- name: deposits
+  unit: USD_bn
+- name: wholesale
+  unit: USD_bn
+- name: equity
+  unit: USD_bn
+outputs:
+- name: residual
+  unit: USD_bn
+form: residual = (loans + securities + reserves + other) - (deposits + wholesale funding
+  + equity)
+parameters:
+- name: tolerance
+  unit: USD_bn
+  value: 1.0e-06
+  source: accounting_identity
+horizon:
+  impact: 0
+  peak: 0
+  decay: null
+state_dependence: []
+assumptions:
+- the funding mix is what this identity makes visible; it does not forecast credit
+competing: []
+evidence:
+- H.8 or ECB BSI
+falsification: a residual outside tolerance means a missing instrument on one side
+  of the banking system
+uncertainty:
+  type: measurement
+  note: consolidation and the boundary of wholesale funding
+confidence: M
+references: []
+monotone: {}
+tests:
+  example:
+    inputs:
+      loans:
+        unit: USD_bn
+        value: 50
+      securities:
+        unit: USD_bn
+        value: 20
+      reserves:
+        unit: USD_bn
+        value: 10
+      other:
+        unit: USD_bn
+        value: 5
+      deposits:
+        unit: USD_bn
+        value: 60
+      wholesale:
+        unit: USD_bn
+        value: 15
+      equity:
+        unit: USD_bn
+        value: 10
+    params:
+      tolerance:
+        unit: USD_bn
+        value: 1.0e-06
+        provenance: accounting_identity
+    expected:
+      residual:
+        unit: USD_bn
+        value: 0

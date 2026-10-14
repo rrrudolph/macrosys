@@ -1,0 +1,57 @@
+id: B18_global_financial_cycle
+name: Global financial cycle
+class: empirical
+scope:
+- economy
+inputs:
+- name: d_usd
+  unit: pct
+  desc: broad dollar appreciation
+outputs:
+- name: d_credit
+  unit: pct
+form: d_credit_pct = -elasticity * d_usd_pct
+parameters:
+- name: elasticity
+  unit: ratio
+  source: TODO_estimate
+horizon:
+  impact: 0
+  peak: 1
+  decay: 2
+state_dependence: []
+assumptions:
+- dollar appreciation tightens cross-border dollar credit; local policy and capital
+  controls are not mechanism ids
+competing: []
+evidence:
+- BIS global liquidity
+- cross-border claims
+- EM spreads
+falsification: the broad dollar rises 5 percent and EM credit and spreads are unchanged
+  for a quarter
+uncertainty:
+  type: parameter
+  note: the dollar-credit elasticity is estimated locally; the spec gives the sign
+confidence: E
+references:
+- BrunoShin2015
+- AvdjievDuKochShin2019
+- Rey2015
+monotone:
+  d_usd: -1
+tests:
+  example:
+    inputs:
+      d_usd:
+        unit: pct
+        value: 5
+    params:
+      elasticity:
+        unit: ratio
+        value: 0.4
+        provenance: scenario
+    expected:
+      d_credit:
+        unit: pct
+        value: -2

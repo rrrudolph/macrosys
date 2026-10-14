@@ -1,0 +1,52 @@
+id: B17_terms_of_trade
+name: Terms of trade
+class: empirical
+scope:
+- economy
+inputs:
+- name: d_tot
+  unit: pct
+- name: trade_share
+  unit: share
+outputs:
+- name: d_income
+  unit: pct
+form: d_income_pct = d_tot_pct * trade_share
+parameters: []
+horizon:
+  impact: 0
+  peak: 1
+  decay: null
+state_dependence: []
+assumptions:
+- the income transfer is the product in the spec; sterilization and hedging are not
+  mechanism ids
+competing: []
+evidence:
+- export and import price indices
+- FX
+- reserves
+falsification: terms of trade improve 10 percent with no current-account or FX response
+  over two quarters
+uncertainty:
+  type: parameter
+  note: the trade share is observed; offsets from funds and hedging are the uncertainty
+confidence: E
+references: []
+monotone:
+  d_tot: 1
+  trade_share: 1
+tests:
+  example:
+    inputs:
+      d_tot:
+        unit: pct
+        value: 10
+      trade_share:
+        unit: share
+        value: 0.2
+    params: {}
+    expected:
+      d_income:
+        unit: pct
+        value: 2

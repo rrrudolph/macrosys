@@ -14,10 +14,6 @@ from macrosys.mechanisms.arrays import (
 from macrosys.mechanisms.impl._util import Ungated, entity_from_bindings, num, q, require_param
 from macrosys.mechanisms.registry import mechanism
 
-# Spec §3.4 rule 5 names ~70% utilization as the point where B03's price effect is ~0.
-# applicable() receives no parameters, so the threshold lives here and is repeated as u_kink in the YAML.
-_LOW_UTILIZATION = 0.70
-
 _PATH_QUARTERS = ("q0", "q1", "q2", "q3")
 
 
@@ -62,18 +58,20 @@ class CostShare(Ungated):
     def apply(self, inputs: dict[str, Quantity], params: dict[str, Quantity]) -> dict[str, Quantity]:
         """d_unit_cost_pct = s_ij × d_price_pct (spec §3.3 B02). Contemporaneous cost channel."""
         del params
-        return {"d_unit_cost": q(num(inputs["s_ij"]) * num(inputs["d_price"]), "pct", "B02")}
+        return {"d_unit_cost": inputs["s_ij"].mul(inputs["d_price"], "pct", "B02")}
 
 
 @mechanism("B03")
 class BottleneckPricing:
     """Price change ≈ Δdemand / (ε_s(u) + ε_d), with ε_s declining in utilization (spec §3.3 B03)."""
 
-    def applicable(self, state: StateView, bindings: dict[str, str]) -> Gate:
-        """Scale the price effect to 0 when capacity utilization is below 70% (spec §3.4 rule 5).
+    def applicable(
+        self, state: StateView, bindings: dict[str, str], params: dict[str, Quantity] | None = None
+    ) -> Gate:
+        """Scale the price effect to 0 when utilization is below the ``u_kink`` parameter (spec §3.4 rule 5).
 
-        The threshold is the figure given in §3.4. ``applicable`` cannot see YAML parameters, so
-        0.70 is fixed here; the piecewise elasticity kink is the ``u_kink`` parameter.
+        The threshold is the bound YAML parameter, not a second copy of 0.70 in code. The same kink
+        is where the piecewise supply elasticity starts to fall.
         """
         entity = entity_from_bindings(bindings)
         if entity is None or not state.has(entity, "capacity_utilization"):
@@ -81,16 +79,17 @@ class BottleneckPricing:
         observed = state.get(entity, "capacity_utilization")
         if observed.unit != "share":
             raise UnitError(f"capacity_utilization must be share, got {observed.unit}")
-        if observed.mid < _LOW_UTILIZATION:
+        threshold = num(require_param(params or {}, "u_kink"))
+        if observed.mid < threshold:
             return Gate(
                 status="scaled",
                 factor=0.0,
-                reason=f"capacity_utilization {observed.mid:.2f} below {_LOW_UTILIZATION:.2f}; price effect scaled to 0",
+                reason=f"capacity_utilization {observed.mid:.2f} below u_kink {threshold:.2f}; price effect scaled to 0",
             )
         return Gate(
             status="on",
             factor=1.0,
-            reason=f"capacity_utilization {observed.mid:.2f} at or above {_LOW_UTILIZATION:.2f}",
+            reason=f"capacity_utilization {observed.mid:.2f} at or above u_kink {threshold:.2f}",
         )
 
     def apply(self, inputs: dict[str, Quantity], params: dict[str, Quantity]) -> dict[str, Quantity]:
@@ -122,19 +121,16 @@ class InventoryCycle(Ungated):
         quarter length in the unit registry (``q`` relative to ``d``), not a hand-set 90.
         """
         del params
-        inventory, sales = num(inputs["inventory"]), num(inputs["sales"])
-        target = num(inputs["target_ratio"])
-        d_sales = num(inputs["d_sales"])
-        if sales == 0.0:
+        inventory, sales = inputs["inventory"], inputs["sales"]
+        target, d_sales = inputs["target_ratio"], inputs["d_sales"]
+        if num(sales) == 0.0:
             raise ZeroDivisionError("B04 days of cover are undefined when sales are 0")
         days_per_quarter = assert_unit("q").scale / assert_unit("d").scale
-        days = (inventory / sales) * days_per_quarter
-        excess = inventory - target * sales
-        production = d_sales + target * d_sales - excess
-        return {
-            "days_of_cover": q(days, "d", "B04"),
-            "production_response": q(production, "USD_bn", "B04"),
-        }
+        days = (num(inventory) / num(sales)) * days_per_quarter
+        target_stock = target.mul(sales, "USD_bn", "B04")
+        excess = inventory.add(target_stock.scale(-1), provenance="B04")
+        production = d_sales.add(target.mul(d_sales, "USD_bn", "B04")).add(excess.scale(-1), provenance="B04")
+        return {"days_of_cover": q(days, "d", "B04"), "production_response": production}
 
 
 @mechanism("B05")
@@ -148,15 +144,15 @@ class CapacityPipeline(Ungated):
         is not given an extra lag: the slip duration is not in the literature and is not invented.
         ``slippage`` is ``TODO_estimate`` until an override supplies it.
         """
-        slip = num(require_param(params, "slippage"))
-        pipeline = num(inputs["pipeline"])
-        on_time = pipeline * (1.0 - slip)
-        delayed = pipeline * slip
+        slip = require_param(params, "slippage")
+        pipeline = inputs["pipeline"]
+        on_time = pipeline.scale(1.0 - num(slip), provenance="B05")
+        delayed = pipeline.mul(slip, "USD_bn", "B05")
         return {
             "arrival_q": q(num(inputs["lead_time"]), "q", "B05"),
-            "supply_on_schedule": q(on_time, "USD_bn", "B05"),
-            "supply_delayed": q(delayed, "USD_bn", "B05"),
-            "tightness": q(num(inputs["demand"]) - on_time, "USD_bn", "B05"),
+            "supply_on_schedule": on_time,
+            "supply_delayed": delayed,
+            "tightness": inputs["demand"].add(on_time.scale(-1), provenance="B05"),
         }
 
 
@@ -171,20 +167,19 @@ class DemandElasticity(Ungated):
         window is a reporting choice; the elasticities and λ are ``TODO_estimate`` until overridden.
         The path length is not an estimated lag.
         """
-        eps_sr = num(require_param(params, "eps_sr"))
-        eps_lr = num(require_param(params, "eps_lr"))
+        d_sr_q = require_param(params, "eps_sr").mul(inputs["d_price"], "pct", "B06")
+        d_lr_q = require_param(params, "eps_lr").mul(inputs["d_price"], "pct", "B06")
         speed = num(require_param(params, "speed"))
-        d_price = num(inputs["d_price"])
-        d_sr = eps_sr * d_price
-        d_lr = eps_lr * d_price
+        d_sr = num(d_sr_q)
+        d_lr = num(d_lr_q)
         levels = [d_sr]
         level = d_sr
         for _ in range(len(_PATH_QUARTERS) - 1):
             level = level + speed * (d_lr - level)
             levels.append(level)
         return {
-            "d_demand_sr": q(d_sr, "pct", "B06"),
-            "d_demand_lr": q(d_lr, "pct", "B06"),
+            "d_demand_sr": d_sr_q,
+            "d_demand_lr": d_lr_q,
             "demand_path": ArrayQuantity(values=levels, unit="pct", rows=_PATH_QUARTERS),
         }
 
@@ -199,8 +194,8 @@ class Okun(Ungated):
         κ is dimensionless on the percent scale: 0.4 means 0.4 pp of unemployment per 1% of output.
         A range for κ is propagated by the endpoint harness, not inside this point function.
         """
-        kappa = num(require_param(params, "okun"))
-        return {"d_unemployment": q(-kappa * num(inputs["d_output"]), "pp", "B09")}
+        kappa = require_param(params, "okun")
+        return {"d_unemployment": kappa.mul(inputs["d_output"], "pp", "B09").scale(-1, provenance="B09")}
 
 
 @mechanism("B16")
@@ -215,10 +210,8 @@ class FxPassThrough(Ungated):
         provenance replaces them. The linear form, when it runs, is
         Δp = pt × invoicing_share × Δe. That form is a [J] placeholder for the missing estimate.
         """
-        pt_import = num(require_param(params, "pt_import"))
-        pt_cpi = num(require_param(params, "pt_cpi"))
-        scaled = num(inputs["invoicing_share"]) * num(inputs["d_fx"])
+        exposure = inputs["invoicing_share"].mul(inputs["d_fx"], "pct", "B16")
         return {
-            "d_import_price": q(pt_import * scaled, "pct", "B16"),
-            "d_cpi": q(pt_cpi * scaled, "pct", "B16"),
+            "d_import_price": require_param(params, "pt_import").mul(exposure, "pct", "B16"),
+            "d_cpi": require_param(params, "pt_cpi").mul(exposure, "pct", "B16"),
         }

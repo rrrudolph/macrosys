@@ -1,0 +1,61 @@
+id: B13_financial_accelerator
+name: Financial accelerator
+class: empirical
+scope:
+- economy
+inputs:
+- name: d_asset_price
+  unit: pct
+- name: leverage
+  unit: share
+outputs:
+- name: d_borrowing
+  unit: pct
+form: d_borrowing_pct = elasticity * leverage * d_asset_price
+parameters:
+- name: elasticity
+  unit: ratio
+  source: TODO_estimate
+horizon:
+  impact: 1
+  peak: 4
+  decay: null
+state_dependence: []
+assumptions:
+- amplification rises with leverage; policy backstops are not a mechanism id
+competing: []
+evidence:
+- household and corporate leverage
+- margin debt
+- haircuts
+falsification: asset prices fall 20 percent with no change in credit or spending over
+  three quarters in a high-leverage sector
+uncertainty:
+  type: parameter
+  note: the leverage amplifier is estimated locally
+confidence: E
+references:
+- BernankeGertlerGilchrist1999
+- MianRaoSufi2013
+- BrunnermeierPedersen2009
+- AdrianShin2010
+monotone:
+  d_asset_price: 1
+tests:
+  example:
+    inputs:
+      d_asset_price:
+        unit: pct
+        value: -10
+      leverage:
+        unit: share
+        value: 0.5
+    params:
+      elasticity:
+        unit: ratio
+        value: 1.5
+        provenance: scenario
+    expected:
+      d_borrowing:
+        unit: pct
+        value: -7.5

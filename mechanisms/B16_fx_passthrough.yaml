@@ -16,9 +16,9 @@ horizon: {impact: 1, peak: 4, decay: 8}
 state_dependence: []
 assumptions:
   - dominant-currency pricing, so the relevant nominal move is the bilateral USD rate
-  - margins (B08) and policy (B11) are not in this library slice
+  - margin absorption is B08 and the policy offset is B11
   - the linear form is a placeholder; no pass-through magnitude is taken from the literature card
-competing: [B06_demand_elasticity]
+competing: [B08_pass_through, B06_demand_elasticity, B11_monetary_transmission]
 evidence: [import price indices, invoicing shares, CPI tradables]
 falsification: "a large depreciation with import prices flat after two quarters means hedging, margin absorption, or a different invoicing structure"
 uncertainty: {type: parameter, note: "pass-through to import prices and to CPI is partial, slow, and estimated locally"}
@@ -30,5 +30,9 @@ tests:
     inputs:
       d_fx: {value: 10, unit: pct}
       invoicing_share: {value: 0.5, unit: share}
-    params: {}
-    expected: {}
+    params:
+      pt_import: {value: 0.8, unit: share, provenance: scenario}
+      pt_cpi: {value: 0.4, unit: share, provenance: scenario}
+    expected:
+      d_import_price: {value: 4, unit: pct}
+      d_cpi: {value: 2, unit: pct}

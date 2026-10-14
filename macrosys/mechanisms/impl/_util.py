@@ -29,9 +29,11 @@ def require_param(params: dict[str, Quantity], name: str) -> Quantity:
 class Ungated:
     """Default applicability: the mechanism is on. B03 overrides this (spec §3.4 rule 5)."""
 
-    def applicable(self, state: StateView, bindings: dict[str, str]) -> Gate:
+    def applicable(
+        self, state: StateView, bindings: dict[str, str], params: dict[str, Quantity] | None = None
+    ) -> Gate:
         """No state gate. Spec §3.4 rule 5; identities are checks and are never switched off (§3.2)."""
-        del state, bindings
+        del state, bindings, params
         return Gate(status="on", factor=1.0, reason="no state gate")
 
 

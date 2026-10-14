@@ -1,0 +1,75 @@
+id: A07_central_bank_balance_sheet
+name: Central-bank balance sheet
+class: identity
+scope:
+- institution
+inputs:
+- name: assets
+  unit: USD_bn
+- name: reserves
+  unit: USD_bn
+- name: currency
+  unit: USD_bn
+- name: gov_deposits
+  unit: USD_bn
+- name: other
+  unit: USD_bn
+outputs:
+- name: reserve_supply
+  unit: USD_bn
+- name: residual
+  unit: USD_bn
+form: residual = assets - (reserves + currency + government deposits + other)
+parameters:
+- name: tolerance
+  unit: USD_bn
+  value: 1.0e-06
+  source: accounting_identity
+horizon:
+  impact: 0
+  peak: 0
+  decay: null
+state_dependence: []
+assumptions:
+- reserve supply is the reserves stock, read off the liability side
+competing: []
+evidence:
+- H.4.1 or the equivalent central-bank statement
+falsification: a residual outside tolerance means a missing asset or liability line,
+  including an unrecorded facility
+uncertainty:
+  type: measurement
+  note: consolidation of facilities and government deposits
+confidence: M
+references: []
+monotone: {}
+tests:
+  example:
+    inputs:
+      assets:
+        unit: USD_bn
+        value: 100
+      reserves:
+        unit: USD_bn
+        value: 40
+      currency:
+        unit: USD_bn
+        value: 30
+      gov_deposits:
+        unit: USD_bn
+        value: 20
+      other:
+        unit: USD_bn
+        value: 10
+    params:
+      tolerance:
+        unit: USD_bn
+        value: 1.0e-06
+        provenance: accounting_identity
+    expected:
+      reserve_supply:
+        unit: USD_bn
+        value: 40
+      residual:
+        unit: USD_bn
+        value: 0

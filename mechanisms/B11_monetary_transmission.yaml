@@ -1,0 +1,60 @@
+id: B11_monetary_transmission
+name: Monetary transmission
+class: empirical
+scope:
+- economy
+inputs:
+- name: d_policy
+  unit: pp
+outputs:
+- name: d_demand
+  unit: pct
+form: d_demand_pct = -multiplier * d_policy_pp
+parameters:
+- name: multiplier
+  unit: ratio
+  source: TODO_estimate
+horizon:
+  impact: 2
+  peak: 8
+  decay: null
+state_dependence: []
+assumptions:
+- output effects peak in about one to two years; the horizon is that window, not a
+  fitted lag
+- information effects can flip the short-run sign; the baseline sign here is the usual
+  tightening
+competing:
+- B12_bank_credit
+- B18_global_financial_cycle
+evidence:
+- term structure
+- mortgage rates
+- lending surveys
+- FX
+falsification: policy tightening with easier financial conditions sustained for two
+  quarters means transmission is impaired or offset
+uncertainty:
+  type: parameter
+  note: magnitudes depend on identification; Ramey 2016 does not give a single multiplier
+confidence: E
+references:
+- Ramey2016
+- NakamuraSteinsson2018
+monotone:
+  d_policy: -1
+tests:
+  example:
+    inputs:
+      d_policy:
+        unit: pp
+        value: 1
+    params:
+      multiplier:
+        unit: ratio
+        value: 0.5
+        provenance: scenario
+    expected:
+      d_demand:
+        unit: pct
+        value: -0.5

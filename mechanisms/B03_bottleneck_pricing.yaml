@@ -20,8 +20,8 @@ assumptions:
   - single clearing price and no rationing by contract
   - the applicability gate zeros the price effect when state capacity_utilization is below 0.70
   - elasticities are industry ranges; the example numbers are a scenario, not an estimate
-  - substitution (B07) is not in this library slice
-competing: [B04_inventory_cycle, B06_demand_elasticity]
+  - substitution is the competing mechanism B07
+competing: [B04_inventory_cycle, B06_demand_elasticity, B07_substitution]
 evidence: [utilization, spot versus contract premia, supplier-delivery surveys]
 falsification: "utilization high but the spot price flat means unobserved capacity or demand softer than assumed"
 uncertainty: {type: parameter, note: short-run supply elasticity is state-dependent and poorly measured; use ranges by industry}

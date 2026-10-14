@@ -1,0 +1,82 @@
+id: B10_phillips
+name: Wage-price dynamics
+class: empirical
+scope:
+- economy
+inputs:
+- name: unemployment_gap
+  unit: pp
+- name: inflation_expectations
+  unit: pct
+- name: supply_shock
+  unit: pct
+outputs:
+- name: d_wage
+  unit: pct
+- name: d_core
+  unit: pct
+form: d_wage = expectations - slope_wage * unemployment_gap + supply_shock; d_core
+  uses slope_core
+parameters:
+- name: slope_wage
+  unit: ratio
+  source: TODO_estimate
+- name: slope_core
+  unit: ratio
+  source: TODO_estimate
+horizon:
+  impact: 2
+  peak: 6
+  decay: null
+state_dependence: []
+assumptions:
+- the slopes are small and unstable; the spec gives no number, so both are TODO_estimate
+competing:
+- B26_productivity
+- B08_pass_through
+- B16_fx_passthrough
+evidence:
+- ECI
+- wage trackers
+- core services ex-shelter
+- survey expectations
+falsification: a tight labor market with anchored expectations and no core acceleration
+  over four quarters means the slope is near zero in that regime
+uncertainty:
+  type: parameter
+  note: the Phillips slope is unstable and is not taken from a single paper in the
+    card
+confidence: E
+references: []
+monotone:
+  unemployment_gap: -1
+  inflation_expectations: 1
+  supply_shock: 1
+tests:
+  example:
+    inputs:
+      unemployment_gap:
+        unit: pp
+        value: 1
+      inflation_expectations:
+        unit: pct
+        value: 2
+      supply_shock:
+        unit: pct
+        value: 0.5
+    params:
+      slope_wage:
+        unit: ratio
+        value: 0.2
+        provenance: scenario
+      slope_core:
+        unit: ratio
+        value: 0.1
+        provenance: scenario
+    expected:
+      d_wage:
+        unit: pct
+        value: 2.3
+      d_core:
+        unit: pct
+        value: 2.4

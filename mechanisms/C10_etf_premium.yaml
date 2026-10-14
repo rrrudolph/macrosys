@@ -1,0 +1,50 @@
+id: C10_etf_premium
+name: ETF premium and discount
+class: pricing
+scope:
+- instrument
+inputs:
+- name: price
+  unit: USD
+- name: nav
+  unit: USD
+outputs:
+- name: premium
+  unit: share
+form: premium = (price - NAV) / NAV
+parameters: []
+horizon:
+  impact: 0
+  peak: 0
+  decay: null
+state_dependence: []
+assumptions:
+- a persistent premium is illiquidity, a hours mismatch, or a creation halt
+competing: []
+evidence:
+- issuer NAV
+- closing price
+falsification: a creation-redemption story that ignores a premium or discount outside
+  the usual band is an execution error
+uncertainty:
+  type: measurement
+  note: NAV timing versus the closing price
+confidence: M
+references: []
+monotone:
+  price: 1
+  nav: -1
+tests:
+  example:
+    inputs:
+      price:
+        unit: USD
+        value: 101
+      nav:
+        unit: USD
+        value: 100
+    params: {}
+    expected:
+      premium:
+        unit: share
+        value: 0.01

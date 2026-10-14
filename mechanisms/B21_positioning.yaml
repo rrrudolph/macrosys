@@ -1,0 +1,54 @@
+id: B21_positioning
+name: Positioning and crowding
+class: empirical
+scope:
+- instrument
+inputs:
+- name: positioning_percentile
+  unit: share
+outputs:
+- name: asymmetry
+  unit: ratio
+form: asymmetry = multiplier * (positioning_percentile - 0.5)
+parameters:
+- name: multiplier
+  unit: ratio
+  source: TODO_estimate
+horizon:
+  impact: 0
+  peak: 1
+  decay: null
+state_dependence: []
+assumptions:
+- the multiplier is how far a percentile from the median scales the asymmetric reaction
+competing: []
+evidence:
+- CFTC positioning
+- ETF shares outstanding
+- surveys
+falsification: extreme positioning produces no asymmetric reaction to a contrary surprise
+  over three releases
+uncertainty:
+  type: parameter
+  note: the asymmetry multiplier is estimated locally
+confidence: E
+references:
+- HongYogo2012
+- GabaixKoijen2021
+monotone:
+  positioning_percentile: 1
+tests:
+  example:
+    inputs:
+      positioning_percentile:
+        unit: share
+        value: 0.8
+    params:
+      multiplier:
+        unit: ratio
+        value: 2
+        provenance: scenario
+    expected:
+      asymmetry:
+        unit: ratio
+        value: 0.6

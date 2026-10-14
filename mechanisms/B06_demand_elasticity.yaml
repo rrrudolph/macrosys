@@ -17,7 +17,7 @@ horizon: {impact: 0, peak: 4, decay: 12}
 state_dependence: []
 assumptions:
   - elasticities are stable inside a regime; the four-quarter path is a reporting window, not an estimated lag
-  - income effects and policy offsets are not in this library slice
+  - income effects and policy offsets are not separate mechanism ids
   - example elasticities are a scenario so the form can be tested; they are not a literature magnitude
 competing: []
 evidence: [volume after a price move, substitution shares]

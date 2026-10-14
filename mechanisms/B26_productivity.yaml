@@ -1,0 +1,59 @@
+id: B26_productivity
+name: Productivity improvement
+class: empirical
+scope:
+- industry
+inputs:
+- name: d_tfp
+  unit: pct
+outputs:
+- name: d_ulc
+  unit: pct
+- name: d_price
+  unit: pct
+form: d_ulc_pct = -d_tfp; d_price_pct = -pass_through * d_tfp
+parameters:
+- name: pass_through
+  unit: share
+  source: TODO_estimate
+horizon:
+  impact: 4
+  peak: 12
+  decay: null
+state_dependence: []
+assumptions:
+- lower unit labor cost is not the same as a lower price; who keeps the margin is
+  B08
+competing:
+- B05_capacity_pipeline
+evidence:
+- productivity statistics
+- output prices
+- capex
+falsification: a claimed productivity gain is not visible in unit labor cost or output
+  prices after two years
+uncertainty:
+  type: parameter
+  note: the price pass-through of a productivity gain is estimated locally
+confidence: E
+references: []
+monotone:
+  d_tfp: -1
+tests:
+  example:
+    inputs:
+      d_tfp:
+        unit: pct
+        value: 2
+    params:
+      pass_through:
+        unit: share
+        value: 0.5
+        provenance: scenario
+    expected:
+      d_ulc:
+        unit: pct
+        value: -2
+      d_price:
+        unit: pct
+        value: -1

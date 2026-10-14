@@ -1,0 +1,60 @@
+id: C06_credit_spread
+name: Credit-spread decomposition
+class: pricing
+scope:
+- instrument
+inputs:
+- name: oas
+  unit: bp
+- name: expected_loss
+  unit: bp
+- name: liquidity
+  unit: bp
+outputs:
+- name: risk_premium
+  unit: bp
+form: risk_premium = OAS - expected_loss - liquidity
+parameters: []
+horizon:
+  impact: 0
+  peak: 0
+  decay: null
+state_dependence: []
+assumptions:
+- the risk-premium residual is the excess bond premium when expected loss and liquidity
+  are the other two inputs
+competing: []
+evidence:
+- OAS
+- a loss estimate
+- a liquidity premium
+falsification: a default thesis that does not beat the expected loss already in the
+  spread is not a pricing gap
+uncertainty:
+  type: measurement
+  note: expected loss and the liquidity premium are model inputs, not part of the
+    OAS print
+confidence: M
+references:
+- GilchristZakrajsek2012
+monotone:
+  oas: 1
+  expected_loss: -1
+  liquidity: -1
+tests:
+  example:
+    inputs:
+      oas:
+        unit: bp
+        value: 150
+      expected_loss:
+        unit: bp
+        value: 40
+      liquidity:
+        unit: bp
+        value: 20
+    params: {}
+    expected:
+      risk_premium:
+        unit: bp
+        value: 90

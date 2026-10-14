@@ -1,0 +1,75 @@
+id: B19_carry
+name: Carry and carry crashes
+class: empirical
+scope:
+- currency
+inputs:
+- name: interest_differential
+  unit: share
+- name: risk_off
+  unit: share
+outputs:
+- name: excess_return
+  unit: share
+- name: skewed_loss
+  unit: share
+form: excess_return = carry_coeff * differential; skewed_loss = -crash_coeff * differential
+  * risk_off
+parameters:
+- name: carry_coeff
+  unit: ratio
+  source: TODO_estimate
+- name: crash_coeff
+  unit: ratio
+  source: TODO_estimate
+horizon:
+  impact: 0
+  peak: 1
+  decay: null
+state_dependence: []
+assumptions:
+- this is a return distribution, not a forecast that the high-rate currency depreciates
+competing: []
+evidence:
+- interest differentials
+- FX implied volatility
+- CFTC positioning
+falsification: as a risk input there is no sign falsification; as a thesis input the
+  crash condition is the stress test
+uncertainty:
+  type: regime
+  note: quiet-period carry and the crash are different regimes; neither coefficient
+    is in the card
+confidence: E
+references:
+- LustigRoussanovVerdelhan2011
+- KoijenMoskowitzPedersenVrugt2018
+- Engel2016
+monotone:
+  interest_differential: 1
+  risk_off: -1
+tests:
+  example:
+    inputs:
+      interest_differential:
+        unit: share
+        value: 0.04
+      risk_off:
+        unit: share
+        value: 0
+    params:
+      carry_coeff:
+        unit: ratio
+        value: 0.5
+        provenance: scenario
+      crash_coeff:
+        unit: ratio
+        value: 2
+        provenance: scenario
+    expected:
+      excess_return:
+        unit: share
+        value: 0.02
+      skewed_loss:
+        unit: share
+        value: 0

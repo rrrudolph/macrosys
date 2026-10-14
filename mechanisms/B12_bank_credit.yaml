@@ -1,0 +1,55 @@
+id: B12_bank_credit
+name: Bank credit channel
+class: empirical
+scope:
+- economy
+inputs:
+- name: standards
+  unit: pp
+  desc: tightening of lending standards
+outputs:
+- name: d_credit
+  unit: pct
+form: d_credit_pct = -elasticity * standards_tightening
+parameters:
+- name: elasticity
+  unit: ratio
+  source: TODO_estimate
+horizon:
+  impact: 2
+  peak: 4
+  decay: null
+state_dependence: []
+assumptions:
+- the two-to-four-quarter lag is the horizon, not an estimated coefficient
+competing: []
+evidence:
+- SLOOS or ECB BLS
+- H.8
+- loan officer commentary
+falsification: standards tighten for two surveys with no credit slowdown within three
+  quarters
+uncertainty:
+  type: parameter
+  note: the credit response to standards is estimated locally
+confidence: E
+references:
+- BernankeGertlerGilchrist1999
+- GilchristZakrajsek2012
+monotone:
+  standards: -1
+tests:
+  example:
+    inputs:
+      standards:
+        unit: pp
+        value: 2
+    params:
+      elasticity:
+        unit: ratio
+        value: 0.3
+        provenance: scenario
+    expected:
+      d_credit:
+        unit: pct
+        value: -0.6

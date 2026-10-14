@@ -1,0 +1,75 @@
+id: B25_transport
+name: Transport disruption
+class: empirical
+scope:
+- commodity
+inputs:
+- name: fob
+  unit: USD
+- name: freight
+  unit: USD
+- name: insurance
+  unit: USD
+- name: utilization_pct
+  unit: pct
+outputs:
+- name: delivered_cost
+  unit: USD
+- name: d_freight
+  unit: pct
+form: delivered_cost = FOB + freight + insurance; d_freight_pct = freight_elasticity
+  * utilization_pct
+parameters:
+- name: freight_elasticity
+  unit: ratio
+  source: TODO_estimate
+horizon:
+  impact: 0
+  peak: 2
+  decay: 4
+state_dependence: []
+assumptions:
+- delivered cost is the sum in the spec; freight is convex in utilization and the
+  elasticity is estimated locally
+competing: []
+evidence:
+- Freightos FBX
+- Drewry WCI
+- PortWatch
+- regional price spreads
+falsification: throughput falls 30 percent and freight is flat, so idle capacity absorbed
+  it
+uncertainty:
+  type: parameter
+  note: the utilization elasticity of freight is estimated locally
+confidence: E
+references: []
+monotone:
+  utilization_pct: 1
+tests:
+  example:
+    inputs:
+      fob:
+        unit: USD
+        value: 100
+      freight:
+        unit: USD
+        value: 5
+      insurance:
+        unit: USD
+        value: 1
+      utilization_pct:
+        unit: pct
+        value: 10
+    params:
+      freight_elasticity:
+        unit: ratio
+        value: 0.5
+        provenance: scenario
+    expected:
+      delivered_cost:
+        unit: USD
+        value: 106
+      d_freight:
+        unit: pct
+        value: 5

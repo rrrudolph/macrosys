@@ -1,0 +1,20 @@
+# Engine controls (max_iter, damping, tol) are not estimated magnitudes. Spec §4.5.
+loops:
+  - id: cobweb
+    steps: [B03_bottleneck_pricing, B05_capacity_pipeline]
+    max_iter: 8
+    damping: 0.5
+    tol: 0.001
+    note: "Price to investment to capacity to price (B03, B05, B03). Horizon years."
+  - id: accelerator
+    steps: [B12_bank_credit, B13_financial_accelerator]
+    max_iter: 8
+    damping: 0.5
+    tol: 0.001
+    note: "Credit to asset prices to collateral to credit (B12, B13, B12). Horizon quarters."
+  - id: fx_inflation_policy
+    steps: [B16_fx_passthrough, B10_phillips, B11_monetary_transmission, C02_uip, B19_carry]
+    max_iter: 8
+    damping: 0.5
+    tol: 0.001
+    note: "FX to import prices to inflation to policy to the rate differential (B16, B10, B11, then C02 or B19). Horizon quarters. A peg cuts the loop. C02 and B19 are alternative closers, not a single chain."

@@ -1,0 +1,68 @@
+id: B20_momentum
+name: Momentum, trend, and reversal
+class: empirical
+scope:
+- instrument
+inputs:
+- name: r_intermediate
+  unit: pct
+- name: r_long
+  unit: pct
+outputs:
+- name: signal
+  unit: pct
+form: signal = continuation * r_intermediate - reversal * r_long
+parameters:
+- name: continuation
+  unit: ratio
+  source: TODO_estimate
+- name: reversal
+  unit: ratio
+  source: TODO_estimate
+horizon:
+  impact: 1
+  peak: 4
+  decay: 12
+state_dependence: []
+assumptions:
+- intermediate horizons continue and long horizons reverse; neither weight is a magnitude
+  in the card
+competing: []
+evidence:
+- trailing returns at one to twelve months
+- a long-horizon valuation
+falsification: intermediate-horizon continuation fails to change sign after a bear
+  market in the way the crash literature describes
+uncertainty:
+  type: regime
+  note: momentum crashes after bear markets; the weights are estimated locally
+confidence: E
+references:
+- MoskowitzOoiPedersen2012
+- AsnessMoskowitzPedersen2013
+- DanielMoskowitz2016
+monotone:
+  r_intermediate: 1
+  r_long: -1
+tests:
+  example:
+    inputs:
+      r_intermediate:
+        unit: pct
+        value: 10
+      r_long:
+        unit: pct
+        value: 4
+    params:
+      continuation:
+        unit: ratio
+        value: 1
+        provenance: scenario
+      reversal:
+        unit: ratio
+        value: 0.5
+        provenance: scenario
+    expected:
+      signal:
+        unit: pct
+        value: 8

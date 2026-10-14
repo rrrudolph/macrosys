@@ -19,8 +19,8 @@ state_dependence: []
 assumptions:
   - slippage is the share that misses the scheduled lead time; the extra delay in quarters is not given a magnitude
   - lead-time ranges in the spec are industry reporting and are an input, not a fitted parameter
-  - substitution and policy acceleration are not in this library slice
-competing: [B06_demand_elasticity]
+  - policy acceleration of the pipeline is not a separate mechanism id
+competing: [B06_demand_elasticity, B07_substitution]
 evidence: [project trackers, permitting, order backlogs]
 falsification: "a predicted tightness window arrives with no widening of the spot or forward spread"
 uncertainty: {type: parameter, note: project slippage and cancellation rates are estimated locally}

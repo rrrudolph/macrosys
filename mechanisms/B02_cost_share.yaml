@@ -14,8 +14,8 @@ state_dependence: []
 assumptions:
   - fixed technology in the short run
   - the roughly 1 to 2 percent materiality floor is a design judgment applied by the propagator, not a coefficient
-  - substitution (B07) and hedging are not in this library slice
-competing: []
+  - hedging contracts are an attribute of the relationship, not a separate mechanism id
+competing: [B07_substitution]
 evidence: [PPI by stage of processing, margin disclosures, IO use shares]
 falsification: "a cost shock with no margin or price movement in j beyond the contract lag"
 uncertainty: {type: parameter, note: cost shares vary within an industry}

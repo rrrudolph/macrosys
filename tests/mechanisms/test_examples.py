@@ -51,6 +51,24 @@ def test_yaml_example(mech_id: str):
         _close(actual[name], exp)
 
 
+def test_todo_parameters_refuse_without_an_override():
+    refused = []
+    for mech_id in IDS:
+        spec = LIB.get(mech_id)
+        todo = [param.name for param in spec.parameters if param.source == "TODO_estimate"]
+        if not todo:
+            continue
+        inputs, params, _expected = load_example(spec)
+        stripped = {name: value for name, value in params.items() if name not in todo}
+        with pytest.raises(MissingParameterError) as caught:
+            evaluate(spec, inputs, stripped)
+        assert caught.value.parameter in todo
+        refused.append(mech_id)
+    assert "B16_fx_passthrough" in refused
+    assert "B15_fiscal_multiplier" not in refused
+    assert "C02_uip" not in refused
+
+
 def test_b16_names_the_missing_parameter():
     impl = get_impl("B16_fx_passthrough")
     inputs = {

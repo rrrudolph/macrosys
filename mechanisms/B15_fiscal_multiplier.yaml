@@ -1,0 +1,62 @@
+id: B15_fiscal_multiplier
+name: Fiscal multiplier
+class: empirical
+scope:
+- economy
+inputs:
+- name: d_fiscal
+  unit: pct
+outputs:
+- name: d_demand
+  unit: pct
+form: d_demand_pct = multiplier * d_fiscal_pct, multiplier in [0.5, 1.5]
+parameters:
+- name: multiplier
+  unit: ratio
+  low: 0.5
+  high: 1.5
+  source: Ramey2019
+horizon:
+  impact: 2
+  peak: 8
+  decay: null
+state_dependence: []
+assumptions:
+- the range is the literature cluster, larger with slack; state dependence is contested
+- appropriations to outlays is the two-to-eight-quarter horizon
+competing:
+- A06_debt_dynamics
+- A01_expenditure_identity
+- C03_expectations_hypothesis
+evidence:
+- Treasury daily outlays
+- Monthly Treasury Statement
+- contract awards
+falsification: outlays fail to track the appropriations schedule
+uncertainty:
+  type: parameter
+  note: the multiplier is the cited range, not a point, and it moves with slack and
+    accommodation
+confidence: E
+references:
+- Ramey2019
+- AuerbachGorodnichenko2012
+monotone:
+  d_fiscal: 1
+tests:
+  example:
+    inputs:
+      d_fiscal:
+        unit: pct
+        value: 1
+    params:
+      multiplier:
+        unit: ratio
+        low: 0.5
+        high: 1.5
+        provenance: Ramey2019
+    expected:
+      d_demand:
+        unit: pct
+        low: 0.5
+        high: 1.5

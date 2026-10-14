@@ -1,0 +1,52 @@
+id: C09_policy_path
+name: Market-implied policy path
+class: pricing
+scope:
+- economy
+inputs:
+- name: futures_rate
+  unit: pct
+outputs:
+- name: policy_rate
+  unit: pct
+form: policy_rate = futures_rate - risk_premium
+parameters:
+- name: risk_premium
+  unit: pct
+  source: TODO_estimate
+horizon:
+  impact: 0
+  peak: 0
+  decay: null
+state_dependence: []
+assumptions:
+- the futures path is under a small risk premium; the premium is not a published number
+  in the card
+competing: []
+evidence:
+- fed funds or SOFR futures
+- OIS where available
+falsification: a policy call that matches the futures path is not a deviation and
+  is not a trade
+uncertainty:
+  type: parameter
+  note: the futures risk premium is small and estimated locally
+confidence: M
+references: []
+monotone:
+  futures_rate: 1
+tests:
+  example:
+    inputs:
+      futures_rate:
+        unit: pct
+        value: 4.5
+    params:
+      risk_premium:
+        unit: pct
+        value: 0.1
+        provenance: scenario
+    expected:
+      policy_rate:
+        unit: pct
+        value: 4.4

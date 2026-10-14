@@ -1,0 +1,70 @@
+id: C04_breakeven
+name: Breakeven decomposition
+class: pricing
+scope:
+- economy
+inputs:
+- name: nominal
+  unit: pct
+- name: real_yield
+  unit: pct
+outputs:
+- name: breakeven
+  unit: pct
+- name: inflation_ex_premia
+  unit: pct
+form: breakeven = nominal - real; inflation_ex_premia = breakeven - irp + liquidity
+parameters:
+- name: irp
+  unit: pct
+  source: TODO_estimate
+- name: liquidity
+  unit: pct
+  source: TODO_estimate
+horizon:
+  impact: 0
+  peak: 0
+  decay: null
+state_dependence: []
+assumptions:
+- the premia are model-dependent; the example values are a scenario, not a published
+  premium
+competing: []
+evidence:
+- nominal par yield
+- real par yield
+falsification: an inflation thesis that beats the latest CPI print but not the breakeven
+  is not a pricing gap
+uncertainty:
+  type: parameter
+  note: inflation risk premium and TIPS liquidity premium are estimated locally
+confidence: M
+references: []
+monotone:
+  nominal: 1
+  real_yield: -1
+tests:
+  example:
+    inputs:
+      nominal:
+        unit: pct
+        value: 4
+      real_yield:
+        unit: pct
+        value: 1.5
+    params:
+      irp:
+        unit: pct
+        value: 0.2
+        provenance: scenario
+      liquidity:
+        unit: pct
+        value: 0.1
+        provenance: scenario
+    expected:
+      breakeven:
+        unit: pct
+        value: 2.5
+      inflation_ex_premia:
+        unit: pct
+        value: 2.4

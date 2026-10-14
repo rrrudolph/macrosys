@@ -70,12 +70,13 @@ def _class_rules(spec: MechanismSpec) -> None:
 def load_library(directory: str | Path) -> Library:
     """Load every ``*.yaml`` file in ``directory``, then cross-check the set (spec §3.1, §3.4).
 
-    Each file is validated as a ``MechanismSpec``. After all files parse, every ``competing`` id must
-    name another loaded record, and every record must have a registered implementation. Identities
-    must declare ``tolerance``. A bad file raises; nothing is silently skipped.
+    Each ``*.yaml`` file except ``loops.yaml`` is validated as a ``MechanismSpec``. The loop file is
+    loaded separately (spec §4.5). After all files parse, every ``competing`` id must name another
+    loaded record, and every record must have a registered implementation. Identities must declare
+    ``tolerance``. A bad mechanism file raises; nothing is silently skipped.
     """
     root = Path(directory)
-    files = sorted(root.glob("*.yaml"), key=lambda p: p.name)
+    files = [p for p in sorted(root.glob("*.yaml"), key=lambda p: p.name) if p.name != "loops.yaml"]
     if not files:
         raise ValueError(f"no mechanism yaml files in {root}")
 

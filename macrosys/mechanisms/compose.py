@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import uuid
+from pathlib import Path
 
+import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from macrosys.core.contracts import PathStepResult, StateView
@@ -15,7 +17,7 @@ from macrosys.mechanisms.errors import CompetingClosureError, IdentityViolationE
 from macrosys.mechanisms.eval import bind_parameters, evaluate
 from macrosys.mechanisms.library import Library
 from macrosys.mechanisms.registry import get_impl
-from macrosys.mechanisms.spec import MechanismSpec
+from macrosys.mechanisms.spec import MECHANISM_ID, MechanismSpec
 
 Value = Quantity | ArrayQuantity
 
@@ -330,8 +332,11 @@ class Propagator:
         self.library = library
         self.converters = list(converters or [])
 
-    def run(self, shock: Shock, state: StateView, path: PropagationPath) -> PropagationRun:
+    def run(self, shock: Shock, state: StateView, path: PropagationPath, run_id: str | None = None) -> PropagationRun:
         """Propagate ``shock`` along ``path`` and return the run record (spec §3.4 rules 1–7, §4.5).
+
+        ``run_id`` should be derived from the inputs by the caller (spec §4.4 run tuple) so identical
+        inputs produce identical records; a random id is used only when none is supplied.
 
         Steps run in order. A loop is iterated with damping ``x <- (1-damping)*x + damping*f(x)``;
         if it does not converge it is recorded on ``unstable_loops`` and the run continues. Outputs are
@@ -399,8 +404,9 @@ class Propagator:
             spec = self.library.get(inst.mechanism_id)
             impl = get_impl(spec.id)
             inputs = assemble(index, overrides)
-            gate = impl.applicable(state, inst.bindings)
-            produced = evaluate(spec, inputs, inst.parameter_overrides, impl=impl)
+            bound = bind_parameters(spec, inst.parameter_overrides)
+            gate = impl.applicable(state, inst.bindings, bound)
+            produced = evaluate(spec, inputs, bound, impl=impl)
             scaled = {name: val.scale(gate.factor) for name, val in produced.items()}
             raw_inputs[index] = inputs
             raw_outputs[index] = scaled
@@ -464,7 +470,7 @@ class Propagator:
                 )
             )
         return PropagationRun(
-            run_id=uuid.uuid4().hex,
+            run_id=run_id or uuid.uuid4().hex,
             library_version=self.library.version,
             steps=results,
             identity_checks=identity_checks,
@@ -506,3 +512,45 @@ class Propagator:
                     note="unstable under current parameters",
                 )
             )
+
+
+class FeedbackLoopSpec(BaseModel):
+    """One v0 feedback loop: mechanism ids, an iteration cap, damping, and a tolerance (spec §4.5)."""
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    id: str
+    steps: list[str] = Field(min_length=2)
+    max_iter: int
+    damping: float
+    tol: float
+    note: str
+
+    @model_validator(mode="after")
+    def _sane(self) -> FeedbackLoopSpec:
+        if not self.id.strip() or not self.note.strip():
+            raise ValueError("loop id and note are required")
+        if self.max_iter < 1:
+            raise ValueError("loop max_iter must be >= 1")
+        if not 0.0 <= self.damping <= 1.0:
+            raise ValueError("loop damping must be between 0 and 1")
+        if self.tol < 0.0:
+            raise ValueError("loop tol must be >= 0")
+        for step in self.steps:
+            if not MECHANISM_ID.match(step):
+                raise ValueError(f"loop step {step!r} is not a mechanism id")
+        return self
+
+
+def load_loops(path: str | Path) -> list[FeedbackLoopSpec]:
+    """Load the feedback loops in ``mechanisms/loops.yaml`` (spec §4.5).
+
+    The three v0 loops are the cobweb, the financial accelerator, and the FX–inflation–policy loop.
+    ``max_iter``, ``damping``, and ``tol`` are engine controls, not estimated economic magnitudes.
+    Step ids are checked against the mechanism-id pattern. Whether they exist in a library is left
+    to the caller, which is what the resolution test does.
+    """
+    raw = yaml.safe_load(Path(path).read_text(encoding="utf-8"))
+    if not isinstance(raw, dict) or not isinstance(raw.get("loops"), list):
+        raise ValueError(f"{path}: expected a mapping with a loops list")
+    return [FeedbackLoopSpec.model_validate(item) for item in raw["loops"]]

@@ -17,7 +17,7 @@ state_dependence: []
 assumptions:
   - sales, inventory change, and production are the same product and the same real unit
   - the inventory target that turns a sales change into a production plan is B04
-competing: [B04_inventory_cycle]
+competing: []
 evidence: [sales, inventory levels, production]
 falsification: "a residual outside tolerance means production, sales, and the inventory change are not the same product boundary"
 uncertainty: {type: measurement, note: inventory valuation and work in progress}

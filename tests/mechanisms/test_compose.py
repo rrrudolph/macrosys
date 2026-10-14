@@ -59,6 +59,7 @@ def test_unit_mismatch_rejected_and_accepted_with_a_converter(library):
                 consumes=[Wire(input="d_price", from_step=0, output="residual")],
             ),
         ],
+        accepted_competing=[_accept("B07_substitution")],
         materiality_threshold=_threshold(),
     )
     with pytest.raises(UnitContinuityError):
@@ -84,7 +85,7 @@ def test_converter_coefficient_is_applied_at_runtime(library):
                 consumes=[Wire(input="d_price", from_step=0, output="tightness")],
             ),
         ],
-        accepted_competing=[_accept("B06_demand_elasticity")],
+        accepted_competing=[_accept("B06_demand_elasticity"), _accept("B07_substitution")],
         materiality_threshold=_threshold(),
     )
     converters = [
@@ -106,8 +107,15 @@ def test_missing_competing_effect_rejected_until_accepted(library):
         validate_path(path, library, [])
     assert "B04_inventory_cycle" in caught.value.missing
     assert "B06_demand_elasticity" in caught.value.missing
+    assert "B07_substitution" in caught.value.missing
     closed = path.model_copy(
-        update={"accepted_competing": [_accept("B04_inventory_cycle"), _accept("B06_demand_elasticity")]}
+        update={
+            "accepted_competing": [
+                _accept("B04_inventory_cycle"),
+                _accept("B06_demand_elasticity"),
+                _accept("B07_substitution"),
+            ]
+        }
     )
     validate_path(closed, library, [])
 
@@ -121,7 +129,7 @@ def test_horizon_composition_adds_impact_and_keeps_the_latest_peak(library):
                 consumes=[Wire(input="pipeline", from_step=0, output="production_response")],
             ),
         ],
-        accepted_competing=[_accept("B03_bottleneck_pricing"), _accept("B06_demand_elasticity")],
+        accepted_competing=[_accept("B06_demand_elasticity"), _accept("B07_substitution")],
         materiality_threshold=_threshold(),
     )
     got = validate_path(path, library, []).horizon
@@ -153,6 +161,7 @@ def test_materiality_stop_records_the_downstream_branch(library):
                 consumes=[Wire(input="s_ij", from_step=0, output="import_leakage")],
             ),
         ],
+        accepted_competing=[_accept("B07_substitution")],
         materiality_threshold=_q(0.01, "share"),
     )
     shock = Shock(shock_id="imports", magnitude=_q(0.5, "USD_bn"), target_input="M")
@@ -167,9 +176,11 @@ def test_b03_price_effect_is_scaled_to_zero_below_the_utilization_gate(library):
     bindings = {"entity_type": "industry", "entity_id": "USA:C24"}
     low = _State({("USA:C24", "capacity_utilization"): _q(0.50, "share")})
     high = _State({("USA:C24", "capacity_utilization"): _q(0.85, "share")})
-    assert impl.applicable(low, bindings).factor == 0.0
-    assert impl.applicable(low, bindings).status == "scaled"
-    assert impl.applicable(high, bindings).factor == 1.0
+    kink = {"u_kink": _q(0.70, "share", "spec_3.4_rule5")}
+    assert impl.applicable(low, bindings, kink).factor == 0.0
+    assert impl.applicable(low, bindings, kink).status == "scaled"
+    assert impl.applicable(high, bindings, kink).factor == 1.0
+    assert impl.applicable(high, bindings, {"u_kink": _q(0.95, "share", "scenario")}).factor == 0.0
 
     path = PropagationPath(
         steps=[
@@ -185,7 +196,11 @@ def test_b03_price_effect_is_scaled_to_zero_below_the_utilization_gate(library):
                 },
             )
         ],
-        accepted_competing=[_accept("B04_inventory_cycle"), _accept("B06_demand_elasticity")],
+        accepted_competing=[
+            _accept("B04_inventory_cycle"),
+            _accept("B06_demand_elasticity"),
+            _accept("B07_substitution"),
+        ],
         materiality_threshold=_threshold(),
     )
     shock = Shock(shock_id="demand", magnitude=_q(4.0, "pct"), target_input="d_demand")
@@ -203,6 +218,7 @@ def test_nonconvergent_loop_is_reported_not_raised(library):
                 fixed_inputs={"s_ij": _q(2.0, "share", provenance="loop_test")},
             )
         ],
+        accepted_competing=[_accept("B07_substitution")],
         materiality_threshold=_threshold(),
         loops=[
             Loop(
@@ -230,6 +246,7 @@ def test_damped_loop_that_settles_is_not_unstable(library):
                 fixed_inputs={"s_ij": _q(0.0, "share", provenance="loop_test")},
             )
         ],
+        accepted_competing=[_accept("B07_substitution")],
         materiality_threshold=_threshold(),
         loops=[
             Loop(

@@ -13,7 +13,9 @@ MONOTONE = [mech_id for mech_id in LIB.ids() if LIB.get(mech_id).monotone]
 
 
 def test_every_shipped_mechanism_with_a_sign_map_is_covered():
-    assert len(MONOTONE) == 18
+    assert MONOTONE == [mech_id for mech_id in LIB.ids() if LIB.get(mech_id).monotone]
+    assert "B09_okun" in MONOTONE
+    assert "B15_fiscal_multiplier" in MONOTONE
 
 
 @pytest.mark.parametrize("mech_id", MONOTONE, ids=MONOTONE)

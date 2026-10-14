@@ -1,0 +1,58 @@
+id: C11_ppp
+name: Purchasing-power parity anchor
+class: pricing
+scope:
+- currency
+inputs:
+- name: real_gap
+  unit: pct
+- name: horizon_y
+  unit: y
+outputs:
+- name: expected_change
+  unit: pct
+form: expected_change = -(1 - 0.5^(horizon/half_life)) * real_gap
+parameters:
+- name: half_life
+  unit: y
+  source: TODO_estimate
+horizon:
+  impact: 8
+  peak: 16
+  decay: null
+state_dependence: []
+assumptions:
+- half-lives are several years; the example half-life is a scenario, not Rogoff's
+  estimate
+- useless for weekly timing
+competing: []
+evidence:
+- a real exchange rate gap
+falsification: a multi-year FX valuation that has not moved toward the anchor after
+  a horizon longer than the half-life
+uncertainty:
+  type: parameter
+  note: the half-life is estimated locally; the card only says several years
+confidence: M
+references:
+- Rogoff1996
+monotone:
+  real_gap: -1
+tests:
+  example:
+    inputs:
+      real_gap:
+        unit: pct
+        value: 10
+      horizon_y:
+        unit: y
+        value: 4
+    params:
+      half_life:
+        unit: y
+        value: 4
+        provenance: scenario
+    expected:
+      expected_change:
+        unit: pct
+        value: -5

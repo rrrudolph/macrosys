@@ -1,0 +1,54 @@
+id: C05_equity_duration
+name: Equity duration
+class: pricing
+scope:
+- instrument
+inputs:
+- name: d_discount
+  unit: pp
+outputs:
+- name: d_price
+  unit: pct
+form: d_price_pct = -duration * d_discount_pp
+parameters:
+- name: duration
+  unit: y
+  source: TODO_estimate
+horizon:
+  impact: 0
+  peak: 0
+  decay: null
+state_dependence: []
+assumptions:
+- duration is model-dependent; the spec says discount rates dominate price ratios
+  and gives no duration
+competing: []
+evidence:
+- a discount-rate change
+- the equity price ratio
+falsification: an earnings upgrade that ignores the discount-rate move from the same
+  shock mis-sizes the price
+uncertainty:
+  type: parameter
+  note: equity duration is estimated locally
+confidence: M
+references:
+- CampbellShiller1988
+- Cochrane2011
+monotone:
+  d_discount: -1
+tests:
+  example:
+    inputs:
+      d_discount:
+        unit: pp
+        value: 1
+    params:
+      duration:
+        unit: y
+        value: 20
+        provenance: scenario
+    expected:
+      d_price:
+        unit: pct
+        value: -20

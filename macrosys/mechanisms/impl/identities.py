@@ -61,21 +61,22 @@ class FirmCashFlow(Ungated):
     def apply(self, inputs: dict[str, Quantity], params: dict[str, Quantity]) -> dict[str, Quantity]:
         """Revenue = volume × price, then EBIT and FCF, with a residual against the reported figures.
 
-        Spec §3.3 A05. ``volume`` is an index and ``price`` is in the same currency unit as revenue,
-        so the product is that currency unit. ``Quantity`` has no unit-checked product; the product
-        is formed from the floats and re-wrapped.
+        Spec §3.3 A05. ``volume`` is an index and ``price`` is currency, and the product is declared
+        as that currency unit at the ``mul`` call.
         """
         del params
-        revenue = num(inputs["volume"]) * num(inputs["price"])
-        ebit = revenue - num(inputs["variable_costs"]) - num(inputs["fixed_costs"])
-        fcf = ebit * (1.0 - num(inputs["tax_rate"])) + num(inputs["da"]) - num(inputs["capex"]) - num(inputs["dnwc"])
-        gap = (num(inputs["revenue_reported"]) - revenue) + (num(inputs["fcf_reported"]) - fcf)
-        return {
-            "revenue": q(revenue, "USD_bn", "A05"),
-            "ebit": q(ebit, "USD_bn", "A05"),
-            "fcf": q(fcf, "USD_bn", "A05"),
-            "residual": q(gap, "USD_bn", "A05"),
-        }
+        revenue = inputs["volume"].mul(inputs["price"], "USD_bn", "A05")
+        ebit = revenue.add(inputs["variable_costs"].scale(-1)).add(inputs["fixed_costs"].scale(-1), provenance="A05")
+        fcf = (
+            ebit.scale(1.0 - num(inputs["tax_rate"]))
+            .add(inputs["da"])
+            .add(inputs["capex"].scale(-1))
+            .add(inputs["dnwc"].scale(-1), provenance="A05")
+        )
+        gap = inputs["revenue_reported"].add(revenue.scale(-1)).add(
+            inputs["fcf_reported"].add(fcf.scale(-1)), provenance="A05"
+        )
+        return {"revenue": revenue, "ebit": ebit, "fcf": fcf, "residual": gap}
 
 
 @mechanism("A06")
@@ -91,10 +92,11 @@ class DebtDynamics(Ungated):
         g = num(inputs["g"])
         if g == -1.0:
             raise ZeroDivisionError("A06 is undefined when 1+g is 0")
-        delta = ((num(inputs["r"]) - g) / (1.0 + g)) * num(inputs["d_lag"]) - num(inputs["pb"]) + num(inputs["sfa"])
+        coeff = q((num(inputs["r"]) - g) / (1.0 + g), "share", "A06")
+        delta = coeff.mul(inputs["d_lag"], "share", "A06").add(inputs["pb"].scale(-1)).add(inputs["sfa"], provenance="A06")
         return {
-            "delta_d": q(delta, "share", "A06"),
-            "residual": q(num(inputs["delta_d_observed"]) - delta, "share", "A06"),
+            "delta_d": delta,
+            "residual": inputs["delta_d_observed"].add(delta.scale(-1), provenance="A06"),
         }
 
 
@@ -105,11 +107,11 @@ class EtfReturn(Ungated):
     def apply(self, inputs: dict[str, Quantity], params: dict[str, Quantity]) -> dict[str, Quantity]:
         """One-holding base-currency return and the residual against an observed return (spec §3.3 A09)."""
         del params
-        local, fx = num(inputs["r_local"]), num(inputs["r_fx"])
-        r_base = local + fx + local * fx - num(inputs["fees"])
+        cross = inputs["r_local"].mul(inputs["r_fx"], "share", "A09")
+        r_base = inputs["r_local"].add(inputs["r_fx"]).add(cross).add(inputs["fees"].scale(-1), provenance="A09")
         return {
-            "r_base": q(r_base, "share", "A09"),
-            "residual": q(num(inputs["r_observed"]) - r_base, "share", "A09"),
+            "r_base": r_base,
+            "residual": inputs["r_observed"].add(r_base.scale(-1), provenance="A09"),
         }
 
 
@@ -137,8 +139,81 @@ class InventoryProduction(Ungated):
     def apply(self, inputs: dict[str, Quantity], params: dict[str, Quantity]) -> dict[str, Quantity]:
         """Implied production and the residual against observed production (spec §3.3 A11)."""
         del params
-        implied = num(inputs["sales"]) + num(inputs["d_inventories"])
+        implied = inputs["sales"].add(inputs["d_inventories"], provenance="A11")
         return {
-            "implied_production": q(implied, "t", "A11"),
-            "residual": q(num(inputs["production_observed"]) - implied, "t", "A11"),
+            "implied_production": implied,
+            "residual": inputs["production_observed"].add(implied.scale(-1), provenance="A11"),
         }
+
+
+@mechanism("A02")
+class SectoralBalances(Ungated):
+    """Private, public, and external balances sum to zero (spec §3.3 A02)."""
+
+    def apply(self, inputs: dict[str, Quantity], params: dict[str, Quantity]) -> dict[str, Quantity]:
+        """Residual of (S−I) + (T−G) + (M−X + net primary income) (spec §3.3 A02).
+
+        A fiscal shift that does not show up in the private balance or the external balance fails
+        this check. It is not a forecast of who will dis-save.
+        """
+        del params
+        private = inputs["s_private"].add(inputs["i_private"].scale(-1), provenance="A02")
+        public = inputs["taxes"].add(inputs["government"].scale(-1), provenance="A02")
+        external = inputs["imports"].add(inputs["exports"].scale(-1)).add(inputs["net_primary_income"], provenance="A02")
+        return {"residual": private.add(public).add(external, provenance="A02")}
+
+
+@mechanism("A03")
+class BalanceOfPayments(Ungated):
+    """Balance of payments and the IIP change identity (spec §3.3 A03)."""
+
+    def apply(self, inputs: dict[str, Quantity], params: dict[str, Quantity]) -> dict[str, Quantity]:
+        """CA + KA + FA + E&O = 0 and ΔIIP = FA + valuation (spec §3.3 A03).
+
+        ``residual`` is the sum of the two gaps, so either identity failing trips the tolerance.
+        Gross versus net positions are a use of this check, not an extra estimated term.
+        """
+        del params
+        bop = inputs["ca"].add(inputs["ka"]).add(inputs["fa"]).add(inputs["eo"], provenance="A03")
+        iip = inputs["diip"].add(inputs["fa"].add(inputs["valuation"]).scale(-1), provenance="A03")
+        return {
+            "bop_gap": bop,
+            "iip_gap": iip,
+            "residual": bop.add(iip, provenance="A03"),
+        }
+
+
+@mechanism("A07")
+class CentralBankBalanceSheet(Ungated):
+    """Central-bank assets equal the liability side (spec §3.3 A07)."""
+
+    def apply(self, inputs: dict[str, Quantity], params: dict[str, Quantity]) -> dict[str, Quantity]:
+        """Assets − (reserves + currency + government deposits + other) (spec §3.3 A07).
+
+        ``reserve_supply`` is the reserve stock the identity is built from. It is the input to
+        funding-squeeze and intervention questions, not a forecast.
+        """
+        del params
+        liabilities = (
+            inputs["reserves"].add(inputs["currency"]).add(inputs["gov_deposits"]).add(inputs["other"], provenance="A07")
+        )
+        return {
+            "reserve_supply": inputs["reserves"],
+            "residual": inputs["assets"].add(liabilities.scale(-1), provenance="A07"),
+        }
+
+
+@mechanism("A08")
+class BankBalanceSheet(Ungated):
+    """Bank assets equal deposits, wholesale funding, and equity (spec §3.3 A08)."""
+
+    def apply(self, inputs: dict[str, Quantity], params: dict[str, Quantity]) -> dict[str, Quantity]:
+        """(Loans + securities + reserves + other) − (deposits + wholesale + equity) (spec §3.3 A08).
+
+        The residual is the check. Credit-growth stories that do not fit this balance are data
+        errors, not a funding mix.
+        """
+        del params
+        assets = inputs["loans"].add(inputs["securities"]).add(inputs["reserves"]).add(inputs["other"], provenance="A08")
+        funding = inputs["deposits"].add(inputs["wholesale"]).add(inputs["equity"], provenance="A08")
+        return {"residual": assets.add(funding.scale(-1), provenance="A08")}

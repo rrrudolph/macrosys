@@ -1,0 +1,57 @@
+id: B08_pass_through
+name: Value capture and pass-through
+class: empirical
+scope:
+- industry
+inputs:
+- name: d_cost
+  unit: pct
+outputs:
+- name: retained
+  unit: pct
+- name: passed_on
+  unit: pct
+form: retained = capture * d_cost; passed_on = (1 - capture) * d_cost
+parameters:
+- name: capture
+  unit: share
+  source: TODO_estimate
+horizon:
+  impact: 1
+  peak: 4
+  decay: null
+state_dependence: []
+assumptions:
+- capture is the share of a cost change the stage keeps; entry over B05 horizons erodes
+  it and is not a separate id
+competing: []
+evidence:
+- margins by stage
+- PPI versus CPI gaps
+falsification: predicted margin expansion is absent two reporting periods after the
+  cost shock
+uncertainty:
+  type: structural
+  note: bargaining and contract structure, not a stable elasticity
+confidence: E
+references: []
+monotone:
+  d_cost: 1
+tests:
+  example:
+    inputs:
+      d_cost:
+        unit: pct
+        value: 10
+    params:
+      capture:
+        unit: share
+        value: 0.4
+        provenance: scenario
+    expected:
+      retained:
+        unit: pct
+        value: 4
+      passed_on:
+        unit: pct
+        value: 6

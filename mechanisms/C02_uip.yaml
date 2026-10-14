@@ -1,0 +1,57 @@
+id: C02_uip
+name: Uncovered interest parity and its failure
+class: pricing
+scope:
+- currency
+inputs:
+- name: i_d
+  unit: share
+- name: i_f
+  unit: share
+outputs:
+- name: uip_depreciation
+  unit: share
+- name: use_as_forecast
+  unit: share
+form: uip_depreciation = i_d - i_f; use_as_forecast = 0
+parameters: []
+horizon:
+  impact: 0
+  peak: 0
+  decay: null
+state_dependence: []
+assumptions:
+- the arithmetic gap is the hypothesis; it is not an expected spot change
+competing: []
+evidence:
+- interest differential
+- subsequent exchange-rate change
+falsification: using the interest differential as a depreciation forecast is the failure
+  mode this record is built to block
+uncertainty:
+  type: structural
+  note: UIP fails on average at short horizons; the flag is identically zero
+confidence: E
+references:
+- Engel2016
+- MeeseRogoff1983
+monotone:
+  i_d: 1
+  i_f: -1
+tests:
+  example:
+    inputs:
+      i_d:
+        unit: share
+        value: 0.05
+      i_f:
+        unit: share
+        value: 0.02
+    params: {}
+    expected:
+      uip_depreciation:
+        unit: share
+        value: 0.03
+      use_as_forecast:
+        unit: share
+        value: 0

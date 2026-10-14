@@ -1,0 +1,54 @@
+id: B22_intermediary_capacity
+name: Intermediary balance-sheet capacity
+class: empirical
+scope:
+- institution
+inputs:
+- name: capital_scarcity
+  unit: share
+outputs:
+- name: d_premium
+  unit: bp
+form: d_premium_bp = elasticity * capital_scarcity
+parameters:
+- name: elasticity
+  unit: ratio
+  source: TODO_estimate
+horizon:
+  impact: 0
+  peak: 0
+  decay: null
+state_dependence: []
+assumptions:
+- scarcer intermediary capital widens premia and basis deviations; quarter-end is
+  a state, not a coefficient
+competing: []
+evidence:
+- primary dealer statistics
+- CIP basis
+- repo spreads
+falsification: dealer capital is scarce and the basis and repo spreads do not widen
+uncertainty:
+  type: parameter
+  note: the scarcity elasticity is estimated locally
+confidence: E
+references:
+- Duffie2010
+- HeKellyManela2017
+monotone:
+  capital_scarcity: 1
+tests:
+  example:
+    inputs:
+      capital_scarcity:
+        unit: share
+        value: 0.2
+    params:
+      elasticity:
+        unit: ratio
+        value: 10
+        provenance: scenario
+    expected:
+      d_premium:
+        unit: bp
+        value: 2

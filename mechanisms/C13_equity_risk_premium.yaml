@@ -1,0 +1,51 @@
+id: C13_equity_risk_premium
+name: Equity risk premium approximation
+class: pricing
+scope:
+- instrument
+inputs:
+- name: earnings_yield
+  unit: pct
+- name: real_yield
+  unit: pct
+outputs:
+- name: erp
+  unit: pct
+form: erp = earnings_yield - real_yield
+parameters: []
+horizon:
+  impact: 0
+  peak: 0
+  decay: null
+state_dependence: []
+assumptions:
+- one of the model-dependent approximations; pass a range when the method is uncertain
+  rather than treating this as a point
+competing: []
+evidence:
+- an earnings yield
+- a real yield
+falsification: comparing two assets on a single ERP point when both methods would
+  straddle each other
+uncertainty:
+  type: structural
+  note: every ERP approximation is model-dependent and is carried as a range
+confidence: J
+references: []
+monotone:
+  earnings_yield: 1
+  real_yield: -1
+tests:
+  example:
+    inputs:
+      earnings_yield:
+        unit: pct
+        value: 5
+      real_yield:
+        unit: pct
+        value: 2
+    params: {}
+    expected:
+      erp:
+        unit: pct
+        value: 3

@@ -16,8 +16,8 @@ horizon: {impact: 0, peak: 4, decay: null}
 state_dependence: [capacity_utilization]
 assumptions:
   - fixed proportions, slack capacity, fixed prices; the inverse is an input, not estimated here
-  - substitution (B07) is not in this library slice
-competing: [B03_bottleneck_pricing, A01_expenditure_identity]
+  - substitution is the competing mechanism B07
+competing: [B07_substitution, B03_bottleneck_pricing, A01_expenditure_identity]
 evidence: [new orders, sector industrial production, bilateral trade in the input]
 falsification: "predicted gross-output change is absent in shipments or trade after the lead time"
 uncertainty: {type: structural, note: coefficients 2-4 years stale; new technologies sit inside broader industries}

@@ -1,0 +1,56 @@
+id: B14_housing
+name: Housing construction and wealth
+class: empirical
+scope:
+- economy
+inputs:
+- name: d_permits
+  unit: pct
+outputs:
+- name: d_residential
+  unit: pct
+form: d_residential_pct = elasticity * d_permits
+parameters:
+- name: elasticity
+  unit: ratio
+  source: TODO_estimate
+horizon:
+  impact: 1
+  peak: 6
+  decay: 8
+state_dependence: []
+assumptions:
+- permits to starts is one to two quarters; completions run longer; the elasticity
+  itself is not in the card
+competing:
+- B11_monetary_transmission
+evidence:
+- permits
+- starts
+- mortgage applications
+- house prices
+falsification: permits rise for two quarters and starts stay flat, which means a financing
+  or labor constraint
+uncertainty:
+  type: parameter
+  note: the permits-to-investment elasticity is estimated locally
+confidence: E
+references:
+- MianRaoSufi2013
+monotone:
+  d_permits: 1
+tests:
+  example:
+    inputs:
+      d_permits:
+        unit: pct
+        value: 10
+    params:
+      elasticity:
+        unit: ratio
+        value: 0.8
+        provenance: scenario
+    expected:
+      d_residential:
+        unit: pct
+        value: 8

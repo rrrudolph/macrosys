@@ -3,6 +3,7 @@
 from macrosys.mechanisms.arrays import ArrayQuantity
 from macrosys.mechanisms.compose import (
     AcceptedCompeting,
+    FeedbackLoopSpec,
     Loop,
     MechanismInstance,
     PathValidation,
@@ -14,6 +15,7 @@ from macrosys.mechanisms.compose import (
     UnitConverter,
     UnstableLoop,
     Wire,
+    load_loops,
     validate_path,
 )
 from macrosys.mechanisms.counterfactual import check_monotone
@@ -33,6 +35,7 @@ __all__ = [
     "AcceptedCompeting",
     "ArrayQuantity",
     "CompetingClosureError",
+    "FeedbackLoopSpec",
     "IdentityViolationError",
     "Library",
     "Loop",
@@ -55,6 +58,7 @@ __all__ = [
     "get_impl",
     "load_example",
     "load_library",
+    "load_loops",
     "mechanism",
     "validate_path",
 ]

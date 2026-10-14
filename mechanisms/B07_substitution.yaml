@@ -1,0 +1,56 @@
+id: B07_substitution
+name: Substitution and complementarity
+class: empirical
+scope:
+- industry
+inputs:
+- name: d_relative_price
+  unit: pct
+outputs:
+- name: d_quantity
+  unit: pct
+form: d_quantity_pct = -sigma * d_relative_price_pct
+parameters:
+- name: sigma
+  unit: ratio
+  source: TODO_estimate
+horizon:
+  impact: 0
+  peak: 8
+  decay: null
+state_dependence: []
+assumptions:
+- the example sigma is a scenario; the spec gives no elasticity, only that the short
+  run is near zero for specific inputs
+competing:
+- B03_bottleneck_pricing
+evidence:
+- material intensity
+- procurement disclosures
+falsification: the price spread between substitutes widens with no share shift over
+  the long-run horizon
+uncertainty:
+  type: parameter
+  note: short-run substitution for a specific input is estimated locally
+confidence: E
+references:
+- BoehmFlaaenPandalaiNayar2019
+- BarrotSauvagnat2016
+- BaqaeeFarhi2019
+monotone:
+  d_relative_price: -1
+tests:
+  example:
+    inputs:
+      d_relative_price:
+        unit: pct
+        value: 10
+    params:
+      sigma:
+        unit: ratio
+        value: 0.5
+        provenance: scenario
+    expected:
+      d_quantity:
+        unit: pct
+        value: -5

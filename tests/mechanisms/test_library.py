@@ -43,7 +43,7 @@ def _valid() -> dict:
 
 def test_library_loads_shipped_records():
     lib = load_library(ROOT)
-    assert len(lib.ids()) == 19
+    assert len(lib.ids()) == 51
     assert len(lib.version) == 64
     assert lib.get("B09_okun").parameters[0].source == "BallLeighLoungani2017"
 

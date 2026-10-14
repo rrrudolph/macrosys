@@ -1,0 +1,55 @@
+id: B23_expectations
+name: Expectations formation
+class: empirical
+scope:
+- economy
+inputs:
+- name: surprise
+  unit: pct
+outputs:
+- name: revision
+  unit: pct
+form: revision_pct = overreaction * surprise
+parameters:
+- name: overreaction
+  unit: ratio
+  source: TODO_estimate
+horizon:
+  impact: 1
+  peak: 4
+  decay: null
+state_dependence: []
+assumptions:
+- long-horizon macro forecasts overreact; the coefficient is not a number in the card
+competing: []
+evidence:
+- consensus revisions
+- surprise history
+falsification: long-horizon forecast revisions move by less than the surprise itself
+  when the overreaction claim is the thesis input
+uncertainty:
+  type: parameter
+  note: overreaction is estimated locally and is not the same object as the market
+    price
+confidence: E
+references:
+- BordaloGennaioliMaShleifer2020
+- LopezSalidoSteinZakrajsek2017
+- GreenwoodHanson2013
+monotone:
+  surprise: 1
+tests:
+  example:
+    inputs:
+      surprise:
+        unit: pct
+        value: 1
+    params:
+      overreaction:
+        unit: ratio
+        value: 1.2
+        provenance: scenario
+    expected:
+      revision:
+        unit: pct
+        value: 1.2

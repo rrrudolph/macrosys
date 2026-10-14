@@ -1,0 +1,87 @@
+id: A03_balance_of_payments
+name: Balance of payments and IIP
+class: identity
+scope:
+- economy
+inputs:
+- name: ca
+  unit: USD_bn
+- name: ka
+  unit: USD_bn
+- name: fa
+  unit: USD_bn
+- name: eo
+  unit: USD_bn
+- name: diip
+  unit: USD_bn
+- name: valuation
+  unit: USD_bn
+outputs:
+- name: bop_gap
+  unit: USD_bn
+- name: iip_gap
+  unit: USD_bn
+- name: residual
+  unit: USD_bn
+form: bop_gap = CA + KA + FA + E&O; iip_gap = dIIP - (FA + valuation); residual is
+  the sum
+parameters:
+- name: tolerance
+  unit: USD_bn
+  value: 1.0e-06
+  source: accounting_identity
+horizon:
+  impact: 0
+  peak: 0
+  decay: null
+state_dependence: []
+assumptions:
+- gross positions are the crisis object; the identity itself is the net closure
+competing: []
+evidence:
+- IMF BOP and IIP
+falsification: a residual outside tolerance is a missing instrument, a sign error,
+  or a valuation term left out of the IIP
+uncertainty:
+  type: measurement
+  note: errors and omissions and valuation
+confidence: M
+references: []
+monotone:
+  ca: 1
+tests:
+  example:
+    inputs:
+      ca:
+        unit: USD_bn
+        value: 10
+      ka:
+        unit: USD_bn
+        value: 1
+      fa:
+        unit: USD_bn
+        value: -12
+      eo:
+        unit: USD_bn
+        value: 1
+      diip:
+        unit: USD_bn
+        value: -10
+      valuation:
+        unit: USD_bn
+        value: 2
+    params:
+      tolerance:
+        unit: USD_bn
+        value: 1.0e-06
+        provenance: accounting_identity
+    expected:
+      bop_gap:
+        unit: USD_bn
+        value: 0
+      iip_gap:
+        unit: USD_bn
+        value: 0
+      residual:
+        unit: USD_bn
+        value: 0

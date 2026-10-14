@@ -17,7 +17,7 @@ state_dependence: [inventory_days]
 assumptions:
   - firms target an inventory-to-sales ratio
   - just-in-time versus precautionary stocking is a regime, not a separate mechanism in this slice
-competing: [B03_bottleneck_pricing]
+competing: []
 evidence: [inventories-to-sales ratios, warehouse stocks, PMI inventories]
 falsification: "demand rises, inventories do not fall, and prices do not rise, so demand was smaller than assumed or supply responded"
 uncertainty: {type: regime, note: destocking cycles overshoot}

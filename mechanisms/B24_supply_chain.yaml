@@ -1,0 +1,75 @@
+id: B24_supply_chain
+name: Supply-chain propagation
+class: empirical
+scope:
+- industry
+inputs:
+- name: disruption
+  unit: pct
+- name: specificity
+  unit: share
+- name: inventory_days
+  unit: d
+outputs:
+- name: output_loss
+  unit: pct
+form: output_loss = loss_coeff * disruption * specificity - cushion * inventory_days
+parameters:
+- name: loss_coeff
+  unit: ratio
+  source: TODO_estimate
+- name: cushion
+  unit: ratio
+  source: TODO_estimate
+horizon:
+  impact: 1
+  peak: 4
+  decay: null
+state_dependence: []
+assumptions:
+- loss rises with specificity and falls with inventory days; neither coefficient is
+  in the card
+competing:
+- B04_inventory_cycle
+evidence:
+- PMI supplier deliveries
+- NY Fed GSCPI
+- firm disclosures
+falsification: a disruption lasts a quarter and downstream output does not change,
+  so buffers were larger than assumed
+uncertainty:
+  type: parameter
+  note: customer output loss is estimated locally
+confidence: E
+references:
+- BarrotSauvagnat2016
+- CarvalhoNireiSaitoTahbazSalehi2021
+monotone:
+  disruption: 1
+  specificity: 1
+  inventory_days: -1
+tests:
+  example:
+    inputs:
+      disruption:
+        unit: pct
+        value: 10
+      specificity:
+        unit: share
+        value: 1
+      inventory_days:
+        unit: d
+        value: 5
+    params:
+      loss_coeff:
+        unit: ratio
+        value: 0.5
+        provenance: scenario
+      cushion:
+        unit: ratio
+        value: 0.1
+        provenance: scenario
+    expected:
+      output_loss:
+        unit: pct
+        value: 4.5

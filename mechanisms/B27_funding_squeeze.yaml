@@ -1,0 +1,53 @@
+id: B27_funding_squeeze
+name: Funding squeeze
+class: empirical
+scope:
+- economy
+inputs:
+- name: funding_stress
+  unit: bp
+outputs:
+- name: d_spread
+  unit: bp
+form: d_spread_bp = elasticity * funding_stress_bp
+parameters:
+- name: elasticity
+  unit: ratio
+  source: TODO_estimate
+horizon:
+  impact: 0
+  peak: 0.25
+  decay: 1
+state_dependence: []
+assumptions:
+- prices move in days to weeks; the real economy follows later through B12 and B13
+competing: []
+evidence:
+- SOFR-IORB
+- CP-OIS
+- facility usage
+- cross-currency basis
+falsification: funding spreads widen 50 bp with no facility use and no spread contagion
+  over two weeks
+uncertainty:
+  type: regime
+  note: the pass-through from funding stress into asset spreads is estimated locally
+confidence: E
+references: []
+monotone:
+  funding_stress: 1
+tests:
+  example:
+    inputs:
+      funding_stress:
+        unit: bp
+        value: 50
+    params:
+      elasticity:
+        unit: ratio
+        value: 1.5
+        provenance: scenario
+    expected:
+      d_spread:
+        unit: bp
+        value: 75
