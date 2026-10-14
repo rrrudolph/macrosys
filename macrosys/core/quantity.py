@@ -92,6 +92,25 @@ class Quantity(BaseModel):
             lo = hi = None
         return Quantity(value=v, unit=unit, low=lo, high=hi, provenance=provenance or self.provenance)
 
+    def sub(self, other: Quantity, provenance: str | None = None) -> Quantity:
+        """Interval subtraction `self − other` in `self.unit` (the gap computation of spec §7.7:
+        expected − priced). Ranges subtract end-to-end: low = self.low − other.high, high = self.high − other.low."""
+        return self.add(other.scale(-1.0), provenance=provenance)
+
+    def div(self, other: Quantity, unit: str, provenance: str | None = None) -> Quantity:
+        """Quotient with an explicitly declared result unit (mirror of `mul`). Raises if the divisor's
+        range or value touches zero, because the interval is then unbounded."""
+        assert_unit(unit)
+        b_lo = other.low if other.low is not None else other.value
+        b_hi = other.high if other.high is not None else other.value
+        assert b_lo is not None and b_hi is not None
+        if b_lo <= 0.0 <= b_hi:
+            raise ZeroDivisionError("divisor range includes zero")
+        inv = Quantity(value=None if other.value is None else 1.0 / other.value, unit="ratio", low=1.0 / b_hi, high=1.0 / b_lo)
+        if not other.is_range:
+            inv = Quantity(value=1.0 / other.value, unit="ratio")  # type: ignore[arg-type]
+        return self.mul(inv, unit=unit, provenance=provenance)
+
     def add(self, other: Quantity, provenance: str | None = None) -> Quantity:
         """Add two quantities in compatible units (result in self.unit). Ranges add end-to-end."""
         if not compatible(self.unit, other.unit):

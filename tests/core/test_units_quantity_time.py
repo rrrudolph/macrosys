@@ -62,6 +62,17 @@ def test_quantity_mul_declares_unit_and_uses_interval_arithmetic():
         volume.mul(price, unit="not_a_unit")
 
 
+def test_quantity_sub_and_div():
+    expected = Quantity(value=None, unit="pct", low=2.0, high=6.0)
+    priced = Quantity(value=None, unit="pct", low=1.0, high=4.0)
+    gap = expected.sub(priced)
+    assert (gap.low, gap.high) == (-2.0, 5.0) and gap.straddles_zero()
+    days = Quantity(value=120.0, unit="t").div(Quantity(value=None, unit="t", low=2.0, high=4.0), unit="d")
+    assert (days.low, days.high) == (30.0, 60.0)
+    with pytest.raises(ZeroDivisionError):
+        expected.div(Quantity(value=None, unit="pct", low=-1.0, high=1.0), unit="ratio")
+
+
 def test_timestamps_visibility():
     ts = Timestamps(
         ref_period_start=date(2026, 6, 30),

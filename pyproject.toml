@@ -40,7 +40,7 @@ include = ["macrosys*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "-q"
+addopts = "-q --import-mode=importlib"
 markers = [
     "network: test needs real network access (skipped by default; run with -m network)",
     "windows_only: test needs Windows (e.g. MetaTrader 5)",
