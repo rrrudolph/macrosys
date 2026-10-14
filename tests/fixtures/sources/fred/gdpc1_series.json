@@ -1,0 +1,20 @@
+{
+  "realtime_start": "2024-02-28",
+  "realtime_end": "2024-02-28",
+  "seriess": [
+    {
+      "id": "GDPC1",
+      "realtime_start": "2024-02-28",
+      "realtime_end": "2024-02-28",
+      "title": "Real Gross Domestic Product",
+      "observation_start": "1947-01-01",
+      "observation_end": "2023-10-01",
+      "frequency": "Quarterly",
+      "frequency_short": "Q",
+      "units": "Billions of Chained 2017 Dollars",
+      "units_short": "Bil. of Chn. 2017 $",
+      "seasonal_adjustment": "Seasonally Adjusted Annual Rate",
+      "seasonal_adjustment_short": "SAAR"
+    }
+  ]
+}

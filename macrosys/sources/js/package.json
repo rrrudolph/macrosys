@@ -1,0 +1,11 @@
+{
+  "name": "macrosys-tradingview",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@mathieuc/tradingview": "4.0.0"
+  }
+}
