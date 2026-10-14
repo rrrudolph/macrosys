@@ -1,0 +1,97 @@
+# Source registry (spec §9.5–9.6). One entry per data source. Connectors read their limits and tier from
+# here; nothing in code hard-codes a rate limit. `verified` is the date the access terms were last read.
+#
+# tier: record | cross_check | research   (spec §9.6 price-source tiering; applies to all sources)
+# license: short label; see the source's own terms. `internal_use_only` means no redistribution.
+
+sources:
+  - source_id: FRED
+    name: Federal Reserve Bank of St. Louis FRED / ALFRED API
+    tier: record
+    access: {kind: rest, base_url: https://api.stlouisfed.org/fred/, auth: {env: FRED_API_KEY, how: query:api_key}}
+    rate_limit: {requests: 120, per_seconds: 60}
+    vintages: true
+    license: "FRED API Terms of Use; attribution notice required; third-party-copyrighted series flagged in notes"
+    verified: 2026-10-14
+  - source_id: BLS
+    name: US Bureau of Labor Statistics Public Data API v2
+    tier: record
+    access: {kind: rest, base_url: https://api.bls.gov/publicAPI/v2/, auth: {env: BLS_API_KEY, how: body:registrationkey}}
+    rate_limit: {requests: 500, per_seconds: 86400, series_per_query: 50, years_per_query: 20, burst: {requests: 50, per_seconds: 10}}
+    verified: 2026-10-14
+  - source_id: ECB
+    name: ECB Data Portal SDMX 2.1 REST
+    tier: record
+    access: {kind: sdmx, base_url: https://data-api.ecb.europa.eu/service/, auth: null}
+    rate_limit: {requests: 30, per_seconds: 60, note: "no published limit; self-imposed"}
+    verified: 2026-10-14
+  - source_id: IMF
+    name: IMF Data SDMX 3.0
+    tier: record
+    access: {kind: sdmx3, base_url: https://api.imf.org/external/sdmx/3.0/, auth: null}
+    rate_limit: {requests: 10, per_seconds: 5, note: "third-party reports 10 req / 5 s per IP"}
+    verified: 2026-10-14
+  - source_id: OECD
+    name: OECD Data Explorer SDMX
+    tier: record
+    access: {kind: sdmx, base_url: https://sdmx.oecd.org/public/rest/, auth: null}
+    rate_limit: {requests: 60, per_seconds: 3600, note: "data downloads; VPN traffic blocked"}
+    verified: 2026-10-14
+  - source_id: COMTRADE
+    name: UN Comtrade Plus (free registered)
+    tier: record
+    access: {kind: rest, base_url: https://comtradeapi.un.org/data/v1/, auth: {env: COMTRADE_KEY, how: header:Ocp-Apim-Subscription-Key}}
+    rate_limit: {requests: 500, per_seconds: 86400, burst: {requests: 1, per_seconds: 1}, records_per_call: 100000}
+    verified: 2026-10-14
+  - source_id: CFTC
+    name: CFTC Commitments of Traders (Socrata)
+    tier: record
+    access: {kind: socrata, base_url: https://publicreporting.cftc.gov/resource/, auth: {env: SOCRATA_APP_TOKEN, how: header:X-App-Token, optional: true}}
+    datasets: {legacy_futures: 6dca-aqww, legacy_combined: jun7-fc8e, disagg_futures: 72hh-3qpy, disagg_combined: kh3c-gbw2, tff_futures: gpe5-46if, tff_combined: yw9f-hn96, cit: 4zgm-a668}
+    schedule: {weekday: Fri, time_local: "15:30", tz: America/New_York, data_as_of: Tue}
+    verified: 2026-10-14
+  - source_id: SEC
+    name: SEC EDGAR data.sec.gov (submissions, companyfacts, frames) and N-PORT data sets
+    tier: record
+    access: {kind: rest, base_url: https://data.sec.gov/, auth: null, user_agent_env: SEC_USER_AGENT}
+    rate_limit: {requests: 10, per_seconds: 1}
+    verified: 2026-10-14
+  - source_id: TREASURY
+    name: US Treasury par/real yield curves (XML/CSV) and Fiscal Data API
+    tier: record
+    access: {kind: rest, base_url: https://home.treasury.gov/, auth: null}
+    rate_limit: {requests: 30, per_seconds: 60, note: "self-imposed"}
+    verified: null
+  - source_id: FEDGSW
+    name: Federal Reserve Board smoothed nominal yield curve (Gürkaynak–Sack–Wright), CSV, posted weekly
+    tier: record
+    access: {kind: file, url: https://www.federalreserve.gov/data/yield-curve-tables/feds200628.csv, auth: null}
+    verified: 2026-10-14
+  - source_id: PORTWATCH
+    name: IMF PortWatch (daily port calls and chokepoint transits)
+    tier: record
+    access: {kind: arcgis, base_url: https://portwatch.imf.org/, auth: null}
+    verified: 2026-10-14
+  - source_id: TIINGO
+    name: Tiingo EOD (Starter tier)
+    tier: record
+    access: {kind: rest, base_url: https://api.tiingo.com/tiingo/, auth: {env: TIINGO_API_KEY, how: header:Authorization}}
+    rate_limit: {requests: 50, per_seconds: 3600, daily: 1000, unique_symbols_per_month: 500, bandwidth_gb_per_month: 1}
+    license: internal_use_only
+    verified: 2026-10-14
+  - source_id: MT5
+    name: MetaTrader 5 terminal (broker demo account) via the MetaTrader5 Python package
+    tier: cross_check
+    access: {kind: local_ipc, requires: "running MT5 terminal on Windows; demo login via env MT5_LOGIN/MT5_PASSWORD/MT5_SERVER"}
+    notes:
+      - "Broker CFD/FX quotes, not exchange prices; bid-based bars; session calendar per symbol must be recorded"
+      - "History depth depends on broker server; demo accounts may expire"
+    verified: 2026-10-14
+  - source_id: TRADINGVIEW_UNOFFICIAL
+    name: TradingView-API community library (@mathieuc/tradingview v4, Node 20+)
+    tier: research
+    access: {kind: node_subprocess, package: "@mathieuc/tradingview", auth: {env: [TV_SESSION, TV_SIGNATURE], optional: true}}
+    rate_limit: {requests: 6, per_seconds: 60, note: "self-imposed; unofficial protocol"}
+    license: "unofficial; not endorsed by TradingView; TradingView terms govern automated access; no redistribution"
+    quality_flag: unofficial
+    verified: 2026-10-14

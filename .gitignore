@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.ruff_cache/
+.hypothesis/
+.coverage
+htmlcov/
+build/
+dist/
+
+# Data (never commit raw payloads, stores, or secrets)
+raw/
+data/store/
+*.duckdb
+*.duckdb.wal
+*.parquet
+!tests/**/*.parquet
+.env
+secrets/
+
+# Node (TradingView adapter)
+node_modules/
+
+# Local scratch / issue tracker
+.scratch/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

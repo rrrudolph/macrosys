@@ -1,0 +1,58 @@
+# Illustrative ETF universe (spec §11.1). Tickers are configuration, not design; the owner edits this file.
+# `structure`: physical | futures | synthetic | hedged. Leveraged/inverse/VIX-linked products are excluded by mandate.
+instruments:
+  # Global / regional equity
+  - {ticker: ACWI, structure: physical, role: factor_global_equity}
+  - {ticker: SPY,  structure: physical}
+  - {ticker: IWM,  structure: physical}
+  - {ticker: EFA,  structure: physical}
+  - {ticker: HEFA, structure: hedged, hedged_pair_of: EFA}
+  - {ticker: EEM,  structure: physical, role: factor_em_equity}
+  - {ticker: EWJ,  structure: physical}
+  - {ticker: DXJ,  structure: hedged, hedged_pair_of: EWJ}
+  - {ticker: EWG,  structure: physical}
+  - {ticker: EWU,  structure: physical}
+  - {ticker: MCHI, structure: physical}
+  - {ticker: EWY,  structure: physical}
+  - {ticker: EWT,  structure: physical}
+  - {ticker: INDA, structure: physical}
+  - {ticker: EWZ,  structure: physical}
+  - {ticker: EWW,  structure: physical}
+  - {ticker: EWC,  structure: physical}
+  - {ticker: EWA,  structure: physical}
+  # US sectors
+  - {ticker: XLE, structure: physical}
+  - {ticker: XLB, structure: physical}
+  - {ticker: XLI, structure: physical}
+  - {ticker: XLF, structure: physical}
+  - {ticker: XLK, structure: physical}
+  - {ticker: XLU, structure: physical}
+  - {ticker: XLV, structure: physical}
+  - {ticker: XLY, structure: physical}
+  - {ticker: XLP, structure: physical}
+  - {ticker: XLRE, structure: physical}
+  - {ticker: XHB, structure: physical}
+  # Rates
+  - {ticker: BIL, structure: physical}
+  - {ticker: SHY, structure: physical}
+  - {ticker: IEI, structure: physical}
+  - {ticker: IEF, structure: physical, role: factor_us_duration}
+  - {ticker: TLT, structure: physical}
+  - {ticker: TIP, structure: physical}
+  # Credit
+  - {ticker: LQD, structure: physical, role: factor_ig_credit}
+  - {ticker: HYG, structure: physical, role: factor_hy_credit}
+  - {ticker: EMB, structure: physical}
+  - {ticker: EMLC, structure: physical}
+  # Commodities and FX
+  - {ticker: GLD, structure: physical, role: factor_gold}
+  - {ticker: SLV, structure: physical}
+  - {ticker: DBC, structure: futures}
+  - {ticker: USO, structure: futures, role: factor_energy}
+  - {ticker: UNG, structure: futures}
+  - {ticker: CPER, structure: futures}
+  - {ticker: DBB, structure: futures, role: factor_industrial_metals}
+  - {ticker: DBA, structure: futures}
+  - {ticker: UUP, structure: futures, role: factor_usd}
+  - {ticker: FXE, structure: physical}
+  - {ticker: FXY, structure: physical}

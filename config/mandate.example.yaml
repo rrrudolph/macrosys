@@ -1,0 +1,28 @@
+# Mandate (spec §11.1). Copy to mandate.yaml and fill the nulls. The paper phase cannot start with nulls.
+base_ccy: USD
+universe_file: config/universe.yaml
+decision:
+  weekday: Mon
+  time_local: "09:00"
+  tz: America/Chicago
+horizon_months: {min: 1, max: 12}
+leverage: {allowed: false}
+shorting: {allowed: false}          # short views via pairs/underweights only in v0 (spec §7.5)
+excluded_structures: [leveraged, inverse, vix_linked]
+risk:
+  vol_target_annual_pct: null       # owner decision (§15)
+  max_drawdown_halt_pct: null
+  position_limit_pct: null
+  factor_limit_pct: null
+  country_limit_pct: null
+  currency_net_limit_pct: null
+  scenario_loss_budget_pct: null
+gap_gate:
+  min_expected_gap_after_costs_bp: null
+sizing:
+  conviction_multiplier_bounds: [0.5, 1.5]
+  fractional_kelly_ceiling: 0.25
+promotion_gates:                    # §10.3 — fixed before paper trading begins
+  research_to_paper: {min_cases_scored: 12, min_sign_accuracy: null}
+  paper_to_live_small: {min_weeks: 26, max_class_a_incidents: 0}
+  live_small_to_scale: {min_weeks: 26}

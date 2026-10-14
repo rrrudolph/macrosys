@@ -1,0 +1,56 @@
+[build-system]
+requires = ["setuptools>=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "macrosys"
+version = "0.0.1"
+description = "Global macro, cross-asset research and trading system: mechanism engine, point-in-time data spine, risk, and decision loop."
+readme = "README.md"
+requires-python = ">=3.12"
+license = { text = "Proprietary" }
+dependencies = [
+    "pydantic>=2.7",
+    "duckdb>=1.1",
+    "pyarrow>=16",
+    "numpy>=1.26",
+    "scipy>=1.13",
+    "pandas>=2.2",
+    "pyyaml>=6.0",
+    "httpx>=0.27",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8",
+    "pytest-cov>=5",
+    "hypothesis>=6",
+    "ruff>=0.5",
+]
+# Windows-only; talks to a running MetaTrader 5 terminal over IPC. Optional import in code.
+mt5 = ["MetaTrader5; sys_platform == 'win32'"]
+# Statistical estimation extras used by estimation/ and risk/ (kept optional to keep the core light).
+stats = ["statsmodels>=0.14"]
+
+[project.scripts]
+macrosys = "macrosys.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["macrosys*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+markers = [
+    "network: test needs real network access (skipped by default; run with -m network)",
+    "windows_only: test needs Windows (e.g. MetaTrader 5)",
+]
+filterwarnings = ["error::DeprecationWarning:macrosys.*"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP", "N", "W"]
+ignore = ["E501"]
