@@ -1,0 +1,122 @@
+# Series the pricing layer reads. Ids follow the connectors in macrosys/sources.
+# A series named here and not yet written by a connector is an expected id, not a
+# silent substitute. Comments are the convention notes.
+
+variables:
+  policy: [policy_rate, policy, funds_rate]
+  inflation: [inflation, cpi, breakeven]
+  price: [price, futures_price]
+  growth: [growth, earnings_growth, implied_growth]
+
+# USD nominal curve. GSW zeros are preferred when any SVENY print is in the snapshot.
+# Treasury par tenors match macrosys.sources.treasury (TREASURY:PAR:1M … 30Y).
+nominal_zero:
+  USD:
+    gsw_pattern: "FEDGSW:SVENY{nn:02d}"
+    gsw_compounding: continuous
+    gsw_note: >
+      FEDGSW:SVENY01..SVENY30 are the GSW continuously compounded zero-coupon
+      yields in percent (the feds200628 header says Continuously Compounded).
+      Tenor of SVENYnn is nn years.
+    par_pattern: "TREASURY:PAR:{tenor}"
+    par_tenors: [1M, 2M, 3M, 4M, 6M, 1Y, 2Y, 3Y, 5Y, 7Y, 10Y, 20Y, 30Y]
+  EUR:
+    # [M] ECB SDW yield curve, Svensson, euro area AAA government, spot rate.
+    # The generic ECB connector stores ECB:<KEY>. Compounding is annual [J]:
+    # the published spot is "percent per annum"; confirm before a breakeven.
+    spot_pattern: "ECB:YC.B.U2.EUR.4F.G_N_A.SV_C_YM.SR_{label}"
+    spot_labels: [3M, 6M, 1Y, 2Y, 3Y, 4Y, 5Y, 7Y, 10Y, 15Y, 20Y, 30Y]
+    compounding: annual
+
+policy:
+  USD:
+    ccy: USD
+    entity_ids: [USD, USA, FED]
+    futures_prefix: "CME:FF:"
+    convention: fedfunds
+    price_unit: index
+    spot: NYFED:EFFR:percentRate
+    note: >
+      CME:FF:YYYY-MM is the fed-funds futures settlement in index points
+      (rate = 100 − price). Not written by a connector yet. NYFED:EFFR:percentRate
+      is the effective-funds print from macrosys.sources.nyfed (type EFFR,
+      field percentRate). The path uses settlements, not the spot print.
+  EUR:
+    ccy: EUR
+    entity_ids: [EUR, EA, ECB]
+    futures_prefix: null
+    convention: null
+    spot: ECB:EST.B.EU000A2X2A25.WT
+    gap: >
+      OIS and €STR futures are not in the connectors (spec §9.8).
+      ECB:EST.B.EU000A2X2A25.WT is the €STR level, not a path.
+
+breakeven:
+  USD:
+    ccy: USD
+    entity_ids: [USD, USA]
+    # Published par breakevens (nominal CMT minus real CMT), percent.
+    # Real CMT DFII5/7/10/20/30 start at 5Y and the Treasury connector does not
+    # parse the real par XML, so a real zero bootstrap is not available.
+    series:
+      "5": FRED:T5YIE
+      "10": FRED:T10YIE
+    real_par_note: >
+      FRED:DFII5, DFII7, DFII10, DFII20, DFII30 are real par yields. They are
+      not bootstrapped here.
+  EUR:
+    ccy: EUR
+    entity_ids: [EUR, EA]
+    series: {}
+    gap: >
+      Euro inflation swaps and the inflation-linked yield curve are not mapped
+      (spec §9.8). No breakeven series is read for EUR.
+
+term_premium:
+  # NY Fed ACM spreadsheet column ACMTPnn. macrosys.sources.nyfed loads SOFR,
+  # EFFR, RRP, and primary dealers only — it does not load ACM. This is the
+  # series id a later loader should write, in percent.
+  ACM:
+    pattern: "NYFED:ACM:TP{tenor}"
+    note: "NYFED:ACM:TP10 is the 10-year ACM term premium. Tenor is the integer year, not zero-padded."
+  KW:
+    series:
+      "10": FRED:THREEFYTP10
+    note: "Kim–Wright 10-year term premium on FRED. No other tenor is in this map."
+
+commodities:
+  brent:
+    entity_ids: [brent, Brent, BZ, CO]
+    futures_prefix: "ICE:B:"
+    spot: FRED:DCOILBRENTEU
+    price_unit: USD
+    note: >
+      FRED:DCOILBRENTEU is Europe Brent spot, USD per barrel, via the FRED
+      connector. ICE:B:YYYY-MM is the Brent futures settlement. Futures are
+      not written by a connector yet. The spot print is not a curve.
+  copper:
+    entity_ids: [copper, Cu, HG]
+    futures_prefix: "CME:HG:"
+    spot: FRED:PCOPPUSDM
+    price_unit: USD
+    note: >
+      FRED:PCOPPUSDM is the IMF/FRED global copper price, USD per metric ton.
+      CME:HG:YYYY-MM is the COMEX copper futures settlement, not in a connector.
+
+instruments:
+  CPER:
+    earnings_yield: PRICING:CPER:EARNINGS_YIELD
+    payout: PRICING:CPER:PAYOUT
+    note: >
+      Earnings yield in pct and payout in share. Neither is produced by Tiingo
+      or the other connectors (spec §9.8). The resolver reads them if a loader
+      has written them.
+
+# Spec §7.3: an industry with no direct implied quantity uses the nearest
+# instrument's implied growth, with a wider range and lower confidence.
+# USA:C26 matches the entity-id shape in spec §4.7. The link to CPER is a
+# declared example, not a checked ICIO-to-ETF crosswalk.
+nearest_instrument:
+  USA:C26:
+    instrument_id: CPER
+    note: "Declared nearest listed expression for the industry fallback example."

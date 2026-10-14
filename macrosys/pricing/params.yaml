@@ -1,0 +1,62 @@
+# Placeholder bands for premia the cards leave as TODO_estimate (spec §3.1, §3.3).
+# Each band contains zero. The market point is not shifted. These are declared
+# widths [J], not literature estimates and not zeros.
+
+c09_risk_premium_pct:
+  unit: pct
+  value: null
+  low: -0.10
+  high: 0.10
+  provenance: TODO_estimate
+  note: >
+    Symmetric band around a fed-funds or SOFR futures rate. One-tenth of a percent
+    is a declared width so an unknown premium is not treated as zero. It is not a
+    Piazzesi–Swanson estimate.
+
+c04_inflation_risk_premium_pct:
+  unit: pct
+  value: null
+  low: -0.50
+  high: 0.50
+  provenance: TODO_estimate
+  note: >
+    Symmetric inflation-risk-premium band. The point breakeven is not shifted.
+    Not a D'Amico–Kim–Wei estimate.
+
+c04_tips_liquidity_premium_pct:
+  unit: pct
+  value: null
+  low: -0.50
+  high: 0.50
+  provenance: TODO_estimate
+  note: >
+    Symmetric TIPS-liquidity band. Enters as +liquidity in the C04 identity.
+    The point breakeven is not shifted.
+
+c05_required_return_pct:
+  unit: pct
+  value: null
+  low: 4.0
+  high: 10.0
+  provenance: TODO_estimate
+  note: >
+    Nominal required-return band for reverse Gordon when no discount series is
+    mapped. Not a published cost of capital.
+
+c05_payout_share:
+  unit: share
+  value: null
+  low: 0.30
+  high: 0.70
+  provenance: TODO_estimate
+  note: Payout band used when the instrument has no payout series.
+
+fallback_half_width_scale:
+  unit: ratio
+  value: 2.0
+  low: null
+  high: null
+  provenance: TODO_estimate
+  note: >
+    Multiplier on a nearest-instrument implied-growth range when the entity has
+    no direct market quantity (spec §7.3). Declared, not calibrated.
