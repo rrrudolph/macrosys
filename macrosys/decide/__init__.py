@@ -1,0 +1,91 @@
+"""Decision layer: shocks, theses, gates, sizing, and portfolio construction (spec §7, §11)."""
+
+from macrosys.decide.gates import (
+    Decision,
+    GateResult,
+    decide,
+    expression_gate,
+    gap_gate,
+    mechanism_gate,
+    risk_gate,
+)
+from macrosys.decide.mandate import (
+    Mandate,
+    MandateIncompleteError,
+    load_example_mandate,
+)
+from macrosys.decide.portfolio import (
+    IllegalTransitionError,
+    LimitCheckMissingError,
+    OrderState,
+    OrderStateMachine,
+    OrderTicket,
+    PortfolioConstructor,
+    Reconciler,
+    ReconciliationReport,
+    client_order_id,
+)
+from macrosys.decide.shock import (
+    INVESTMENT_STAGES,
+    POLICY_STAGES,
+    SUBTYPES,
+    Shock,
+)
+from macrosys.decide.sizing import (
+    SizedPosition,
+    conviction_multiplier,
+    fractional_kelly_ceiling,
+    group_correlated,
+    scenario_budget_cap,
+    size_position,
+    vol_parity_weight,
+)
+from macrosys.decide.thesis import (
+    CompetingEffect,
+    EvidenceQuality,
+    ExpectedEffect,
+    Expression,
+    IllegalThesisTransitionError,
+    Thesis,
+    ThesisStatus,
+)
+
+__all__ = [
+    "INVESTMENT_STAGES",
+    "POLICY_STAGES",
+    "SUBTYPES",
+    "CompetingEffect",
+    "Decision",
+    "EvidenceQuality",
+    "ExpectedEffect",
+    "Expression",
+    "GateResult",
+    "IllegalThesisTransitionError",
+    "IllegalTransitionError",
+    "LimitCheckMissingError",
+    "Mandate",
+    "MandateIncompleteError",
+    "OrderState",
+    "OrderStateMachine",
+    "OrderTicket",
+    "PortfolioConstructor",
+    "Reconciler",
+    "ReconciliationReport",
+    "Shock",
+    "SizedPosition",
+    "Thesis",
+    "ThesisStatus",
+    "client_order_id",
+    "conviction_multiplier",
+    "decide",
+    "expression_gate",
+    "fractional_kelly_ceiling",
+    "gap_gate",
+    "group_correlated",
+    "load_example_mandate",
+    "mechanism_gate",
+    "risk_gate",
+    "scenario_budget_cap",
+    "size_position",
+    "vol_parity_weight",
+]
