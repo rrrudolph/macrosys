@@ -15,7 +15,7 @@ from datetime import UTC, date, datetime
 from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Any
-from urllib.parse import urlsplit, urlunsplit
+from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import httpx
 import yaml
@@ -305,6 +305,9 @@ def apply_auth(
     if kind == "query":
         params[name] = value
     elif kind == "header":
+        # Tiingo's Authorization value is "Token <key>". The env holds the key alone.
+        if name.lower() == "authorization" and " " not in value:
+            value = f"Token {value}"
         headers[name] = value
     elif kind == "body":
         if body is None:
@@ -343,8 +346,8 @@ class HttpClient:
     """httpx wrapper that rate-limits, retries, conditions, redacts, and stores every response (spec §9.1).
 
     `transport` is an httpx transport (use `httpx.MockTransport` in tests). Conditional requests remember
-    `ETag` and `Last-Modified` in memory, keyed by URL with secret query parameters removed. Redirects are
-    not followed, so an API key is not replayed to another host.
+    `ETag` and `Last-Modified` in memory, keyed by URL with secret query parameters removed. A redirect
+    is followed only when the source has no credentials, so an API key is not replayed to another host.
     """
 
     def __init__(
@@ -407,6 +410,12 @@ class HttpClient:
             self._remember(key, response)
             payload = self._store("GET", url, query, hdrs, response, secrets, extra_request)
             status = response.status_code
+            location = response.headers.get("Location")
+            if 300 <= status < 400 and location and self.cfg.access.auth is None and attempt < self.max_retries:
+                url = urljoin(url, location)
+                query = {}
+                attempt += 1
+                continue
             if status == 304 or status < 400:
                 log.info("%s %s -> %s", self.cfg.source_id, url, status)
                 return payload
@@ -420,7 +429,11 @@ class HttpClient:
                 self.sleeper(delay)
                 attempt += 1
                 continue
-            raise RuntimeError(f"{self.cfg.source_id} HTTP {status} for {url}")
+            detail = response.text[:300].replace("\n", " ")
+            for secret in secrets:
+                if secret:
+                    detail = detail.replace(secret, "***")
+            raise RuntimeError(f"{self.cfg.source_id} HTTP {status} for {url}: {detail}")
 
     def _remember(self, key: str, response: httpx.Response) -> None:
         if response.status_code == 304:
@@ -469,7 +482,11 @@ class HttpClient:
                 self.sleeper(_retry_delay(response, attempt))
                 attempt += 1
                 continue
-            raise RuntimeError(f"{self.cfg.source_id} HTTP {status} for {url}")
+            detail = response.text[:300].replace("\n", " ")
+            for secret in secrets:
+                if secret:
+                    detail = detail.replace(secret, "***")
+            raise RuntimeError(f"{self.cfg.source_id} HTTP {status} for {url}: {detail}")
 
     def _store(
         self,

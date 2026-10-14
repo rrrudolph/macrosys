@@ -9,6 +9,7 @@ import pytest
 from macrosys.core.contracts import ParserChangedError
 from macrosys.sources.fred import (
     FredSource,
+    _vintage_windows,
     map_fred_unit,
     parse_observations,
     parse_release_dates,
@@ -69,6 +70,8 @@ def test_release_clock_time_is_used_when_supplied(fixtures_dir: Path):
 def test_percent_and_index_unit_map(fixtures_dir: Path):
     assert map_fred_unit("Percent") == "pct"
     assert map_fred_unit("Index 1982-1984=100") == "index"
+    assert map_fred_unit("Index Jan 2006=100") == "index"
+    assert map_fred_unit("Millions of U.S. Dollars") == "USD_mn"
     with pytest.raises(ValueError, match="no mapping"):
         map_fred_unit("Billions of Widgets")
     content = (fixtures_dir / "sources" / "fred" / "dgs10_observations.json").read_bytes()
@@ -101,6 +104,16 @@ def test_vintage_dates_and_release_calendar(fixtures_dir: Path):
     assert series[0].unit == "USD_bn_real2017"
     assert series[0].frequency == "Q"
     assert series[0].seasonal_adj == "SAAR"
+
+
+def test_vintage_windows_cover_every_date_without_overlap():
+    dates = [date(2020, 1, day) for day in range(1, 8)]
+    windows = _vintage_windows(dates, width=3)
+    assert windows == [
+        (date(2020, 1, 1), date(2020, 1, 3)),
+        (date(2020, 1, 4), date(2020, 1, 6)),
+        (date(2020, 1, 7), date(2020, 1, 7)),
+    ]
 
 
 def test_mutated_observations_raise(fixtures_dir: Path):

@@ -57,6 +57,8 @@ def _cmd_ingest(args: argparse.Namespace) -> int:
     from macrosys.store.prices import PriceStore
 
     config = load_config(args.config)
+    config.db_path.parent.mkdir(parents=True, exist_ok=True)
+    config.raw_root.mkdir(parents=True, exist_ok=True)
     series_groups = config.series
     price_groups = config.prices
     if args.source:

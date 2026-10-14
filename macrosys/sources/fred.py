@@ -14,6 +14,7 @@ with `quality_flag='reconstructed_pubtime'`. FRED's release calendar itself is d
 
 from __future__ import annotations
 
+import json
 from datetime import UTC, date, datetime, time
 from typing import Any
 from urllib.parse import urljoin
@@ -46,6 +47,7 @@ FRED_UNIT_MAP: dict[str, str] = {
     "Billions of Chained 2012 Dollars": "USD_bn_real2012",
     "Billions of Dollars": "USD_bn",
     "Millions of Dollars": "USD_mn",
+    "Millions of U.S. Dollars": "USD_mn",  # WALCL
     "Thousands of Dollars": "USD_k",
     "Dollars": "USD",
     "Percent": "pct",
@@ -55,6 +57,7 @@ FRED_UNIT_MAP: dict[str, str] = {
     "Index": "index",
     "Index 1982-1984=100": "index",
     "Index 2017=100": "index",
+    "Index Jan 2006=100": "index",  # DTWEXBGS
     "Basis Points": "bp",
     "Ratio": "ratio",                       # e.g. ISRATIO (inventories/sales)
     "Percent of Capacity": "pct",           # TCU
@@ -63,6 +66,24 @@ FRED_UNIT_MAP: dict[str, str] = {
     "U.S. Dollars to One Euro": "ratio",    # DEXUSEU
     "Japanese Yen to One U.S. Dollar": "ratio",
 }
+
+# ALFRED rejects an observations call that spans more vintage dates than this (verified 2026-10-14).
+_VINTAGE_CHUNK = 2000
+_OBS_PAGE = 100_000
+
+
+def _vintage_windows(dates: list[date], width: int = _VINTAGE_CHUNK) -> list[tuple[date, date]]:
+    """Split sorted vintage dates into inclusive windows of at most ``width`` dates."""
+    if width < 1:
+        raise ValueError("vintage window must be positive")
+    windows: list[tuple[date, date]] = []
+    index = 0
+    while index < len(dates):
+        chunk = dates[index : index + width]
+        windows.append((chunk[0], chunk[-1]))
+        index += width
+    return windows
+
 
 _FREQ = {
     "D": "D",
@@ -240,6 +261,56 @@ def parse_series(content: bytes) -> list[SeriesMeta]:
     return rows
 
 
+def _page_observations(
+    client: HttpClient,
+    raw: RawStore,
+    url: str,
+    params: dict[str, Any],
+    extra: dict[str, Any],
+) -> RawPayload:
+    """Download one observations query, following FRED's 100,000-row pages (spec §9.2)."""
+    pages: list[RawPayload] = []
+    offset = 0
+    while True:
+        query = dict(params)
+        query["limit"] = _OBS_PAGE
+        query["offset"] = offset
+        payload = client.get(url, params=query, extra_request=extra)
+        pages.append(payload)
+        doc = require_mapping(load_json(raw.get(payload), what="FRED observations"), what="FRED observations")
+        rows = doc.get("observations")
+        if not isinstance(rows, list):
+            raise ParserChangedError("FRED observations is not a list")
+        count = doc.get("count")
+        offset += len(rows)
+        if not rows or not isinstance(count, int) or offset >= count:
+            break
+    if len(pages) == 1:
+        return pages[0]
+    return _merge_observations(raw, pages)
+
+
+def _merge_observations(raw: RawStore, pages: list[RawPayload]) -> RawPayload:
+    """Store one observations document that concatenates already-downloaded pages (spec §9.2)."""
+    observations: list[Any] = []
+    for page in pages:
+        doc = require_mapping(load_json(raw.get(page), what="FRED observations"), what="FRED observations")
+        rows = doc.get("observations")
+        if not isinstance(rows, list):
+            raise ParserChangedError("FRED observations is not a list")
+        observations.extend(rows)
+    request = dict(pages[0].request)
+    request["merged_pages"] = len(pages)
+    return raw.put(
+        "FRED",
+        request,
+        json.dumps({"observations": observations}).encode(),
+        status=200,
+        content_type="application/json",
+        fetched_at=pages[-1].fetched_at,
+    )
+
+
 class FredSource:
     """FRED / ALFRED `DataSource` (spec §9.6). Env: `FRED_API_KEY`."""
 
@@ -293,17 +364,35 @@ class FredSource:
         }
         if since is not None:
             params["observation_start"] = since.isoformat()
-        return client.get(
-            self._url("series/observations"),
-            params=params,
-            extra_request={
-                "native_id": native,
-                "series_units": _unit_text_from_meta(raw.get(meta_payload)),
-                "frequency": info.frequency,
-                "title": info.title,
-                "seasonal_adj": info.seasonal_adj,
-            },
+        extra = {
+            "native_id": native,
+            "series_units": _unit_text_from_meta(raw.get(meta_payload)),
+            "frequency": info.frequency,
+            "title": info.title,
+            "seasonal_adj": info.seasonal_adj,
+        }
+        try:
+            return _page_observations(client, raw, self._url("series/observations"), params, extra)
+        except RuntimeError as exc:
+            message = str(exc)
+            if "does not exist in ALFRED" in message:
+                latest = {key: value for key, value in params.items() if not key.startswith("realtime_")}
+                return _page_observations(client, raw, self._url("series/observations"), latest, extra)
+            if "vintage dates" not in message:
+                raise
+        dates_payload = client.get(
+            self._url("series/vintagedates"),
+            params={"series_id": native, "file_type": "json"},
         )
+        pages: list[RawPayload] = []
+        for start, end in _vintage_windows(parse_vintage_dates(raw.get(dates_payload))):
+            window = dict(params)
+            window["realtime_start"] = start.isoformat()
+            window["realtime_end"] = end.isoformat()
+            pages.append(_page_observations(client, raw, self._url("series/observations"), window, extra))
+        if len(pages) == 1:
+            return pages[0]
+        return _merge_observations(raw, pages)
 
     def fetch_vintage_dates(self, series_id: str) -> RawPayload:
         """Download `series/vintagedates` for one series (spec §9.2)."""

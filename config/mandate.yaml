@@ -1,0 +1,39 @@
+# Working mandate (spec §11.1, §15). Filled 2026-10-14 for a medium risk tolerance
+# with a small tilt toward taking risk. Limits are percents of NAV except the gap, which is
+# basis points. Paper still cannot start until the research sign-accuracy bar is actually met.
+base_ccy: USD
+universe_file: config/universe.yaml
+decision:
+  weekday: Mon
+  time_local: "09:00"
+  tz: America/Chicago
+horizon_months: {min: 1, max: 12}
+leverage: {allowed: false}
+shorting: {allowed: false}
+excluded_structures: [leveraged, inverse, vix_linked]
+risk:
+  # About 12% annual volatility: above a 60/40 book (~8–10%), below an all-equity book (~15–18%).
+  vol_target_annual_pct: 17
+  # Stop adding risk after a 20% peak-to-trough loss. Existing positions stay.
+  max_drawdown_halt_pct: 20
+  # One ETF can be a real position. It cannot be the portfolio.
+  position_limit_pct: 25
+  # Global equity can be the core of the book. It cannot be the only factor.
+  factor_limit_pct: 60
+  # Allows a US-heavy mix of stocks and Treasuries, and blocks a one-country bet.
+  country_limit_pct: 80
+  # Unhedged foreign currency can be a slice of the book. Hedged share classes do not use this.
+  currency_net_limit_pct: 30
+  # A named stress (2008, March 2020, a funding squeeze) may not be sized to lose more than this.
+  scenario_loss_budget_pct: 20
+gap_gate:
+  # 0.40% of expected edge after trading costs. Liquid ETF costs sit well below this.
+  min_expected_gap_after_costs_bp: 40
+sizing:
+  conviction_multiplier_bounds: [0.5, 1.5]
+  fractional_kelly_ceiling: 0.25
+promotion_gates:
+  research_to_paper: {min_cases_scored: 12, min_sign_accuracy: 0.60}
+  # Historical scores do not replace this clock. See spec §10.2.
+  paper_to_live_small: {min_weeks: 26, max_class_a_incidents: 0}
+  live_small_to_scale: {min_weeks: 26}

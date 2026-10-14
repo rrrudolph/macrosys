@@ -54,6 +54,27 @@ def test_example_config_loads():
     assert "SPY" in config.prices[0].instrument_ids
 
 
+def test_main_dispatches_ingest(tmp_path):
+    from macrosys.cli import main
+
+    db = tmp_path / "db" / "macrosys.duckdb"
+    cfg = tmp_path / "pipeline.yaml"
+    cfg.write_text(
+        "\n".join(
+            [
+                f"db_path: {db.as_posix()}",
+                f"raw_root: {(tmp_path / 'raw').as_posix()}",
+                f"manifest_dir: {(tmp_path / 'manifests').as_posix()}",
+                "series: []",
+                "prices: []",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    assert main(["ingest", "--config", str(cfg)]) == 0
+    assert db.exists()
+
+
 def test_register_cli_adds_job_commands():
     parser = argparse.ArgumentParser()
     register_cli(parser.add_subparsers(dest="cmd"))

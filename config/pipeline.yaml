@@ -1,0 +1,126 @@
+# Live pipeline (spec §9.4). Series ids are ones the connectors already parse.
+# Price history is long enough for a later walk-forward. Secrets stay in the environment.
+db_path: data/store/macrosys.duckdb
+raw_root: raw
+manifest_dir: data/manifests
+library_version: "0.0.1"
+parameter_set: default
+code_commit: local
+price_lookback_days: 8000
+cross_check_tol: 0.01
+cross_check_instruments: []
+series:
+  - source_id: FRED
+    max_lag_days: 14
+    series_ids:
+      - FRED:DFF
+      - FRED:SOFR
+      - FRED:IORB
+      - FRED:FEDFUNDS
+      - FRED:DGS2
+      - FRED:DGS10
+      - FRED:DGS30
+      - FRED:DFII10
+      - FRED:T10Y2Y
+      - FRED:T10YIE
+      - FRED:BAMLH0A0HYM2
+      - FRED:BAMLC0A0CM
+      - FRED:SP500
+      - FRED:VIXCLS
+      - FRED:DEXUSEU
+      - FRED:DEXJPUS
+      - FRED:DTWEXBGS
+  - source_id: FRED
+    max_lag_days: 120
+    series_ids:
+      - FRED:GDPC1
+      - FRED:TCU
+      - FRED:CPIAUCSL
+      - FRED:CPILFESL
+      - FRED:PCEPI
+      - FRED:UNRATE
+      - FRED:INDPRO
+      - FRED:M2SL
+      - FRED:WALCL
+      - FRED:RSAFS
+      - FRED:ISRATIO
+      - FRED:BUSINV
+      - FRED:TOTBUSSMSA
+  - source_id: ECB
+    max_lag_days: 5
+    series_ids:
+      - ECB:EXR.D.USD.EUR.SP00.A
+      - ECB:EXR.D.GBP.EUR.SP00.A
+      - ECB:EXR.D.JPY.EUR.SP00.A
+  - source_id: CBOE
+    max_lag_days: 5
+    series_ids:
+      - CBOE:VIX
+      - CBOE:OVX
+      - CBOE:GVZ
+  - source_id: EIA
+    max_lag_days: 14
+    series_ids:
+      - EIA:petroleum/stoc/wstk:WCESTUS1
+  - source_id: BEA
+    max_lag_days: 120
+    series_ids:
+      - BEA:NIPA:T10105
+      - BEA:NIPA:T10101
+  - source_id: FEDGSW
+    max_lag_days: 14
+    series_ids:
+      - FEDGSW:curve
+prices:
+  - source_id: TIINGO
+    instrument_ids:
+      - ACWI
+      - SPY
+      - IWM
+      - EFA
+      - HEFA
+      - EEM
+      - EWJ
+      - DXJ
+      - EWG
+      - EWU
+      - MCHI
+      - EWY
+      - EWT
+      - INDA
+      - EWZ
+      - EWW
+      - EWC
+      - EWA
+      - XLE
+      - XLB
+      - XLI
+      - XLF
+      - XLK
+      - XLU
+      - XLV
+      - XLY
+      - XLP
+      - XLRE
+      - XHB
+      - BIL
+      - SHY
+      - IEI
+      - IEF
+      - TLT
+      - TIP
+      - LQD
+      - HYG
+      - EMB
+      - EMLC
+      - GLD
+      - SLV
+      - DBC
+      - USO
+      - UNG
+      - CPER
+      - DBB
+      - DBA
+      - UUP
+      - FXE
+      - FXY

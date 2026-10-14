@@ -26,6 +26,9 @@ def main(argv: list[str] | None = None) -> int:
         return _ledger(args)
     if args.cmd == "library":
         return _library(args)
+    func = getattr(args, "func", None)
+    if callable(func):
+        return int(func(args))
     parser.print_help()
     return 0
 
