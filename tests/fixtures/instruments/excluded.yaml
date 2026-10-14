@@ -1,0 +1,3 @@
+# Synthetic rows the v0 mandate must reject (spec §7.4). Not a live universe.
+instruments:
+  - {ticker: UVXY, structure: futures, name: ProShares Ultra VIX Short-Term Futures}
