@@ -39,7 +39,28 @@ python -m venv .venv
 
 Tests never touch the network; connectors are tested against stored fixtures under `tests/fixtures/`.
 
-## Status
+## Status (2026-10-14)
 
-Phase 0 (data spine) and Phase 1 (world state + mechanism engine) are under construction. See `docs/spec.md`
-§13 for the backlog and `AGENTS.md` for conventions.
+Built and tested (369 tests; 6 strict `xfail`s that name mechanism parameters still awaiting local estimation):
+
+| Spec ticket | What exists | Package |
+|---|---|---|
+| D0.1 | DuckDB schema, raw payload store, point-in-time `snapshot(as_of)`, coverage gate, world state, run manifest | `store/` |
+| D0.2, D0.3b | 20 connectors (FRED/ALFRED, BLS, BEA, Census, Treasury, Fed GSW, ECB, IMF, OECD, Comtrade, PortWatch, EIA, NY Fed, World Bank, Cboe, CFTC, SEC incl. N-PORT, Tiingo, MetaTrader 5, TradingView-API) with rate limits from `config/source_registry.yaml`, parser-change quarantine, fixture tests | `sources/`, `pipeline/` |
+| D0.3 | Instrument master, holdings → exposure vectors (A09), total return from raw closes + actions, FX rule, aligned returns, cost | `instruments/` |
+| W1.2 | OECD ICIO 2025 loader (50 industries), Leontief inverse, import leakage, Domar weights, cost shares | `io_tables/` |
+| W1.3–W1.5 | Mechanism schema/loader/validator, composition rules §3.4, propagator with loops, counterfactual harness, **51 mechanism records** + 3 feedback loops | `mechanisms/`, `mechanisms/*.yaml` |
+| W1.5–W1.6 | World-state recipes (point-in-time), 12 historical cases with cited structural outcomes, 9 capability tests | `world/`, `cases/`, `cases/*.yaml` |
+| P2.1 | Curve bootstrap, implied policy path, breakeven decomposition, term premium, futures curve shape, reverse DCF, **priced-in resolver** | `pricing/` |
+| P2.2, R3.3 | Thesis object (§7.7 in full), four gates with no-trade default, sizing, deterministic order tickets, order state machine, reconciler | `decide/` |
+| P2.3 | LLM roles 1–4 with typed outputs, the three guardrails, anonymiser, TF-IDF retrieval, $25/month budget guard | `llm/` |
+| R3.1–R3.2 | Ledoit–Wolf, EWMA, factor model with block-bootstrap intervals, absorption ratio, two-state variance regime, DCC, Forbes–Rigobon, scenarios | `risk/` |
+| E4.1–E4.2 | Hash-chained forecast ledger, Brier/PSR/deflated Sharpe, purged walk-forward splits, baselines | `eval/` |
+| X5.1 | SQLite OMS, paper broker, class-A halt on reconciliation break, kill switch, runbook hash check | `exec/`, `docs/runbook.md` |
+| S0.1–S0.2 | Walking skeleton: one command runs shock → propagation → priced-in → gates → no-trade → ledger → manifest → report, on three unrelated shocks | `skeleton/`, `docs/walkthrough.md` |
+
+Try it: `.\.venv\Scripts\python -m macrosys.cli skeleton demo --out .scratch\demo`.
+
+Not yet built: live ingestion runs (need API keys in env), estimation of the `TODO_estimate` parameters from
+data, the evaluation harness end-to-end on real snapshots, and any live broker adapter. See `docs/spec.md`
+§13 for the backlog and §15 for the decisions only the owner can make (mandate limits, universe, gates).
