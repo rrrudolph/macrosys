@@ -15,6 +15,8 @@ from macrosys.core.quantity import Quantity
 
 QualityFlag = Literal["ok", "estimated", "parser_changed", "imputed", "unofficial", "reconstructed_pubtime"]
 SourceTier = Literal["record", "cross_check", "research"]
+AssetClass = Literal["equity", "fixed_income", "cash", "derivative", "commodity", "fund", "other"]
+ActionType = Literal["split", "cash_div", "capital_gain"]
 
 
 # ---------------------------------------------------------------------------------------------------
@@ -99,6 +101,57 @@ class PriceBar(BaseModel):
     tier: SourceTier
     ingested_at: datetime
     quality_flag: QualityFlag = "ok"
+    session_note: str | None = None  # e.g. MT5 bar close time / session; None for exchange closes
+
+
+class HoldingRow(BaseModel):
+    """One line of a holdings snapshot (spec §4.2 exposure, §9.1). `weight` is a share of NAV (0..1);
+    `country` is ISO3 or 'EA' after normalisation, or None for cash and futures (exposure is the
+    underlying); `published_at` is timezone-aware; `market_value` is in `ccy_mv` when present."""
+
+    model_config = ConfigDict(frozen=True)
+
+    instrument_id: str
+    as_of: date
+    published_at: datetime
+    source: str
+    holding_key: str
+    name: str
+    weight: float
+    country: str | None
+    sector: str | None
+    ccy: str
+    asset_class: AssetClass
+    market_value: float | None = None
+    ccy_mv: str | None = None
+
+
+class CorporateAction(BaseModel):
+    """A split or distribution used to rebuild total return (spec §9.1). `ratio` is new shares per old
+    share for a split (2.0 = 2-for-1), else None; `amount` is cash per ex-date share in `ccy` for
+    `cash_div` / `capital_gain`."""
+
+    model_config = ConfigDict(frozen=True)
+
+    instrument_id: str
+    ex_date: date
+    type: ActionType
+    ratio: float | None = None
+    amount: float | None = None
+    ccy: str | None = None
+
+
+class SymbolSpec(BaseModel):
+    """Broker/exchange symbol facts needed to compare a quote with an exchange close (spec §9.6 tiering)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    symbol: str
+    digits: int
+    trade_sessions: list[dict[str, str]]
+    contract_size: float
+    currency: str
+    source_id: str
 
 
 class EntityKey(BaseModel):
@@ -168,7 +221,11 @@ class StateView(Protocol):
 class Mechanism(Protocol):
     mechanism_id: str
 
-    def applicable(self, state: StateView, bindings: dict[str, str]) -> Gate: ...
+    def applicable(self, state: StateView, bindings: dict[str, str], params: dict[str, Quantity] | None = None) -> Gate:
+        """State gate (spec §3.4 rule 5). `params` are the bound mechanism parameters so thresholds such
+        as a utilization kink come from the YAML record, not from code constants."""
+        ...
+
     def apply(self, inputs: dict[str, Quantity], params: dict[str, Quantity]) -> dict[str, Quantity]: ...
 
 

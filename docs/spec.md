@@ -79,7 +79,7 @@ The same concepts apply to both; the initial version (v0) differs in coverage an
 | Dimension | Full target | v0 (first operating version) |
 |---|---|---|
 | Economies | ~40 with full balance-sheet detail | ~15 (US, euro area + DE/FR/IT, UK, JP, CN, KR, TW, IN, BR, MX, CA, AU, CH) |
-| Industries | OECD ICIO 45 industries × economy, with sub-industry overlays where material | ICIO 45 industries as published; ~30 commodities |
+| Industries | OECD ICIO 50 industries × economy, with sub-industry overlays where material | ICIO 50 industries as published; ~30 commodities |
 | Mechanisms | Full library (§3), parameters estimated per economy | ~25 mechanisms with literature-range or locally estimated parameters |
 | Pricing-gap module | Market-implied paths for rates, inflation, commodities, FX forwards, options surfaces | Rates (Treasury/ECB curves), breakevens, futures curves (delayed), equity multiples; FX forwards/basis as flagged gap |
 | Risk | Factor model + stress scenarios + regime indicators | Same structure; fewer factors; weekly update |
@@ -197,7 +197,7 @@ Each entry is deliberately compact. Full YAML records live in the repository; th
 
 #### B. Empirical and behavioral mechanisms [E]
 
-**B01 · Derived demand through production networks.** Inputs: Δ final demand by (country, industry) [ccy real]; technical coefficients `A` (OECD ICIO 2025 edition, 1995–2022, 80 economies × 45 industries — verified 2026-10-14). Output: Δ gross output by (country, industry); physical demand via intensity coefficients [t, MWh] where available (e.g., copper per MW of transformer capacity from engineering/industry sources, flagged as estimates). Form: Leontief inverse; first-order. Horizon: orders 0–1q; realized output 1–4q behind orders (B04, B05). Assumptions: fixed proportions, slack capacity, fixed prices. Competing: substitution (B07), bottleneck pricing (B03), import leakage (A01). Evidence: new orders, sector IP, bilateral trade in the input, PortWatch volumes. Falsification: predicted output change absent after lead time. Uncertainty: structural — coefficients 2–4 years stale, new technologies (e.g., AI data centers) sit inside broader industries, so overlay sheets are needed. Refs: Acemoglu et al. 2012; Baqaee & Farhi 2019 (first-order aggregate effect of a sector shock equals its Domar weight — Hulten 1978 — with second-order amplification when inputs are complements); Carvalho & Tahbaz-Salehi 2019.
+**B01 · Derived demand through production networks.** Inputs: Δ final demand by (country, industry) [ccy real]; technical coefficients `A` (OECD ICIO 2025 edition, 1995–2022, 80 economies + rest of world × 50 industries — verified 2026-10-14 against the OECD ReadMe). Output: Δ gross output by (country, industry); physical demand via intensity coefficients [t, MWh] where available (e.g., copper per MW of transformer capacity from engineering/industry sources, flagged as estimates). Form: Leontief inverse; first-order. Horizon: orders 0–1q; realized output 1–4q behind orders (B04, B05). Assumptions: fixed proportions, slack capacity, fixed prices. Competing: substitution (B07), bottleneck pricing (B03), import leakage (A01). Evidence: new orders, sector IP, bilateral trade in the input, PortWatch volumes. Falsification: predicted output change absent after lead time. Uncertainty: structural — coefficients 2–4 years stale, new technologies (e.g., AI data centers) sit inside broader industries, so overlay sheets are needed. Refs: Acemoglu et al. 2012; Baqaee & Farhi 2019 (first-order aggregate effect of a sector shock equals its Domar weight — Hulten 1978 — with second-order amplification when inputs are complements); Carvalho & Tahbaz-Salehi 2019.
 
 **B02 · Materiality / cost share.** Inputs: input cost share `s_ij` of input *i* in industry *j* (IO use table at purchaser prices; firm filings for overlays). Output: a 1% price change in *i* moves *j*'s unit cost by `s_ij`%; a volume boom in *j* moves demand for *i* by `s_ij × (revenue_j / price_i)` units. Horizon: contemporaneous for cost; pass-through to *j*'s price per B08. Assumptions: fixed technology in the short run. Competing: substitution (B07), hedging/contracts (§4.3). Evidence: PPI by stage of processing; margin disclosures. Falsification: cost shock with no margin or price movement in *j* beyond contract lag. Uncertainty: parameter; cost shares vary within industry. Use: filters out "X is used in Y" stories where `s` is below ~1–2% of cost — the threshold is a design parameter, not a law. [J]
 
@@ -298,7 +298,7 @@ A propagation path is an ordered list of mechanism instances bound to entities. 
 | Entity | Key | Core attributes | v0 count |
 |---|---|---|---|
 | `Economy` | ISO-3166 alpha-3 (+ `EA` for euro area) | currency, FX regime (§5.2), policy-rate series, fiscal series, external position (A03), invoicing shares | ~15 |
-| `Industry` | ICIO 45-sector code × economy | output, value added, cost shares (B02), capacity/utilization where measured, inventory days, concentration proxy | 15 × 45 |
+| `Industry` | ICIO 50-industry code × economy | output, value added, cost shares (B02), capacity/utilization where measured, inventory days, concentration proxy | 15 × 50 |
 | `Product` / `Commodity` | HS-6 or named commodity (Cu, Al, Brent, HH gas, wheat…) | physical unit, supply by economy, demand by industry, inventories (exchange + reported), cost-curve sketch, lead time (B05) | ~30 |
 | `Institution` | slug | type (central bank, treasury, regulator, exchange), reaction-function parameters, balance sheet (A07), calendar | ~20 |
 | `Currency` | ISO-4217 | regime, reserve status, invoicing share, cross-border liability share (§5.2) | ~15 |
@@ -358,7 +358,7 @@ Non-convergence is a result ("unstable under current parameters") that the thesi
 
 ### 4.6 Granularity policy
 
-Start at ICIO's 45 industries, ~30 commodities, ~15 economies. Refine a node only when a thesis's materiality test (§3.4 rule 4) requires it, and only by adding an overlay row with provenance. Never refine speculatively. The refinement itself is a backlog ticket with an acceptance test (§13).
+Start at ICIO's 50 industries, ~30 commodities, ~15 economies. Refine a node only when a thesis's materiality test (§3.4 rule 4) requires it, and only by adding an overlay row with provenance. Never refine speculatively. The refinement itself is a backlog ticket with an acceptance test (§13).
 
 ### 4.7 Core schemas
 
@@ -854,7 +854,7 @@ Verified today unless noted. "Role" marks v0 (initial) vs T (target only).
 | Global macro | IMF SDMX 3.0 (`api.imf.org/external/sdmx/3.0`) | REST, no key | IFS, WEO, BOP, IIP, COFER, GFS, PPI | Free; third-party note of ~50 req/s app-level limit | v0 |
 | Global macro | World Bank API v2; Pink Sheet commodity prices | REST/XLSX | Annual/monthly | Free (not re-verified today) | v0 |
 | OECD | Data Explorer SDMX API | REST, no key | Outlook, STEI, trade in value added | Free; **60 data downloads/hour**; VPN traffic blocked | v0 (bulk ICIO via download) |
-| Production networks | OECD ICIO 2025 edition (second revision Jan 2026) | CSV/R bulk | 1995–2022; 80 economies; 45 industries; regular + extended | Free | v0 |
+| Production networks | OECD ICIO 2025 edition (second revision Jan 2026) | CSV/R bulk | 1995–2022; 80 economies + ROW; 50 industries; final demand HFCE/NPISH/GGFC/GFCF/INVNT/DPABR; rows TLS/VA/OUT; current USD mn | Free | v0 |
 | BIS | BIS Data Portal | REST/CSV | EER, credit gaps, debt securities, locational banking, global liquidity | Free (portal verified; API docs not re-read) | v0 |
 | Trade | UN Comtrade Plus | REST, free key | Bilateral HS trade; monthly/annual | Free: 500 calls/day, 100k records/call, 1 call/s; premium for bulk | v0 |
 | Maritime | IMF PortWatch | ArcGIS feeds/CSV | Daily port calls & chokepoint transits since 2019; 2,093 ports/chokepoints | Free | v0 |
@@ -1253,7 +1253,7 @@ Institutional and policy sources (public; linked from the companion plan reviewe
 | ECB Data Portal | SDMX 2.1 REST at `data-api.ecb.europa.eu/service/`, no key | https://data.ecb.europa.eu/help/api/data |
 | IMF Data | SDMX 3.0 at `api.imf.org/external/sdmx/3.0`, free; swagger via portal | https://data.imf.org/en/Resource-Pages/IMF-API |
 | OECD | 60 data downloads/hour; VPN traffic blocked; raised from 20/hour on 2025-11-25 | https://www.oecd.org/en/data/insights/data-explainers/2024/11/Api-best-practices-and-recommendations.html |
-| OECD ICIO | 2025 edition (2nd revision, Jan 2026): 1995–2022, 80 economies, regular and extended | https://www.oecd.org/en/data/datasets/inter-country-input-output-tables.html |
+| OECD ICIO | 2025 edition (2nd revision, Jan 2026): 1995–2022, 80 economies + ROW, 50 industries, regular and extended; zips under webfs-sti.oecd.org/files/STI-PIE/ICIO/2025/ | https://www.oecd.org/en/data/datasets/inter-country-input-output-tables.html |
 | UN Comtrade | Free registered: 500 calls/day, 100k records/call, 1 call/s | https://comtradeplus.un.org/Subscriptions ; https://uncomtrade.org/docs/subscriptions/ |
 | IMF PortWatch | Free; daily since 2019; 2,093 ports/chokepoints; weekly updates | https://portwatch.imf.org/ |
 | Fed GSW curve | Daily smoothed nominal curve 1961–present; CSV; posted weekly; research product | https://www.federalreserve.gov/data/nominal-yield-curve.htm |

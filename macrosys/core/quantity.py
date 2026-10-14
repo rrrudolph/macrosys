@@ -75,6 +75,23 @@ class Quantity(BaseModel):
         f = lambda x: None if x is None else x * k  # noqa: E731
         return Quantity(value=f(self.value), unit=self.unit, low=f(lo), high=f(hi), provenance=provenance or self.provenance)
 
+    def mul(self, other: Quantity, unit: str, provenance: str | None = None) -> Quantity:
+        """Product with an explicitly declared result unit (there is no unit algebra on purpose: the
+        caller states what volume x price *is*, e.g. `USD_mn`, and the registry validates it). Ranges
+        use interval arithmetic: the result range is the min/max over the endpoint products."""
+        assert_unit(unit)
+        a_lo = self.low if self.low is not None else self.value
+        a_hi = self.high if self.high is not None else self.value
+        b_lo = other.low if other.low is not None else other.value
+        b_hi = other.high if other.high is not None else other.value
+        assert a_lo is not None and a_hi is not None and b_lo is not None and b_hi is not None
+        corners = (a_lo * b_lo, a_lo * b_hi, a_hi * b_lo, a_hi * b_hi)
+        v = None if self.value is None or other.value is None else self.value * other.value
+        lo, hi = min(corners), max(corners)
+        if not (self.is_range or other.is_range):
+            lo = hi = None
+        return Quantity(value=v, unit=unit, low=lo, high=hi, provenance=provenance or self.provenance)
+
     def add(self, other: Quantity, provenance: str | None = None) -> Quantity:
         """Add two quantities in compatible units (result in self.unit). Ranges add end-to-end."""
         if not compatible(self.unit, other.unit):

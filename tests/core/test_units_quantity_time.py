@@ -51,6 +51,17 @@ def test_quantity_ranges_and_gate_helpers():
     assert total.value == pytest.approx(1.5) and total.unit == "USD_bn"
 
 
+def test_quantity_mul_declares_unit_and_uses_interval_arithmetic():
+    volume = Quantity(value=None, unit="t", low=90.0, high=110.0)
+    price = Quantity(value=None, unit="USD", low=-2.0, high=3.0)  # sign change exercises the corners
+    revenue = volume.mul(price, unit="USD")
+    assert (revenue.low, revenue.high) == (-220.0, 330.0) and revenue.value is None
+    point = Quantity(value=2.0, unit="share").mul(Quantity(value=5.0, unit="USD_mn"), unit="USD_mn")
+    assert point.value == 10.0 and not point.is_range
+    with pytest.raises(UnitError):
+        volume.mul(price, unit="not_a_unit")
+
+
 def test_timestamps_visibility():
     ts = Timestamps(
         ref_period_start=date(2026, 6, 30),
