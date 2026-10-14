@@ -95,3 +95,39 @@ sources:
     license: "unofficial; not endorsed by TradingView; TradingView terms govern automated access; no redistribution"
     quality_flag: unofficial
     verified: 2026-10-14
+  - source_id: BEA
+    name: US Bureau of Economic Analysis API
+    tier: record
+    access: {kind: rest, base_url: https://apps.bea.gov/api/data/, auth: {env: BEA_API_KEY, how: query:UserID}}
+    rate_limit: {requests: 30, per_seconds: 60, note: "self-imposed; BEA publishes no numeric cap"}
+    verified: 2026-10-14
+  - source_id: CENSUS
+    name: US Census Bureau timeseries API
+    tier: record
+    access: {kind: rest, base_url: https://api.census.gov/data/timeseries/, auth: {env: CENSUS_API_KEY, how: query:key, optional: true}}
+    rate_limit: {requests: 500, per_seconds: 86400, note: "self-imposed; a keyless call currently returns Missing Key"}
+    verified: 2026-10-14
+  - source_id: EIA
+    name: US Energy Information Administration API v2
+    tier: record
+    access: {kind: rest, base_url: https://api.eia.gov/v2/, auth: {env: EIA_API_KEY, how: query:api_key}}
+    rate_limit: {requests: 30, per_seconds: 60, note: "self-imposed"}
+    verified: null
+  - source_id: NYFED
+    name: Federal Reserve Bank of New York Markets Data API
+    tier: record
+    access: {kind: rest, base_url: https://markets.newyorkfed.org/api/, auth: null}
+    rate_limit: {requests: 30, per_seconds: 60, note: "self-imposed"}
+    verified: 2026-10-14
+  - source_id: WORLDBANK
+    name: World Bank API v2
+    tier: record
+    access: {kind: rest, base_url: https://api.worldbank.org/v2/, auth: null}
+    rate_limit: {requests: 30, per_seconds: 60, note: "self-imposed"}
+    verified: 2026-10-14
+  - source_id: CBOE
+    name: Cboe historical index CSVs (VIX, OVX, GVZ)
+    tier: record
+    access: {kind: file, base_url: https://cdn.cboe.com/api/global/us_indices/daily_prices/, auth: null}
+    rate_limit: {requests: 30, per_seconds: 60, note: "self-imposed"}
+    verified: 2026-10-14

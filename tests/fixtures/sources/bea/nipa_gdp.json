@@ -1,0 +1,31 @@
+{
+  "BEAAPI": {
+    "Results": {
+      "UTCProductionTime": "2024-03-28T12:30:00",
+      "Data": [
+        {
+          "TableName": "T10105",
+          "SeriesCode": "A191RC",
+          "LineNumber": "1",
+          "LineDescription": "Gross domestic product",
+          "TimePeriod": "2023Q4",
+          "METRIC_NAME": "Current Dollars",
+          "CL_UNIT": "Level",
+          "UNIT_MULT": "6",
+          "DataValue": "27,360.9"
+        },
+        {
+          "TableName": "T10101",
+          "SeriesCode": "A191RL",
+          "LineNumber": "1",
+          "LineDescription": "Gross domestic product",
+          "TimePeriod": "2023Q4",
+          "METRIC_NAME": "Percent change",
+          "CL_UNIT": "Percent change",
+          "UNIT_MULT": "0",
+          "DataValue": "3.4"
+        }
+      ]
+    }
+  }
+}

@@ -282,8 +282,17 @@ def user_agent(cfg: SourceConfig) -> str:
     return f"macrosys/{__version__} (contact: {contact})"
 
 
-def apply_auth(cfg: SourceConfig, params: dict[str, str], headers: dict[str, str]) -> list[str]:
-    """Add the registry's auth material from the environment. Returns the secret strings to redact."""
+def apply_auth(
+    cfg: SourceConfig,
+    params: dict[str, str],
+    headers: dict[str, str],
+    body: dict[str, Any] | None = None,
+) -> list[str]:
+    """Add the registry's auth material from the environment. Returns the secret strings to redact.
+
+    `how: body:<field>` writes the secret into `body` (BLS `registrationkey`). GET calls omit `body`
+    and refuse that scheme.
+    """
     auth = cfg.access.auth
     if auth is None or auth.env is None or isinstance(auth.env, list) or not auth.how or ":" not in auth.how:
         return []
@@ -297,8 +306,12 @@ def apply_auth(cfg: SourceConfig, params: dict[str, str], headers: dict[str, str
         params[name] = value
     elif kind == "header":
         headers[name] = value
+    elif kind == "body":
+        if body is None:
+            raise ValueError(f"{cfg.source_id} auth how {auth.how!r} is sent by HttpClient.post")
+        body[name] = value
     else:
-        raise ValueError(f"{cfg.source_id} auth how {auth.how!r} is not supported by HttpClient.get")
+        raise ValueError(f"{cfg.source_id} auth how {auth.how!r} is not supported")
     return [value]
 
 
@@ -392,7 +405,7 @@ class HttpClient:
             self.limiter.acquire()
             response = self._http.get(url, params=query, headers=hdrs)
             self._remember(key, response)
-            payload = self._store(url, query, hdrs, response, secrets, extra_request)
+            payload = self._store("GET", url, query, hdrs, response, secrets, extra_request)
             status = response.status_code
             if status == 304 or status < 400:
                 log.info("%s %s -> %s", self.cfg.source_id, url, status)
@@ -418,19 +431,61 @@ class HttpClient:
             previous = self._validators.get(key, (None, None))
             self._validators[key] = (etag or previous[0], modified or previous[1])
 
+    def post(
+        self,
+        url: str,
+        *,
+        json_body: dict[str, Any],
+        params: dict[str, Any] | None = None,
+        headers: dict[str, str] | None = None,
+        extra_request: dict[str, Any] | None = None,
+    ) -> RawPayload:
+        """POST JSON, store every response, and return the successful payload (spec §9.1, §9.5).
+
+        Body authentication (`how: body:<field>`, used by BLS `registrationkey`) is copied into
+        `json_body` from the environment and redacted before the request is stored.
+        """
+        body = dict(json_body)
+        query = {key: "" if value is None else str(value) for key, value in (params or {}).items()}
+        hdrs = dict(headers or {})
+        secrets = apply_auth(self.cfg, query, hdrs, body)
+        hdrs.setdefault("User-Agent", user_agent(self.cfg))
+        hdrs.setdefault("Accept", "application/json")
+        secrets = _collect_secrets(query, hdrs, body, extra=secrets)
+        attempt = 0
+        while True:
+            self.limiter.acquire()
+            response = self._http.post(url, params=query, headers=hdrs, json=body)
+            payload = self._store("POST", url, query, hdrs, response, secrets, extra_request, body=body)
+            status = response.status_code
+            if status < 400:
+                log.info("%s POST %s -> %s", self.cfg.source_id, url, status)
+                return payload
+            if status == 429 or status >= 500:
+                if attempt >= self.max_retries:
+                    raise RuntimeError(
+                        f"{self.cfg.source_id} HTTP {status} for {url} after {attempt + 1} attempts"
+                    )
+                self.sleeper(_retry_delay(response, attempt))
+                attempt += 1
+                continue
+            raise RuntimeError(f"{self.cfg.source_id} HTTP {status} for {url}")
+
     def _store(
         self,
+        method: str,
         url: str,
         params: dict[str, str],
         headers: dict[str, str],
         response: httpx.Response,
         secrets: list[str],
         extra_request: dict[str, Any] | None,
+        body: dict[str, Any] | None = None,
     ) -> RawPayload:
-        request: dict[str, Any] = redact(
-            {"method": "GET", "url": url, "params": dict(params), "headers": dict(headers)},
-            secrets,
-        )
+        stored: dict[str, Any] = {"method": method, "url": url, "params": dict(params), "headers": dict(headers)}
+        if body is not None:
+            stored["json"] = body
+        request: dict[str, Any] = redact(stored, secrets)
         if extra_request:
             request.update(redact(extra_request, secrets))
         content = response.content

@@ -20,13 +20,14 @@ from typing import Any
 from macrosys.core.contracts import (
     Observation,
     ParserChangedError,
+    PriceBar,
     RawPayload,
     RawStore,
     ReleaseEvent,
     SeriesMeta,
     SourceTier,
+    SymbolSpec,
 )
-from macrosys.sources.records import Mt5PriceBar, SymbolSpec
 from macrosys.sources.registry import require_source
 
 PARSER_VERSION = "1"
@@ -197,7 +198,7 @@ class MT5Source:
         """Broker bars have no release calendar (spec §9.1). Returns []."""
         return []
 
-    def rates(self, symbol: str, timeframe: int, start: datetime, end: datetime) -> tuple[SymbolSpec, list[Mt5PriceBar]]:
+    def rates(self, symbol: str, timeframe: int, start: datetime, end: datetime) -> tuple[SymbolSpec, list[PriceBar]]:
         """Copy bars for `symbol` and record the symbol spec (spec §9.6).
 
         `session_note` on each bar records `close_time` and whether it came from a trade session or
@@ -216,7 +217,7 @@ class MT5Source:
         if copied is None:
             raise RuntimeError(f"MT5 copy_rates_range failed: {mt5.last_error()}")
         ingested = self._now()
-        bars: list[Mt5PriceBar] = []
+        bars: list[PriceBar] = []
         for row in _iter_rates(copied):
             if "time" not in row or "close" not in row:
                 raise ParserChangedError("MT5 rate row is missing time or close")
@@ -224,7 +225,7 @@ class MT5Source:
             close_at, basis = _close_time(open_at, timeframe, spec.trade_sessions)
             note = f"bar_open={open_at.isoformat()}; close_time={close_at.isoformat()}; close_basis={basis}"
             bars.append(
-                Mt5PriceBar(
+                PriceBar(
                     instrument_id=symbol,
                     trade_date=open_at.date(),
                     open=_as_float(row["open"]) if row.get("open") is not None else None,

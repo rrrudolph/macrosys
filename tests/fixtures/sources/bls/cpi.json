@@ -1,0 +1,16 @@
+{
+  "status": "REQUEST_SUCCEEDED",
+  "responseTime": 20,
+  "message": [],
+  "Results": {
+    "series": [
+      {
+        "seriesID": "CUUR0000SA0",
+        "data": [
+          {"year": "2024", "period": "M01", "periodName": "January", "value": "308.417", "footnotes": [{}]},
+          {"year": "2024", "period": "M02", "periodName": "February", "value": "-", "footnotes": [{}]}
+        ]
+      }
+    ]
+  }
+}

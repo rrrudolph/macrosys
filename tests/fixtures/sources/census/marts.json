@@ -1,0 +1,4 @@
+[
+  ["cell_value", "time_slot_id", "category_code", "data_type_code", "seasonally_adj", "time"],
+  ["650123", "2024-01", "44000", "SM", "yes", "2024-01"]
+]

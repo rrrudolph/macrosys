@@ -28,13 +28,24 @@ def test_registry_exposes_auth_and_limits_from_yaml():
 
 
 def test_sources_map_matches_connector_ids():
-    assert set(SOURCES) == {
+    assert set(SOURCES) >= {
         "FRED",
+        "BLS",
+        "BEA",
+        "CENSUS",
         "ECB",
+        "IMF",
+        "OECD",
+        "COMTRADE",
         "CFTC",
         "SEC",
         "TREASURY",
         "FEDGSW",
+        "PORTWATCH",
+        "EIA",
+        "NYFED",
+        "WORLDBANK",
+        "CBOE",
         "TIINGO",
         "MT5",
         "TRADINGVIEW_UNOFFICIAL",

@@ -1,0 +1,9 @@
+{
+  "response": {
+    "data": [
+      {"period": "2024-01-05", "series": "WCESTUS1", "value": 430000, "units": "MBBL"},
+      {"period": "2024-01-05", "series": "WCRFPUS2", "value": 13200, "units": "MBBL/D"},
+      {"period": "2024-01", "series": "ELEC.GEN.ALL-US-99.M", "value": 340, "units": "thousand megawatthours"}
+    ]
+  }
+}

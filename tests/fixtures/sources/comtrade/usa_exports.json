@@ -1,0 +1,18 @@
+{
+  "elapsedTime": "1",
+  "count": 1,
+  "data": [
+    {
+      "reporterCode": 842,
+      "reporterISO": "USA",
+      "partnerCode": 0,
+      "partnerISO": "W00",
+      "period": 2022,
+      "cmdCode": "TOTAL",
+      "flowCode": "X",
+      "primaryValue": 2000000000,
+      "netWgt": 1500,
+      "qty": null
+    }
+  ]
+}
