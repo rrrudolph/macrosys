@@ -1,0 +1,2 @@
+series_id,ref_period_start,ref_period_end,value,unit,published_at,ingested_at,vintage_id,source_url,source_hash,quality_flag
+FRED:TCU,2020-02-01,2020-02-29,70.0,pct,2020-03-15T12:00:00+00:00,2020-03-15T12:00:00+00:00,case_fixture,https://www.bea.gov/news/2020/gross-domestic-product-2nd-quarter-2020-advance-estimate,case_fixture,estimated

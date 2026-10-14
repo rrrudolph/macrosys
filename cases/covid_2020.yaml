@@ -1,0 +1,56 @@
+case_id: covid_2020
+title: "2020 Covid demand and supply shock"
+shock:
+  id: covid-2020
+  type: demand
+  subtype: consumption
+  origin:
+    entity_type: economy
+    entity_id: USA
+  size:
+    value: -1.0
+    unit: pct
+    provenance: case_fixture
+  start: 2020-03-16
+  stage: observed
+  certainty: 1.0
+  evidence_refs:
+    - fomc:2020-03-15
+  information_cutoff: "2020-03-16T23:59:59+00:00"
+information_cutoff: "2020-03-16T23:59:59+00:00"
+held_out_group: demand
+expected_structure:
+  - entity:
+      type: economy
+      id: USA
+    variable: demand
+    sign: -1
+    horizon_q: [0, 2]
+    dominant_competing: B24_supply_chain
+observed_structure:
+  - entity:
+      type: economy
+      id: USA
+    variable: demand
+    sign: -1
+    horizon_q: [0, 2]
+    dominant_competing: B24_supply_chain
+    source_url: "https://www.bea.gov/news/2020/gross-domestic-product-2nd-quarter-2020-advance-estimate"
+    source_note: "BEA: real GDP contracted in 2020Q2. The case stores the negative sign, not the published percent."
+  - entity:
+      type: economy
+      id: USA
+    variable: demand
+    sign: -1
+    horizon_q: [0, 2]
+    dominant_competing: B24_supply_chain
+    source_url: "https://www.federalreserve.gov/monetarypolicy/fomcminutes20200429.htm"
+    source_note: "FOMC minutes 28-29 April 2020: the drop combined a collapse in spending with supply constraints. Demand is the shock type here; supply is the competing channel."
+mechanism_path_hint:
+  - B11_monetary_transmission
+  - B24_supply_chain
+fixture_observations: fixtures/covid_2020.csv
+notes: >
+  The shock size is a case_fixture sign-carrier for replay, not a measured magnitude.
+  Observation rows are case_fixture placeholders with quality_flag estimated.
+  Observed outcomes record signs, ordering, and the dominant competing channel only.

@@ -1,0 +1,2 @@
+series_id,ref_period_start,ref_period_end,value,unit,published_at,ingested_at,vintage_id,source_url,source_hash,quality_flag
+FRED:TCU,2015-08-01,2015-08-10,70.0,pct,2015-08-11T08:00:00+00:00,2015-08-11T08:00:00+00:00,case_fixture,https://www.bis.org/publ/qtrpdf/r_qt1509.htm,case_fixture,estimated

@@ -1,0 +1,62 @@
+case_id: oil_2014
+title: "2014-16 oil supply increase"
+shock:
+  id: oil-2014
+  type: supply
+  subtype: capacity_gain
+  origin:
+    entity_type: economy
+    entity_id: USA
+  size:
+    value: 1.0
+    unit: pct
+    provenance: case_fixture
+  start: 2014-11-27
+  stage: observed
+  certainty: 1.0
+  evidence_refs:
+    - opec:2014-11-27
+  information_cutoff: "2014-11-27T23:59:59+00:00"
+information_cutoff: "2014-11-27T23:59:59+00:00"
+held_out_group: supply
+expected_structure:
+  - entity:
+      type: economy
+      id: USA
+    variable: crude_production
+    sign: 1
+    horizon_q: [0, 8]
+    dominant_competing: null
+  - entity:
+      type: commodity
+      id: Brent
+    variable: price
+    sign: -1
+    horizon_q: [0, 8]
+    dominant_competing: B06_demand_elasticity
+observed_structure:
+  - entity:
+      type: economy
+      id: USA
+    variable: crude_production
+    sign: 1
+    horizon_q: [0, 8]
+    dominant_competing: null
+    source_url: "https://www.eia.gov/todayinenergy/detail.php?id=19251"
+    source_note: "EIA: US crude supply kept rising into the 2014 price decline. Sign of production is positive. No barrel figure is stored."
+  - entity:
+      type: commodity
+      id: Brent
+    variable: price
+    sign: -1
+    horizon_q: [0, 8]
+    dominant_competing: B06_demand_elasticity
+    source_url: "https://www.imf.org/en/blogs/articles/2014/12/22/seven-questions-about-the-recent-oil-price-slump"
+    source_note: "IMF blog, Arezki and Blanchard, December 2014: supply factors played the dominant role in the price decline, with weaker demand a smaller part. Sign of the price is negative. No dollar figure is stored."
+mechanism_path_hint:
+  - B05_capacity_pipeline
+fixture_observations: fixtures/oil_2014.csv
+notes: >
+  The shock size is a case_fixture sign-carrier for replay, not a measured magnitude.
+  Observation rows are case_fixture placeholders with quality_flag estimated.
+  Observed outcomes record signs, ordering, and the dominant competing channel only.

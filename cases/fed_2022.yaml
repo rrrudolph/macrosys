@@ -1,0 +1,56 @@
+case_id: fed_2022
+title: "2022 Fed tightening and the dollar"
+shock:
+  id: fed-2022
+  type: policy
+  subtype: monetary
+  origin:
+    entity_type: institution
+    entity_id: FED
+  size:
+    value: 1.0
+    unit: pct
+    provenance: case_fixture
+  start: 2022-03-16
+  stage: implemented
+  certainty: 1.0
+  evidence_refs:
+    - fed:fomc-2022-03-16
+  information_cutoff: "2022-03-16T23:59:59+00:00"
+information_cutoff: "2022-03-16T23:59:59+00:00"
+held_out_group: policy
+expected_structure:
+  - entity:
+      type: institution
+      id: FED
+    variable: policy_rate
+    sign: 1
+    horizon_q: [0, 4]
+    dominant_competing: B10_phillips
+observed_structure:
+  - entity:
+      type: institution
+      id: FED
+    variable: policy_rate
+    sign: 1
+    horizon_q: [0, 4]
+    dominant_competing: B10_phillips
+    source_url: "https://www.federalreserve.gov/newsevents/pressreleases/monetary20220316a.htm"
+    source_note: "FOMC statement 16 March 2022: the Committee raised the funds-rate target, the start of the hiking cycle. Sign of the policy rate over the following quarters is positive."
+  - entity:
+      type: currency
+      id: USD
+    variable: broad_dollar
+    sign: 1
+    horizon_q: [0, 4]
+    dominant_competing: B19_carry
+    source_url: "https://www.bis.org/publ/qtrpdf/r_qt2209b.htm"
+    source_note: "BIS September 2022 quarterly review: the dollar appreciated as US yields rose. Sign of the broad dollar is positive. No index level is stored."
+mechanism_path_hint:
+  - B11_monetary_transmission
+  - B19_carry
+fixture_observations: fixtures/fed_2022.csv
+notes: >
+  The shock size is a case_fixture sign-carrier for replay, not a measured magnitude.
+  Observation rows are case_fixture placeholders with quality_flag estimated.
+  Observed outcomes record signs, ordering, and the dominant competing channel only.

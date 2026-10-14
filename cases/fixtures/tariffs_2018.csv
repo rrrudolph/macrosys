@@ -1,0 +1,2 @@
+series_id,ref_period_start,ref_period_end,value,unit,published_at,ingested_at,vintage_id,source_url,source_hash,quality_flag
+FRED:TCU,2018-06-01,2018-06-30,70.0,pct,2018-07-06T12:00:00+00:00,2018-07-06T12:00:00+00:00,case_fixture,https://ustr.gov/issue-areas/enforcement/section-301-investigations/tariff-actions,case_fixture,estimated

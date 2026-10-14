@@ -1,0 +1,56 @@
+case_id: us_fiscal_2021
+title: "US fiscal expansion 2021"
+shock:
+  id: us-fiscal-2021
+  type: policy
+  subtype: fiscal
+  origin:
+    entity_type: economy
+    entity_id: USA
+  size:
+    value: 1.0
+    unit: pct
+    provenance: case_fixture
+  start: 2021-03-11
+  stage: enacted
+  certainty: 1.0
+  evidence_refs:
+    - congress:hr1319
+  information_cutoff: "2021-03-11T23:59:59+00:00"
+information_cutoff: "2021-03-11T23:59:59+00:00"
+held_out_group: policy
+expected_structure:
+  - entity:
+      type: economy
+      id: USA
+    variable: demand
+    sign: 1
+    horizon_q: [2, 8]
+    dominant_competing: A01_expenditure_identity
+observed_structure:
+  - entity:
+      type: economy
+      id: USA
+    variable: demand
+    sign: 1
+    horizon_q: [2, 8]
+    dominant_competing: A01_expenditure_identity
+    source_url: "https://www.congress.gov/bill/117th-congress/house-bill/1319"
+    source_note: "Congress.gov: the American Rescue Plan Act was enacted in March 2021. Federal spending and transfers rose. Sign of the fiscal impulse is positive. No dollar cost is stored."
+  - entity:
+      type: economy
+      id: USA
+    variable: demand
+    sign: 1
+    horizon_q: [2, 8]
+    dominant_competing: A01_expenditure_identity
+    source_url: "https://www.cbo.gov/publication/57056"
+    source_note: "CBO cost estimate for the American Rescue Plan: the law increased the deficit. This case uses the sign of the fiscal impulse, not CBO's dollar total."
+mechanism_path_hint:
+  - B15_fiscal_multiplier
+  - B11_monetary_transmission
+fixture_observations: fixtures/us_fiscal_2021.csv
+notes: >
+  The shock size is a case_fixture sign-carrier for replay, not a measured magnitude.
+  Observation rows are case_fixture placeholders with quality_flag estimated.
+  Observed outcomes record signs, ordering, and the dominant competing channel only.

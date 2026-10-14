@@ -1,0 +1,46 @@
+case_id: cny_2015
+title: "2015 CNY regime change"
+shock:
+  id: cny-2015
+  type: price
+  subtype: fx
+  origin:
+    entity_type: currency
+    entity_id: CNY
+  size:
+    value: 1.0
+    unit: pct
+    provenance: case_fixture
+  start: 2015-08-11
+  stage: observed
+  certainty: 1.0
+  evidence_refs:
+    - pboc:2015-08-11
+  information_cutoff: "2015-08-11T23:59:59+00:00"
+information_cutoff: "2015-08-11T23:59:59+00:00"
+held_out_group: price
+expected_structure:
+  - entity:
+      type: currency
+      id: CNY
+    variable: import_price
+    sign: 1
+    horizon_q: [0, 2]
+    dominant_competing: B17_terms_of_trade
+observed_structure:
+  - entity:
+      type: currency
+      id: CNY
+    variable: import_price
+    sign: 1
+    horizon_q: [0, 2]
+    dominant_competing: B17_terms_of_trade
+    source_url: "https://www.bis.org/publ/qtrpdf/r_qt1509.htm"
+    source_note: "BIS September 2015 quarterly review: the August fixing change was followed by renminbi depreciation. A weaker CNY raises the local-currency price of USD-invoiced imports. Sign only."
+mechanism_path_hint:
+  - B16_fx_passthrough
+fixture_observations: fixtures/cny_2015.csv
+notes: >
+  The shock size is a case_fixture sign-carrier for replay, not a measured magnitude.
+  Observation rows are case_fixture placeholders with quality_flag estimated.
+  Observed outcomes record signs, ordering, and the dominant competing channel only.

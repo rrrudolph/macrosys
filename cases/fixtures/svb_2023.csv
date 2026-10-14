@@ -1,0 +1,2 @@
+series_id,ref_period_start,ref_period_end,value,unit,published_at,ingested_at,vintage_id,source_url,source_hash,quality_flag
+FRED:TCU,2023-03-01,2023-03-09,70.0,pct,2023-03-10T16:00:00+00:00,2023-03-10T16:00:00+00:00,case_fixture,https://www.federalreserve.gov/publications/files/svb-review-20230428.pdf,case_fixture,estimated

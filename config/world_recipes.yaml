@@ -1,0 +1,305 @@
+# World-state recipes (spec §4.3). One row per state variable the weekly refresh materializes.
+# status ready: a connector in macrosys/sources emits that series-id prefix.
+# status awaiting_source: the series id is not produced by any connector yet. Refresh still
+# runs the recipe when a test or a future ingest has loaded the rows.
+#
+# max_staleness_days is the age of the newest reference period, not the publication lag alone.
+# Monthly Census and G.17 series are allowed 120 days [J]; daily rates 14; weekly CFTC 21.
+# min_quality includes reconstructed_pubtime because several record connectors set that flag
+# when the payload has a date and no clock (spec §9.2).
+
+recipes:
+  - id: usa_capacity_utilization
+    status: ready
+    entity: {type: economy, id: USA}
+    var: capacity_utilization
+    unit: share
+    inputs: [FRED:TCU]
+    transform: latest
+    min_quality: [ok, reconstructed_pubtime]
+    max_staleness_days: 120
+    note: >
+      FRED TCU is capacity utilization, percent of capacity (G.17). latest rescales a pct
+      observation to a share so B03 can read it. FRED's units label is Percent.
+
+  - id: usa_inventory_to_sales
+    status: ready
+    entity: {type: economy, id: USA}
+    var: inventory_to_sales
+    unit: ratio
+    inputs: [FRED:ISRATIO]
+    transform: latest
+    min_quality: [ok, reconstructed_pubtime]
+    max_staleness_days: 120
+    note: Census total business inventories/sales. FRED units label is Ratio.
+
+  - id: usa_inventory_days_of_cover
+    status: ready
+    entity: {type: economy, id: USA}
+    var: inventory_days_of_cover
+    unit: d
+    inputs: [FRED:BUSINV, FRED:TOTBUSSMSA]
+    transform: days_of_cover(FRED:BUSINV, FRED:TOTBUSSMSA, 30.4375)
+    min_quality: [ok, reconstructed_pubtime]
+    max_staleness_days: 120
+    note: >
+      BUSINV and TOTBUSSMSA are monthly millions of dollars. 30.4375 is the month length
+      in macrosys.core.units (m), so days of cover = stock/flow times one month.
+
+  - id: usa_inventory_zscore
+    status: ready
+    entity: {type: economy, id: USA}
+    var: inventory_zscore
+    unit: ratio
+    inputs: [FRED:ISRATIO]
+    transform: zscore(FRED:ISRATIO, 24)
+    min_quality: [ok, reconstructed_pubtime]
+    max_staleness_days: 120
+    note: >
+      Trailing z-score of the inventory/sales ratio versus its own history. A target
+      inventory ratio is not this series; the z-score is the observable stand-in.
+
+  - id: usa_funding_spread_sofr_iorb
+    status: ready
+    entity: {type: institution, id: FED}
+    var: funding_spread
+    unit: bp
+    inputs: [FRED:SOFR, FRED:IORB]
+    transform: spread(FRED:SOFR, FRED:IORB)
+    min_quality: [ok, reconstructed_pubtime]
+    max_staleness_days: 14
+    note: SOFR minus interest on reserve balances, in basis points. A repo-OIS spread is not this.
+
+  - id: usa_policy_rate
+    status: ready
+    entity: {type: institution, id: FED}
+    var: policy_rate
+    unit: pct
+    inputs: [FRED:DFF]
+    transform: latest
+    min_quality: [ok, reconstructed_pubtime]
+    max_staleness_days: 14
+    note: Effective federal funds rate. Monetary-stance level, not a stance classification.
+
+  - id: eurusd_reference
+    status: ready
+    entity: {type: currency, id: EUR}
+    var: usd_per_eur
+    unit: ratio
+    inputs: [ECB:EXR.D.USD.EUR.SP00.A]
+    transform: latest
+    min_quality: [ok, reconstructed_pubtime]
+    max_staleness_days: 14
+    note: ECB daily USD per EUR reference rate.
+
+  - id: usa_breakeven_10y
+    status: ready
+    entity: {type: economy, id: USA}
+    var: inflation_breakeven
+    unit: pct
+    inputs: [FRED:T10YIE]
+    transform: latest
+    min_quality: [ok, reconstructed_pubtime]
+    max_staleness_days: 14
+    note: 10-year breakeven. Market-implied inflation, not a survey.
+
+  - id: usa_hy_oas
+    status: ready
+    entity: {type: economy, id: USA}
+    var: hy_oas
+    unit: pct
+    inputs: [FRED:BAMLH0A0HYM2]
+    transform: latest
+    min_quality: [ok, reconstructed_pubtime]
+    max_staleness_days: 14
+    note: ICE BofA US high-yield OAS as published by FRED, in percent, not basis points.
+
+  - id: gold_tff_open_interest
+    status: ready
+    entity: {type: commodity, id: Au}
+    var: open_interest
+    unit: count
+    inputs: [CFTC:TFF:088691:open_interest]
+    transform: latest
+    min_quality: [ok, reconstructed_pubtime]
+    max_staleness_days: 21
+    note: >
+      CFTC financial futures TFF open interest for market code 088691 (COMEX gold), the
+      series id in config/pipeline.example.yaml. The connector flags reconstructed_pubtime.
+
+  - id: usa_sp500_pct_change
+    status: ready
+    entity: {type: instrument, id: SP500}
+    var: price_pct_change
+    unit: pct
+    inputs: [FRED:SP500]
+    transform: pct_change(FRED:SP500, 21)
+    min_quality: [ok, reconstructed_pubtime]
+    max_staleness_days: 14
+    note: Percent change in the S&P 500 index over 21 observations. A return, not a level.
+
+  - id: eurusd_pct_change
+    status: ready
+    entity: {type: currency, id: EUR}
+    var: fx_pct_change
+    unit: pct
+    inputs: [ECB:EXR.D.USD.EUR.SP00.A]
+    transform: pct_change(ECB:EXR.D.USD.EUR.SP00.A, 21)
+    min_quality: [ok, reconstructed_pubtime]
+    max_staleness_days: 14
+
+  - id: usa_inventories_to_sales_ratio_check
+    status: ready
+    entity: {type: economy, id: USA}
+    var: inventory_sales_from_levels
+    unit: ratio
+    inputs: [FRED:BUSINV, FRED:TOTBUSSMSA]
+    transform: ratio(FRED:BUSINV, FRED:TOTBUSSMSA)
+    min_quality: [ok, reconstructed_pubtime]
+    max_staleness_days: 120
+    note: Level ratio beside FRED:ISRATIO. The two are not forced to match; ISRATIO is the record ratio.
+
+  - id: equity_absorption_ratio
+    status: awaiting_source
+    entity: {type: economy, id: USA}
+    var: absorption_ratio
+    unit: share
+    inputs: [MACROSYS:RET:SP500, MACROSYS:RET:DGS10, MACROSYS:RET:DTWEXBGS]
+    transform: regime_absorption(MACROSYS:RET:SP500, MACROSYS:RET:DGS10, MACROSYS:RET:DTWEXBGS, window=63, n_components=1)
+    min_quality: [ok, estimated, reconstructed_pubtime]
+    max_staleness_days: 14
+    note: >
+      Correlation-regime flag (spec §6.3). No connector publishes aligned return series;
+      price bars are a different table. Inputs are placeholders.
+
+  - id: usa_equity_variance_regime
+    status: awaiting_source
+    entity: {type: economy, id: USA}
+    var: equity_stress_probability
+    unit: share
+    inputs: [MACROSYS:RET:SP500]
+    transform: regime_variance(MACROSYS:RET:SP500)
+    min_quality: [ok, estimated, reconstructed_pubtime]
+    max_staleness_days: 14
+    note: Hamilton two-state variance probability. Needs a return series the connectors do not emit.
+
+  - id: capacity_pipeline
+    status: awaiting_source
+    entity: {type: economy, id: USA}
+    var: capacity_pipeline
+    unit: USD_bn
+    inputs: [UNOBSERVED:capacity_pipeline]
+    transform: latest
+    min_quality: [ok, estimated]
+    max_staleness_days: 400
+    note: Installed-capacity pipeline by completion date. No connector carries it (spec §4.3).
+
+  - id: capacity_slippage
+    status: awaiting_source
+    entity: {type: economy, id: USA}
+    var: capacity_slippage
+    unit: share
+    inputs: [UNOBSERVED:capacity_slippage]
+    transform: latest
+    min_quality: [ok, estimated]
+    max_staleness_days: 400
+    note: Slippage rate on the capacity pipeline. B05 leaves the parameter TODO_estimate.
+
+  - id: margin_by_stage
+    status: awaiting_source
+    entity: {type: industry, id: USA:C26}
+    var: margin
+    unit: share
+    inputs: [UNOBSERVED:margin_by_stage]
+    transform: latest
+    min_quality: [ok, estimated]
+    max_staleness_days: 400
+    note: Margin by production stage. Not a FRED price index.
+
+  - id: forward_curve
+    status: awaiting_source
+    entity: {type: commodity, id: Brent}
+    var: forward_curve
+    unit: USD
+    inputs: [UNOBSERVED:brent_forward]
+    transform: latest
+    min_quality: [ok, estimated]
+    max_staleness_days: 14
+    note: Contract and forward curve. Not carried as an observation series.
+
+  - id: cp_ois_spread
+    status: awaiting_source
+    entity: {type: economy, id: USA}
+    var: cp_ois_spread
+    unit: bp
+    inputs: [UNOBSERVED:CP, UNOBSERVED:OIS]
+    transform: spread(UNOBSERVED:CP, UNOBSERVED:OIS)
+    min_quality: [ok, estimated]
+    max_staleness_days: 14
+    note: Commercial-paper minus OIS. Spec §5.5 marks clean OIS curves as not free.
+
+  - id: cip_basis
+    status: awaiting_source
+    entity: {type: currency, id: EUR}
+    var: cip_basis
+    unit: bp
+    inputs: [UNOBSERVED:eur_cip_basis]
+    transform: latest
+    min_quality: [ok, estimated]
+    max_staleness_days: 14
+    note: Cross-currency basis. Spec §5.5; not a record series.
+
+  - id: rollover_schedule
+    status: awaiting_source
+    entity: {type: economy, id: USA}
+    var: rollover_due
+    unit: USD_bn
+    inputs: [UNOBSERVED:rollover_schedule]
+    transform: latest
+    min_quality: [ok, estimated]
+    max_staleness_days: 120
+    note: Rollover by sector and currency. No connector publishes the schedule.
+
+  - id: survey_consensus
+    status: awaiting_source
+    entity: {type: economy, id: USA}
+    var: survey_consensus
+    unit: pct
+    inputs: [UNOBSERVED:survey_consensus]
+    transform: latest
+    min_quality: [ok, estimated]
+    max_staleness_days: 120
+    note: Public survey consensus. Not wired to a connector.
+
+  - id: etf_shares_outstanding
+    status: awaiting_source
+    entity: {type: instrument, id: SPY}
+    var: shares_outstanding
+    unit: count
+    inputs: [UNOBSERVED:etf_shares]
+    transform: latest
+    min_quality: [ok, estimated]
+    max_staleness_days: 14
+    note: ETF shares outstanding. N-PORT holdings are a different table.
+
+  - id: fx_regime
+    status: awaiting_source
+    entity: {type: currency, id: CNY}
+    var: fx_regime
+    unit: index
+    inputs: [UNOBSERVED:fx_regime]
+    transform: latest
+    min_quality: [ok, estimated]
+    max_staleness_days: 400
+    note: FX regime is a classification, not a series any connector emits. Index is a placeholder unit.
+
+  - id: nowcast
+    status: awaiting_source
+    entity: {type: economy, id: USA}
+    var: nowcast
+    unit: pct
+    inputs: [UNOBSERVED:nowcast]
+    transform: latest
+    min_quality: [ok, estimated]
+    max_staleness_days: 45
+    note: Nowcast of activity. Not a connector series.

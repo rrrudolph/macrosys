@@ -1,0 +1,56 @@
+case_id: svb_2023
+title: "2023 US regional-bank funding stress"
+shock:
+  id: svb-2023
+  type: financial
+  subtype: funding
+  origin:
+    entity_type: institution
+    entity_id: SVB
+  size:
+    value: 1.0
+    unit: pct
+    provenance: case_fixture
+  start: 2023-03-10
+  stage: observed
+  certainty: 1.0
+  evidence_refs:
+    - fdic:svb-2023-03-10
+  information_cutoff: "2023-03-10T23:59:59+00:00"
+information_cutoff: "2023-03-10T23:59:59+00:00"
+held_out_group: financial
+expected_structure:
+  - entity:
+      type: institution
+      id: SVB
+    variable: funding_spread
+    sign: 1
+    horizon_q: [0, 1]
+    dominant_competing: A07_central_bank_balance_sheet
+observed_structure:
+  - entity:
+      type: institution
+      id: SVB
+    variable: funding_spread
+    sign: 1
+    horizon_q: [0, 1]
+    dominant_competing: A07_central_bank_balance_sheet
+    source_url: "https://www.federalreserve.gov/publications/files/svb-review-20230428.pdf"
+    source_note: "Federal Reserve SVB review (April 2023): uninsured deposit outflows and securities losses produced funding failure. The stress sign is positive. No deposit total is stored."
+  - entity:
+      type: institution
+      id: FED
+    variable: facility_response
+    sign: 1
+    horizon_q: [0, 1]
+    dominant_competing: A07_central_bank_balance_sheet
+    source_url: "https://www.federalreserve.gov/newsevents/pressreleases/monetary20230312a.htm"
+    source_note: "Federal Reserve 12 March 2023: the Bank Term Funding Program was opened within days. The facility response, not a multi-quarter credit crunch, dominated the immediate path."
+mechanism_path_hint:
+  - B27_funding_squeeze
+  - A07_central_bank_balance_sheet
+fixture_observations: fixtures/svb_2023.csv
+notes: >
+  The shock size is a case_fixture sign-carrier for replay, not a measured magnitude.
+  Observation rows are case_fixture placeholders with quality_flag estimated.
+  Observed outcomes record signs, ordering, and the dominant competing channel only.

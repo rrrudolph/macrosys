@@ -1,0 +1,2 @@
+series_id,ref_period_start,ref_period_end,value,unit,published_at,ingested_at,vintage_id,source_url,source_hash,quality_flag
+FRED:TCU,2022-01-01,2022-01-31,70.0,pct,2022-02-20T12:00:00+00:00,2022-02-20T12:00:00+00:00,case_fixture,https://www.ecb.europa.eu/pub/economic-bulletin/focus/2022/html/ecb.ebbox202204_01~68ef3c3dc6.en.html,case_fixture,estimated

@@ -1,0 +1,55 @@
+case_id: suez_2021
+title: "2021 Suez blockage"
+shock:
+  id: suez-2021
+  type: supply
+  subtype: input_disruption
+  origin:
+    entity_type: commodity
+    entity_id: freight
+  size:
+    value: -1.0
+    unit: pct
+    provenance: case_fixture
+  start: 2021-03-23
+  stage: observed
+  certainty: 1.0
+  evidence_refs:
+    - bbc:suez-2021-03-23
+  information_cutoff: "2021-03-23T23:59:59+00:00"
+information_cutoff: "2021-03-23T23:59:59+00:00"
+held_out_group: supply
+expected_structure:
+  - entity:
+      type: commodity
+      id: freight
+    variable: freight_rate
+    sign: 1
+    horizon_q: [0, 1]
+    dominant_competing: B04_inventory_cycle
+observed_structure:
+  - entity:
+      type: commodity
+      id: freight
+    variable: freight_rate
+    sign: 1
+    horizon_q: [0, 1]
+    dominant_competing: B04_inventory_cycle
+    source_url: "https://www.bbc.com/news/world-middle-east-56505413"
+    source_note: "BBC: the Ever Given blocked the Suez Canal from 23 March 2021 and was refloated within days. Transit fell while the ship was stuck; the horizon is inside one quarter."
+  - entity:
+      type: commodity
+      id: freight
+    variable: freight_rate
+    sign: 1
+    horizon_q: [0, 1]
+    dominant_competing: B04_inventory_cycle
+    source_url: "https://www.reuters.com/world/middle-east/suez-canal-says-container-ship-ever-given-partially-refloated-2021-03-29/"
+    source_note: "Reuters: the ship was partially refloated on 29 March 2021. The disruption did not persist for multiple quarters."
+mechanism_path_hint:
+  - B25_transport
+fixture_observations: fixtures/suez_2021.csv
+notes: >
+  The shock size is a case_fixture sign-carrier for replay, not a measured magnitude.
+  Observation rows are case_fixture placeholders with quality_flag estimated.
+  Observed outcomes record signs, ordering, and the dominant competing channel only.

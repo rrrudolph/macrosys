@@ -1,0 +1,56 @@
+case_id: eu_energy_2022
+title: "2021-22 European energy shock"
+shock:
+  id: eu-energy-2022
+  type: price
+  subtype: commodity
+  origin:
+    entity_type: economy
+    entity_id: EA
+  size:
+    value: 1.0
+    unit: pct
+    provenance: case_fixture
+  start: 2022-02-24
+  stage: observed
+  certainty: 1.0
+  evidence_refs:
+    - ecb:eb-2022-energy
+  information_cutoff: "2022-02-24T23:59:59+00:00"
+information_cutoff: "2022-02-24T23:59:59+00:00"
+held_out_group: price
+expected_structure:
+  - entity:
+      type: economy
+      id: EA
+    variable: price
+    sign: 1
+    horizon_q: [0, 4]
+    dominant_competing: B11_monetary_transmission
+observed_structure:
+  - entity:
+      type: economy
+      id: EA
+    variable: price
+    sign: 1
+    horizon_q: [0, 4]
+    dominant_competing: B11_monetary_transmission
+    source_url: "https://www.ecb.europa.eu/pub/economic-bulletin/focus/2022/html/ecb.ebbox202204_01~68ef3c3dc6.en.html"
+    source_note: "ECB Economic Bulletin box, April 2022: European energy prices jumped and passed into inflation. Sign of energy prices and near-term inflation is positive. No euro figure is stored."
+  - entity:
+      type: economy
+      id: EA
+    variable: price
+    sign: 1
+    horizon_q: [0, 4]
+    dominant_competing: B11_monetary_transmission
+    source_url: "https://www.iea.org/reports/gas-market-report-q3-2022"
+    source_note: "IEA Gas Market Report Q3 2022: European gas supply tightened after Russian flows were cut. The price sign is positive."
+mechanism_path_hint:
+  - B03_bottleneck_pricing
+  - B10_phillips
+fixture_observations: fixtures/eu_energy_2022.csv
+notes: >
+  The shock size is a case_fixture sign-carrier for replay, not a measured magnitude.
+  Observation rows are case_fixture placeholders with quality_flag estimated.
+  Observed outcomes record signs, ordering, and the dominant competing channel only.

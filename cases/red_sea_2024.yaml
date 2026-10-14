@@ -1,0 +1,56 @@
+case_id: red_sea_2024
+title: "2024-25 Red Sea diversions"
+shock:
+  id: red-sea-2024
+  type: supply
+  subtype: input_disruption
+  origin:
+    entity_type: commodity
+    entity_id: freight
+  size:
+    value: -1.0
+    unit: pct
+    provenance: case_fixture
+  start: 2024-01-12
+  stage: observed
+  certainty: 1.0
+  evidence_refs:
+    - imf:red-sea-2024
+  information_cutoff: "2024-01-12T23:59:59+00:00"
+information_cutoff: "2024-01-12T23:59:59+00:00"
+held_out_group: supply
+expected_structure:
+  - entity:
+      type: commodity
+      id: freight
+    variable: freight_rate
+    sign: 1
+    horizon_q: [0, 3]
+    dominant_competing: B06_demand_elasticity
+observed_structure:
+  - entity:
+      type: commodity
+      id: freight
+    variable: freight_rate
+    sign: 1
+    horizon_q: [0, 3]
+    dominant_competing: B06_demand_elasticity
+    source_url: "https://www.imf.org/en/blogs/articles/2024/03/07/red-sea-attacks-disrupt-global-trade"
+    source_note: "IMF blog March 2024: Red Sea attacks diverted traffic around the Cape and raised freight rates. The inflation effect was described as limited relative to the freight move. Sign of freight is positive."
+  - entity:
+      type: commodity
+      id: freight
+    variable: suez_transits
+    sign: -1
+    horizon_q: [0, 3]
+    dominant_competing: B25_transport
+    source_url: "https://portwatch.imf.org/"
+    source_note: "IMF PortWatch: chokepoint transit is the observable for the diversion. Suez transits fell while the Cape route absorbed ships. Sign of Suez transits is negative."
+mechanism_path_hint:
+  - B25_transport
+  - B04_inventory_cycle
+fixture_observations: fixtures/red_sea_2024.csv
+notes: >
+  The shock size is a case_fixture sign-carrier for replay, not a measured magnitude.
+  Observation rows are case_fixture placeholders with quality_flag estimated.
+  Observed outcomes record signs, ordering, and the dominant competing channel only.

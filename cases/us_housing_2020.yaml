@@ -1,0 +1,56 @@
+case_id: us_housing_2020
+title: "US housing expansion 2020-22"
+shock:
+  id: us-housing-2020
+  type: demand
+  subtype: investment
+  origin:
+    entity_type: economy
+    entity_id: USA
+  size:
+    value: 1.0
+    unit: pct
+    provenance: case_fixture
+  start: 2020-06-30
+  stage: under_construction
+  certainty: 1.0
+  evidence_refs:
+    - census:nrc
+  information_cutoff: "2020-06-30T23:59:59+00:00"
+information_cutoff: "2020-06-30T23:59:59+00:00"
+held_out_group: demand
+expected_structure:
+  - entity:
+      type: economy
+      id: USA
+    variable: residential
+    sign: 1
+    horizon_q: [0, 6]
+    dominant_competing: B11_monetary_transmission
+observed_structure:
+  - entity:
+      type: economy
+      id: USA
+    variable: residential
+    sign: 1
+    horizon_q: [0, 6]
+    dominant_competing: B11_monetary_transmission
+    source_url: "https://www.census.gov/construction/nrc/index.html"
+    source_note: "Census new residential construction: housing starts rose after mid-2020. Sign of residential activity over the next several quarters is positive. No starts level is stored."
+  - entity:
+      type: economy
+      id: USA
+    variable: house_price
+    sign: 1
+    horizon_q: [0, 6]
+    dominant_competing: B13_financial_accelerator
+    source_url: "https://www.fhfa.gov/data/hpi"
+    source_note: "FHFA house price index: US house prices rose over 2020-22. Sign is positive. The later 2022 rate rise is the competing monetary channel, not a stored magnitude."
+mechanism_path_hint:
+  - B14_housing
+  - B11_monetary_transmission
+fixture_observations: fixtures/us_housing_2020.csv
+notes: >
+  The shock size is a case_fixture sign-carrier for replay, not a measured magnitude.
+  Observation rows are case_fixture placeholders with quality_flag estimated.
+  Observed outcomes record signs, ordering, and the dominant competing channel only.

@@ -1,0 +1,2 @@
+series_id,ref_period_start,ref_period_end,value,unit,published_at,ingested_at,vintage_id,source_url,source_hash,quality_flag
+FRED:TCU,2021-03-01,2021-03-22,70.0,pct,2021-03-23T06:00:00+00:00,2021-03-23T06:00:00+00:00,case_fixture,https://www.bbc.com/news/world-middle-east-56505413,case_fixture,estimated

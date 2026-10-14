@@ -1,0 +1,2 @@
+series_id,ref_period_start,ref_period_end,value,unit,published_at,ingested_at,vintage_id,source_url,source_hash,quality_flag
+FRED:TCU,2023-12-01,2023-12-31,70.0,pct,2024-01-10T12:00:00+00:00,2024-01-10T12:00:00+00:00,case_fixture,https://portwatch.imf.org/,case_fixture,estimated

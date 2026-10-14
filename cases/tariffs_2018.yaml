@@ -1,0 +1,56 @@
+case_id: tariffs_2018
+title: "2018 US tariff rounds"
+shock:
+  id: tariffs-2018
+  type: policy
+  subtype: trade
+  origin:
+    entity_type: economy
+    entity_id: USA
+  size:
+    value: 1.0
+    unit: pct
+    provenance: case_fixture
+  start: 2018-07-06
+  stage: enacted
+  certainty: 1.0
+  evidence_refs:
+    - ustr:section-301-list-1
+  information_cutoff: "2018-07-06T23:59:59+00:00"
+information_cutoff: "2018-07-06T23:59:59+00:00"
+held_out_group: policy
+expected_structure:
+  - entity:
+      type: economy
+      id: USA
+    variable: import_price
+    sign: 1
+    horizon_q: [0, 4]
+    dominant_competing: B08_pass_through
+observed_structure:
+  - entity:
+      type: economy
+      id: USA
+    variable: import_price
+    sign: 1
+    horizon_q: [0, 4]
+    dominant_competing: B08_pass_through
+    source_url: "https://www.aeaweb.org/articles?id=10.1257/jep.33.4.187"
+    source_note: "Amiti, Redding, and Weinstein (JEP 2019): the 2018 tariffs raised US import prices, with incidence largely on US buyers. Sign of import prices is positive. No tariff rate is stored."
+  - entity:
+      type: economy
+      id: USA
+    variable: import_price
+    sign: 1
+    horizon_q: [0, 4]
+    dominant_competing: B08_pass_through
+    source_url: "https://ustr.gov/issue-areas/enforcement/section-301-investigations/tariff-actions"
+    source_note: "USTR Section 301 tariff actions: the July 2018 list was an enacted trade measure. The price sign is taken from the JEP paper, not from this page."
+mechanism_path_hint:
+  - B08_pass_through
+  - B02_cost_share
+fixture_observations: fixtures/tariffs_2018.csv
+notes: >
+  The shock size is a case_fixture sign-carrier for replay, not a measured magnitude.
+  Observation rows are case_fixture placeholders with quality_flag estimated.
+  Observed outcomes record signs, ordering, and the dominant competing channel only.
