@@ -1,0 +1,30 @@
+id: C03_expectations_hypothesis
+name: Expectations hypothesis and term premium
+class: pricing
+scope: [economy]
+inputs:
+  - {name: yield_n, unit: pct, desc: n-period yield}
+  - {name: expected_short_avg, unit: pct, desc: average expected short rate over the same horizon}
+outputs:
+  - {name: term_premium, unit: pct}
+form: "term_premium = yield_n - expected_short_avg"
+parameters: []
+horizon: {impact: 0, peak: 0, decay: null}
+state_dependence: []
+assumptions:
+  - the average expected short rate is already the horizon-matched mean, so no further 1/n scaling is applied here
+competing: []
+evidence: [the yield, a published policy path, a published term-premium estimate]
+falsification: "the implied premium and a published premium of the same definition diverge by more than the gap between the two policy paths"
+uncertainty: {type: parameter, note: term-premium estimates are model-dependent}
+confidence: M
+references: [AdrianCrumpMoench2013, KimWright2005]
+monotone: {yield_n: 1, expected_short_avg: -1}
+tests:
+  example:
+    inputs:
+      yield_n: {value: 4.0, unit: pct}
+      expected_short_avg: {value: 3.25, unit: pct}
+    params: {}
+    expected:
+      term_premium: {value: 0.75, unit: pct}

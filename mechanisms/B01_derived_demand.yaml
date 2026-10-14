@@ -1,0 +1,58 @@
+id: B01_derived_demand
+name: Derived demand through production networks
+class: empirical
+scope: [industry]
+inputs:
+  - {name: d_final_demand, unit: USD_bn, by: [industry], desc: change in final demand}
+  - {name: leontief, unit: ratio, by: [industry, industry], desc: provided Leontief inverse (I-A)^-1}
+  - {name: import_share, unit: share, by: [industry], desc: optional; domestic versus imported split}
+outputs:
+  - {name: d_gross_output, unit: USD_bn, by: [industry]}
+  - {name: d_domestic, unit: USD_bn, by: [industry]}
+  - {name: d_imported, unit: USD_bn, by: [industry]}
+form: "dX = L dF; if import shares m are given, d_domestic = (1-m)*dX and d_imported = m*dX"
+parameters: []
+horizon: {impact: 0, peak: 4, decay: null}
+state_dependence: [capacity_utilization]
+assumptions:
+  - fixed proportions, slack capacity, fixed prices; the inverse is an input, not estimated here
+  - substitution (B07) is not in this library slice
+competing: [B03_bottleneck_pricing, A01_expenditure_identity]
+evidence: [new orders, sector industrial production, bilateral trade in the input]
+falsification: "predicted gross-output change is absent in shipments or trade after the lead time"
+uncertainty: {type: structural, note: coefficients 2-4 years stale; new technologies sit inside broader industries}
+confidence: E
+references: [Acemoglu2012, BaqaeeFarhi2019, CarvalhoTahbazSalehi2019, Hulten1978]
+monotone: {d_final_demand: 1}
+tests:
+  example:
+    inputs:
+      d_final_demand:
+        values: [4.0, 2.0]
+        unit: USD_bn
+        rows: [steel, autos]
+      leontief:
+        values:
+          - [1.0, 0.5]
+          - [0.0, 1.0]
+        unit: ratio
+        rows: [steel, autos]
+        cols: [steel, autos]
+      import_share:
+        values: [0.25, 0.5]
+        unit: share
+        rows: [steel, autos]
+    params: {}
+    expected:
+      d_gross_output:
+        values: [5.0, 2.0]
+        unit: USD_bn
+        rows: [steel, autos]
+      d_domestic:
+        values: [3.75, 1.0]
+        unit: USD_bn
+        rows: [steel, autos]
+      d_imported:
+        values: [1.25, 1.0]
+        unit: USD_bn
+        rows: [steel, autos]

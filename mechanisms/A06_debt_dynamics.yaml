@@ -1,0 +1,43 @@
+id: A06_debt_dynamics
+name: Government debt dynamics
+class: identity
+scope: [economy]
+inputs:
+  - {name: r, unit: share, desc: effective nominal interest rate}
+  - {name: g, unit: share, desc: nominal GDP growth}
+  - {name: d_lag, unit: share, desc: lagged debt over GDP}
+  - {name: pb, unit: share, desc: primary balance over GDP}
+  - {name: sfa, unit: share, desc: stock-flow adjustment over GDP}
+  - {name: delta_d_observed, unit: share}
+outputs:
+  - {name: delta_d, unit: share}
+  - {name: residual, unit: share}
+form: "delta_d = ((r - g) / (1 + g)) * d_lag - pb + sfa"
+parameters:
+  - {name: tolerance, unit: share, value: 1.0e-9, source: accounting_identity}
+horizon: {impact: 0, peak: 0, decay: null}
+state_dependence: []
+assumptions:
+  - r, g, debt, primary balance, and the stock-flow adjustment are shares of GDP in the same year
+  - the term-premium channel of a fiscal shock is C03, a use of this identity rather than a competitor in this slice
+competing: []
+evidence: [gross debt, effective interest rate, nominal GDP, primary balance]
+falsification: "a residual outside tolerance after including the stock-flow adjustment is a data error or a missing valuation term"
+uncertainty: {type: measurement, note: stock-flow adjustment and the effective interest rate}
+confidence: M
+references: []
+monotone: {pb: -1, r: 1}
+tests:
+  example:
+    inputs:
+      r: {value: 0.03, unit: share}
+      g: {value: 0.03, unit: share}
+      d_lag: {value: 0.8, unit: share}
+      pb: {value: 0.02, unit: share}
+      sfa: {value: 0.005, unit: share}
+      delta_d_observed: {value: -0.015, unit: share}
+    params:
+      tolerance: {value: 1.0e-9, unit: share, provenance: accounting_identity}
+    expected:
+      delta_d: {value: -0.015, unit: share}
+      residual: {value: 0, unit: share}

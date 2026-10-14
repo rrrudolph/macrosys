@@ -1,0 +1,43 @@
+id: A01_expenditure_identity
+name: Expenditure identity
+class: identity
+scope: [economy]
+inputs:
+  - {name: Y, unit: USD_bn, desc: expenditure-side output}
+  - {name: C, unit: USD_bn}
+  - {name: I, unit: USD_bn}
+  - {name: G, unit: USD_bn}
+  - {name: X, unit: USD_bn}
+  - {name: M, unit: USD_bn}
+outputs:
+  - {name: residual, unit: USD_bn, desc: Y minus C+I+G+X-M}
+  - {name: import_leakage, unit: share, desc: M over absorption C+I+G}
+form: "residual = Y - (C + I + G + X - M); import_leakage = M / (C + I + G)"
+parameters:
+  - {name: tolerance, unit: USD_bn, value: 1.0e-6, source: accounting_identity}
+horizon: {impact: 0, peak: 0, decay: null}
+state_dependence: []
+assumptions:
+  - nominal or real, but every component in one unit and one vintage
+  - absorption for the leakage share is C+I+G
+competing: []
+evidence: [national accounts expenditure components, import share of absorption]
+falsification: "a residual outside tolerance after aligning vintage, deflator, and coverage is a data error, not an economic offset"
+uncertainty: {type: measurement, note: "statistical discrepancy, deflator mismatch, or coverage gap"}
+confidence: M
+references: []
+monotone: {M: 1}
+tests:
+  example:
+    inputs:
+      Y: {value: 100, unit: USD_bn}
+      C: {value: 50, unit: USD_bn}
+      I: {value: 30, unit: USD_bn}
+      G: {value: 20, unit: USD_bn}
+      X: {value: 15, unit: USD_bn}
+      M: {value: 15, unit: USD_bn}
+    params:
+      tolerance: {value: 1.0e-6, unit: USD_bn, provenance: accounting_identity}
+    expected:
+      residual: {value: 0, unit: USD_bn}
+      import_leakage: {value: 0.15, unit: share}

@@ -1,0 +1,32 @@
+id: B02_cost_share
+name: Materiality and cost share
+class: empirical
+scope: [industry]
+inputs:
+  - {name: s_ij, unit: share, desc: cost share of input i in industry j}
+  - {name: d_price, unit: pct, desc: percent price change of input i}
+outputs:
+  - {name: d_unit_cost, unit: pct}
+form: "d_unit_cost_pct = s_ij * d_price_pct"
+parameters: []
+horizon: {impact: 0, peak: 0, decay: null}
+state_dependence: []
+assumptions:
+  - fixed technology in the short run
+  - the roughly 1 to 2 percent materiality floor is a design judgment applied by the propagator, not a coefficient
+  - substitution (B07) and hedging are not in this library slice
+competing: []
+evidence: [PPI by stage of processing, margin disclosures, IO use shares]
+falsification: "a cost shock with no margin or price movement in j beyond the contract lag"
+uncertainty: {type: parameter, note: cost shares vary within an industry}
+confidence: E
+references: []
+monotone: {d_price: 1, s_ij: 1}
+tests:
+  example:
+    inputs:
+      s_ij: {value: 0.25, unit: share}
+      d_price: {value: 8, unit: pct}
+    params: {}
+    expected:
+      d_unit_cost: {value: 2, unit: pct}

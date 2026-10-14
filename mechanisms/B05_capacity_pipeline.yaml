@@ -1,0 +1,42 @@
+id: B05_capacity_pipeline
+name: Capacity pipeline and slippage
+class: empirical
+scope: [industry]
+inputs:
+  - {name: pipeline, unit: USD_bn}
+  - {name: demand, unit: USD_bn}
+  - {name: lead_time, unit: q}
+outputs:
+  - {name: arrival_q, unit: q}
+  - {name: supply_on_schedule, unit: USD_bn}
+  - {name: supply_delayed, unit: USD_bn}
+  - {name: tightness, unit: USD_bn}
+form: "supply_on_schedule = pipeline * (1 - slippage); supply_delayed = pipeline * slippage; tightness = demand - supply_on_schedule; arrival_q = lead_time"
+parameters:
+  - {name: slippage, unit: share, source: TODO_estimate}
+horizon: {impact: 4, peak: 12, decay: null}
+state_dependence: []
+assumptions:
+  - slippage is the share that misses the scheduled lead time; the extra delay in quarters is not given a magnitude
+  - lead-time ranges in the spec are industry reporting and are an input, not a fitted parameter
+  - substitution and policy acceleration are not in this library slice
+competing: [B06_demand_elasticity]
+evidence: [project trackers, permitting, order backlogs]
+falsification: "a predicted tightness window arrives with no widening of the spot or forward spread"
+uncertainty: {type: parameter, note: project slippage and cancellation rates are estimated locally}
+confidence: E
+references: []
+monotone: {demand: 1, lead_time: 1}
+tests:
+  example:
+    inputs:
+      pipeline: {value: 50, unit: USD_bn}
+      demand: {value: 30, unit: USD_bn}
+      lead_time: {value: 8, unit: q}
+    params:
+      slippage: {value: 0.2, unit: share, provenance: example_scenario}
+    expected:
+      arrival_q: {value: 8, unit: q}
+      supply_on_schedule: {value: 40, unit: USD_bn}
+      supply_delayed: {value: 10, unit: USD_bn}
+      tightness: {value: -10, unit: USD_bn}

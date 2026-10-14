@@ -1,0 +1,39 @@
+id: A09_etf_return
+name: ETF base-currency return
+class: identity
+scope: [instrument]
+inputs:
+  - {name: r_local, unit: share}
+  - {name: r_fx, unit: share}
+  - {name: fees, unit: share}
+  - {name: r_observed, unit: share}
+outputs:
+  - {name: r_base, unit: share}
+  - {name: residual, unit: share}
+form: "r_base = r_local + r_fx + r_local * r_fx - fees"
+parameters:
+  - {name: tolerance, unit: share, value: 1.0e-9, source: accounting_identity}
+horizon: {impact: 0, peak: 0, decay: null}
+state_dependence: []
+assumptions:
+  - one holding; a portfolio return is the weight sum of this identity
+  - futures-based roll yield is C07, applied before this identity for a futures ETF
+competing: []
+evidence: [holding local return, FX return, expense ratio, published NAV return]
+falsification: "a residual outside tolerance against the published base-currency return means a missing weight, fee, or FX leg"
+uncertainty: {type: measurement, note: premium or discount and accrued fees sit outside this one-holding form}
+confidence: M
+references: []
+monotone: {r_local: 1}
+tests:
+  example:
+    inputs:
+      r_local: {value: 0.10, unit: share}
+      r_fx: {value: 0.02, unit: share}
+      fees: {value: 0.001, unit: share}
+      r_observed: {value: 0.121, unit: share}
+    params:
+      tolerance: {value: 1.0e-9, unit: share, provenance: accounting_identity}
+    expected:
+      r_base: {value: 0.121, unit: share}
+      residual: {value: 0, unit: share}

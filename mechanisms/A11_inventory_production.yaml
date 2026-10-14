@@ -1,0 +1,37 @@
+id: A11_inventory_production
+name: Inventory-production bridge
+class: identity
+scope: [product]
+inputs:
+  - {name: sales, unit: t}
+  - {name: d_inventories, unit: t}
+  - {name: production_observed, unit: t}
+outputs:
+  - {name: implied_production, unit: t}
+  - {name: residual, unit: t}
+form: "implied_production = sales + d_inventories"
+parameters:
+  - {name: tolerance, unit: t, value: 1.0e-6, source: accounting_identity}
+horizon: {impact: 0, peak: 0, decay: null}
+state_dependence: []
+assumptions:
+  - sales, inventory change, and production are the same product and the same real unit
+  - the inventory target that turns a sales change into a production plan is B04
+competing: [B04_inventory_cycle]
+evidence: [sales, inventory levels, production]
+falsification: "a residual outside tolerance means production, sales, and the inventory change are not the same product boundary"
+uncertainty: {type: measurement, note: inventory valuation and work in progress}
+confidence: M
+references: []
+monotone: {sales: 1}
+tests:
+  example:
+    inputs:
+      sales: {value: 80, unit: t}
+      d_inventories: {value: 5, unit: t}
+      production_observed: {value: 85, unit: t}
+    params:
+      tolerance: {value: 1.0e-6, unit: t, provenance: accounting_identity}
+    expected:
+      implied_production: {value: 85, unit: t}
+      residual: {value: 0, unit: t}

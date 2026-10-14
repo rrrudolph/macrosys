@@ -1,0 +1,39 @@
+id: C07_cost_of_carry
+name: Futures cost of carry and roll yield
+class: pricing
+scope: [instrument]
+inputs:
+  - {name: spot, unit: index}
+  - {name: futures, unit: index}
+  - {name: tenor, unit: y}
+  - {name: rate, unit: share}
+  - {name: storage, unit: share}
+outputs:
+  - {name: roll_yield, unit: share}
+  - {name: implied_convenience, unit: share}
+form: "roll_yield = ln(spot / futures) / tenor; implied_convenience = rate + storage + roll_yield"
+parameters: []
+horizon: {impact: 0, peak: 0, decay: null}
+state_dependence: []
+assumptions:
+  - continuous compounding, as in F = S * exp((rate + storage - convenience) * tenor)
+  - positive roll yield is backwardation
+competing: [B04_inventory_cycle]
+evidence: [spot, futures curve, funding rate, storage cost]
+falsification: "implied convenience and observed inventory scarcity move in opposite directions for a full tenor, with no change in the rate or in storage"
+uncertainty: {type: parameter, note: storage and the split between convenience yield and a risk premium}
+confidence: M
+references: [GortonHayashiRouwenhorst2013, HamiltonWu2014]
+monotone: {futures: -1, rate: 1}
+tests:
+  example:
+    inputs:
+      spot: {value: 100, unit: index}
+      futures: {value: 90, unit: index}
+      tenor: {value: 1, unit: y}
+      rate: {value: 0.02, unit: share}
+      storage: {value: 0.01, unit: share}
+    params: {}
+    expected:
+      roll_yield: {value: 0.10536051565782635, unit: share}
+      implied_convenience: {value: 0.13536051565782635, unit: share}

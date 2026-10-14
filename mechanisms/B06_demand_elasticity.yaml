@@ -1,0 +1,43 @@
+id: B06_demand_elasticity
+name: Demand elasticity, short and long run
+class: empirical
+scope: [product]
+inputs:
+  - {name: d_price, unit: pct}
+outputs:
+  - {name: d_demand_sr, unit: pct}
+  - {name: d_demand_lr, unit: pct}
+  - {name: demand_path, unit: pct, by: [quarter], desc: q0 is the short run; q1 to q3 adjust toward the long run}
+form: "d_sr = eps_sr * d_price; d_lr = eps_lr * d_price; d_k = d_{k-1} + speed * (d_lr - d_{k-1}) for four quarters"
+parameters:
+  - {name: eps_sr, unit: ratio, source: TODO_estimate}
+  - {name: eps_lr, unit: ratio, source: TODO_estimate}
+  - {name: speed, unit: share, source: TODO_estimate}
+horizon: {impact: 0, peak: 4, decay: 12}
+state_dependence: []
+assumptions:
+  - elasticities are stable inside a regime; the four-quarter path is a reporting window, not an estimated lag
+  - income effects and policy offsets are not in this library slice
+  - example elasticities are a scenario so the form can be tested; they are not a literature magnitude
+competing: []
+evidence: [volume after a price move, substitution shares]
+falsification: "a sustained price rise with no volume decline past the long-run horizon means the elasticity was too small or income growth offset it"
+uncertainty: {type: parameter, note: elasticities are asymmetric and demand destruction can persist}
+confidence: E
+references: []
+monotone: {d_price: -1}
+tests:
+  example:
+    inputs:
+      d_price: {value: 10, unit: pct}
+    params:
+      eps_sr: {value: -0.2, unit: ratio, provenance: example_scenario}
+      eps_lr: {value: -0.6, unit: ratio, provenance: example_scenario}
+      speed: {value: 0.5, unit: share, provenance: example_scenario}
+    expected:
+      d_demand_sr: {value: -2, unit: pct}
+      d_demand_lr: {value: -6, unit: pct}
+      demand_path:
+        values: [-2, -4, -5, -5.5]
+        unit: pct
+        rows: [q0, q1, q2, q3]

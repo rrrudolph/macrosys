@@ -1,0 +1,34 @@
+id: B16_fx_passthrough
+name: Exchange-rate pass-through
+class: empirical
+scope: [economy]
+inputs:
+  - {name: d_fx, unit: pct, desc: nominal move versus USD}
+  - {name: invoicing_share, unit: share, desc: share of imports invoiced in USD}
+outputs:
+  - {name: d_import_price, unit: pct}
+  - {name: d_cpi, unit: pct}
+form: "d_import_price = pt_import * invoicing_share * d_fx; d_cpi = pt_cpi * invoicing_share * d_fx. Coefficients are TODO_estimate, so the mechanism refuses to run."
+parameters:
+  - {name: pt_import, unit: share, source: TODO_estimate}
+  - {name: pt_cpi, unit: share, source: TODO_estimate}
+horizon: {impact: 1, peak: 4, decay: 8}
+state_dependence: []
+assumptions:
+  - dominant-currency pricing, so the relevant nominal move is the bilateral USD rate
+  - margins (B08) and policy (B11) are not in this library slice
+  - the linear form is a placeholder; no pass-through magnitude is taken from the literature card
+competing: [B06_demand_elasticity]
+evidence: [import price indices, invoicing shares, CPI tradables]
+falsification: "a large depreciation with import prices flat after two quarters means hedging, margin absorption, or a different invoicing structure"
+uncertainty: {type: parameter, note: "pass-through to import prices and to CPI is partial, slow, and estimated locally"}
+confidence: E
+references: [GopinathBozCasasDiezGourinchasPlagborgMoller2020]
+monotone: {}
+tests:
+  example:
+    inputs:
+      d_fx: {value: 10, unit: pct}
+      invoicing_share: {value: 0.5, unit: share}
+    params: {}
+    expected: {}

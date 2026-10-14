@@ -1,0 +1,39 @@
+id: A10_real_exchange_rate
+name: Real exchange rate
+class: identity
+scope: [currency]
+inputs:
+  - {name: e, unit: index, desc: log domestic currency per foreign}
+  - {name: p_foreign, unit: index, desc: log foreign price level}
+  - {name: p_domestic, unit: index, desc: log domestic price level}
+  - {name: q_observed, unit: index}
+outputs:
+  - {name: q, unit: index}
+  - {name: residual, unit: index}
+form: "q = e + p_foreign - p_domestic"
+parameters:
+  - {name: tolerance, unit: index, value: 1.0e-9, source: accounting_identity}
+horizon: {impact: 0, peak: 0, decay: null}
+state_dependence: []
+assumptions:
+  - all three inputs are logs, so the sum is the log real rate
+  - pass-through of the nominal rate is B16, a use of this decomposition
+competing: []
+evidence: [nominal exchange rate, foreign and domestic price indices]
+falsification: "a residual outside tolerance means the price indices or the numeraire of e are not the ones in the definition"
+uncertainty: {type: measurement, note: choice of price index}
+confidence: M
+references: []
+monotone: {e: 1}
+tests:
+  example:
+    inputs:
+      e: {value: 0.10, unit: index}
+      p_foreign: {value: 0.04, unit: index}
+      p_domestic: {value: 0.01, unit: index}
+      q_observed: {value: 0.13, unit: index}
+    params:
+      tolerance: {value: 1.0e-9, unit: index, provenance: accounting_identity}
+    expected:
+      q: {value: 0.13, unit: index}
+      residual: {value: 0, unit: index}

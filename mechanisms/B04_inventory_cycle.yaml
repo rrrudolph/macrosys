@@ -1,0 +1,37 @@
+id: B04_inventory_cycle
+name: Inventory cycle and days of cover
+class: empirical
+scope: [product]
+inputs:
+  - {name: inventory, unit: USD_bn}
+  - {name: sales, unit: USD_bn, desc: quarterly sales}
+  - {name: target_ratio, unit: share, desc: target inventory over quarterly sales}
+  - {name: d_sales, unit: USD_bn}
+outputs:
+  - {name: days_of_cover, unit: d}
+  - {name: production_response, unit: USD_bn}
+form: "days_of_cover = (inventory / sales) * days_per_quarter; production_response = d_sales + target_ratio * d_sales - (inventory - target_ratio * sales)"
+parameters: []
+horizon: {impact: 1, peak: 2, decay: 3}
+state_dependence: [inventory_days]
+assumptions:
+  - firms target an inventory-to-sales ratio
+  - just-in-time versus precautionary stocking is a regime, not a separate mechanism in this slice
+competing: [B03_bottleneck_pricing]
+evidence: [inventories-to-sales ratios, warehouse stocks, PMI inventories]
+falsification: "demand rises, inventories do not fall, and prices do not rise, so demand was smaller than assumed or supply responded"
+uncertainty: {type: regime, note: destocking cycles overshoot}
+confidence: E
+references: [Metzler1941, GortonHayashiRouwenhorst2013]
+monotone: {d_sales: 1}
+tests:
+  example:
+    inputs:
+      inventory: {value: 100, unit: USD_bn}
+      sales: {value: 200, unit: USD_bn}
+      target_ratio: {value: 0.5, unit: share}
+      d_sales: {value: 20, unit: USD_bn}
+    params: {}
+    expected:
+      days_of_cover: {value: 45.65625, unit: d}
+      production_response: {value: 30, unit: USD_bn}

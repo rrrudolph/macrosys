@@ -1,0 +1,49 @@
+id: A04_supply_use
+name: Supply-use balance
+class: identity
+scope: [product]
+inputs:
+  - {name: domestic_output, unit: USD_bn}
+  - {name: imports, unit: USD_bn}
+  - {name: intermediate_use, unit: USD_bn}
+  - {name: household, unit: USD_bn}
+  - {name: government, unit: USD_bn}
+  - {name: investment, unit: USD_bn}
+  - {name: d_inventories, unit: USD_bn}
+  - {name: exports, unit: USD_bn}
+outputs:
+  - {name: total_supply, unit: USD_bn}
+  - {name: total_use, unit: USD_bn}
+  - {name: residual, unit: USD_bn}
+form: "residual = (domestic_output + imports) - (intermediate_use + household + government + investment + d_inventories + exports)"
+parameters:
+  - {name: tolerance, unit: USD_bn, value: 1.0e-6, source: accounting_identity}
+horizon: {impact: 0, peak: 0, decay: null}
+state_dependence: []
+assumptions:
+  - one product, purchaser prices, one vintage
+  - B03 and B04 decide which margin closes a demand gap; they do not rewrite this identity
+competing: [B03_bottleneck_pricing, B04_inventory_cycle]
+evidence: [supply-use or ICIO tables, trade, inventory change]
+falsification: "a residual outside tolerance after aligning product coverage is a data error or a missing use, not a behavioral result"
+uncertainty: {type: measurement, note: product classification and inventory valuation}
+confidence: M
+references: []
+monotone: {imports: 1}
+tests:
+  example:
+    inputs:
+      domestic_output: {value: 80, unit: USD_bn}
+      imports: {value: 20, unit: USD_bn}
+      intermediate_use: {value: 30, unit: USD_bn}
+      household: {value: 25, unit: USD_bn}
+      government: {value: 10, unit: USD_bn}
+      investment: {value: 15, unit: USD_bn}
+      d_inventories: {value: 5, unit: USD_bn}
+      exports: {value: 15, unit: USD_bn}
+    params:
+      tolerance: {value: 1.0e-6, unit: USD_bn, provenance: accounting_identity}
+    expected:
+      total_supply: {value: 100, unit: USD_bn}
+      total_use: {value: 100, unit: USD_bn}
+      residual: {value: 0, unit: USD_bn}

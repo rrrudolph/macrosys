@@ -1,0 +1,30 @@
+id: C12_fisher
+name: Fisher relation
+class: pricing
+scope: [economy]
+inputs:
+  - {name: nominal, unit: pct}
+  - {name: expected_inflation, unit: pct}
+outputs:
+  - {name: real_rate, unit: pct}
+form: "real_rate = nominal - expected_inflation"
+parameters: []
+horizon: {impact: 0, peak: 0, decay: null}
+state_dependence: []
+assumptions:
+  - the relation is the linear approximation i ≈ r + expected inflation
+competing: []
+evidence: [nominal yield, a measure of expected inflation]
+falsification: "the implied real rate and an observed real yield of the same horizon diverge persistently beyond the inflation risk premium and the liquidity premium"
+uncertainty: {type: measurement, note: expected inflation is not the same object as a breakeven}
+confidence: M
+references: []
+monotone: {nominal: 1, expected_inflation: -1}
+tests:
+  example:
+    inputs:
+      nominal: {value: 5, unit: pct}
+      expected_inflation: {value: 2, unit: pct}
+    params: {}
+    expected:
+      real_rate: {value: 3, unit: pct}

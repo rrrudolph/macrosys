@@ -1,0 +1,55 @@
+id: A05_firm_cash_flow
+name: Firm cash-flow identity
+class: identity
+scope: [industry]
+inputs:
+  - {name: volume, unit: index, desc: "volume index; 1 equals the price unit of revenue"}
+  - {name: price, unit: USD_bn}
+  - {name: variable_costs, unit: USD_bn}
+  - {name: fixed_costs, unit: USD_bn}
+  - {name: tax_rate, unit: share}
+  - {name: da, unit: USD_bn}
+  - {name: capex, unit: USD_bn}
+  - {name: dnwc, unit: USD_bn}
+  - {name: revenue_reported, unit: USD_bn}
+  - {name: fcf_reported, unit: USD_bn}
+outputs:
+  - {name: revenue, unit: USD_bn}
+  - {name: ebit, unit: USD_bn}
+  - {name: fcf, unit: USD_bn}
+  - {name: residual, unit: USD_bn}
+form: "revenue = volume * price; EBIT = revenue - variable_costs - fixed_costs; FCF = EBIT*(1-tax_rate) + da - capex - dnwc"
+parameters:
+  - {name: tolerance, unit: USD_bn, value: 1.0e-6, source: accounting_identity}
+horizon: {impact: 0, peak: 0, decay: null}
+state_dependence: []
+assumptions:
+  - volume is an index such that volume times price is revenue in USD_bn
+  - tax rate applies to EBIT with no loss limitation
+competing: []
+evidence: [revenue, EBIT, capex, and working-capital disclosures]
+falsification: "a residual outside tolerance means the reported cash flow does not match the identity, so the bridge from the economic outcome to the equity claim is not closed"
+uncertainty: {type: measurement, note: non-cash items and the split of variable versus fixed cost}
+confidence: M
+references: []
+monotone: {volume: 1}
+tests:
+  example:
+    inputs:
+      volume: {value: 1.2, unit: index}
+      price: {value: 100, unit: USD_bn}
+      variable_costs: {value: 70, unit: USD_bn}
+      fixed_costs: {value: 20, unit: USD_bn}
+      tax_rate: {value: 0.25, unit: share}
+      da: {value: 8, unit: USD_bn}
+      capex: {value: 15, unit: USD_bn}
+      dnwc: {value: 4, unit: USD_bn}
+      revenue_reported: {value: 120, unit: USD_bn}
+      fcf_reported: {value: 11.5, unit: USD_bn}
+    params:
+      tolerance: {value: 1.0e-6, unit: USD_bn, provenance: accounting_identity}
+    expected:
+      revenue: {value: 120, unit: USD_bn}
+      ebit: {value: 30, unit: USD_bn}
+      fcf: {value: 11.5, unit: USD_bn}
+      residual: {value: 0, unit: USD_bn}

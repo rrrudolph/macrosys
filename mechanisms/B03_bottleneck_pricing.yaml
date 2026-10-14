@@ -1,0 +1,43 @@
+id: B03_bottleneck_pricing
+name: Bottleneck and marginal pricing
+class: empirical
+scope: [industry]
+inputs:
+  - {name: d_demand, unit: pct}
+  - {name: u, unit: share, desc: utilization used by the supply elasticity}
+outputs:
+  - {name: d_price, unit: pct}
+form: "d_price_pct = d_demand_pct / (eps_s(u) + eps_d); eps_s(u) = eps_s_slack for u <= u_kink, linear to eps_s_tight at u_cap, then eps_s_tight"
+parameters:
+  - {name: eps_s_slack, unit: ratio, source: TODO_estimate}
+  - {name: eps_s_tight, unit: ratio, source: TODO_estimate}
+  - {name: eps_d, unit: ratio, source: TODO_estimate}
+  - {name: u_kink, unit: share, value: 0.70, source: spec_3.4_rule5}
+  - {name: u_cap, unit: share, source: TODO_estimate}
+horizon: {impact: 0, peak: 2, decay: 4}
+state_dependence: [capacity_utilization]
+assumptions:
+  - single clearing price and no rationing by contract
+  - the applicability gate zeros the price effect when state capacity_utilization is below 0.70
+  - elasticities are industry ranges; the example numbers are a scenario, not an estimate
+  - substitution (B07) is not in this library slice
+competing: [B04_inventory_cycle, B06_demand_elasticity]
+evidence: [utilization, spot versus contract premia, supplier-delivery surveys]
+falsification: "utilization high but the spot price flat means unobserved capacity or demand softer than assumed"
+uncertainty: {type: parameter, note: short-run supply elasticity is state-dependent and poorly measured; use ranges by industry}
+confidence: E
+references: [Kilian2009]
+monotone: {d_demand: 1}
+tests:
+  example:
+    inputs:
+      d_demand: {value: 4, unit: pct}
+      u: {value: 0.8, unit: share}
+    params:
+      eps_s_slack: {value: 2, unit: ratio, provenance: example_scenario}
+      eps_s_tight: {value: 0, unit: ratio, provenance: example_scenario}
+      eps_d: {value: 1, unit: ratio, provenance: example_scenario}
+      u_kink: {value: 0.7, unit: share, provenance: example_scenario}
+      u_cap: {value: 0.9, unit: share, provenance: example_scenario}
+    expected:
+      d_price: {value: 2, unit: pct}

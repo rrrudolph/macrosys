@@ -1,0 +1,37 @@
+id: C01_cip_basis
+name: Covered interest parity with basis
+class: pricing
+scope: [currency]
+inputs:
+  - {name: spot, unit: index}
+  - {name: i_d, unit: share, desc: "domestic rate, decimal"}
+  - {name: i_f, unit: share, desc: "foreign rate, decimal"}
+  - {name: tau, unit: y, desc: year fraction}
+  - {name: basis, unit: bp, desc: cross-currency basis added to the foreign rate}
+outputs:
+  - {name: forward, unit: index}
+form: "F = S * (1 + i_d * tau) / (1 + (i_f + basis) * tau), basis converted from bp to a decimal rate"
+parameters: []
+horizon: {impact: 0, peak: 0, decay: null}
+state_dependence: []
+assumptions:
+  - simple compounding
+  - a negative basis, added to the foreign rate, raises the forward
+competing: []
+evidence: [spot, forward, two money-market rates, cross-currency basis]
+falsification: "the quoted forward stays off this identity outside bid-ask and the measured basis, so one of the four prices is stale or the basis convention differs"
+uncertainty: {type: regime, note: deviations have persisted since 2008 and widen when balance-sheet space is scarce}
+confidence: M
+references: [DuTepperVerdelhan2018]
+monotone: {i_d: 1, i_f: -1, basis: -1}
+tests:
+  example:
+    inputs:
+      spot: {value: 100, unit: index}
+      i_d: {value: 0.05, unit: share}
+      i_f: {value: 0.03, unit: share}
+      tau: {value: 1, unit: y}
+      basis: {value: -25, unit: bp}
+    params: {}
+    expected:
+      forward: {value: 102.1897810218978, unit: index}

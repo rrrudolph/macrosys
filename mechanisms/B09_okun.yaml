@@ -1,0 +1,35 @@
+id: B09_okun
+name: Okun law
+class: empirical
+scope: [economy]
+inputs:
+  - {name: d_output, unit: pct, desc: "output gap or growth deviation, percent"}
+outputs:
+  - {name: d_unemployment, unit: pp}
+form: "d_unemployment_pp = -okun * d_output_pct, with okun in [0.3, 0.5] pp of unemployment per 1 percent of output"
+parameters:
+  - {name: okun, unit: ratio, low: 0.3, high: 0.5, source: BallLeighLoungani2017}
+horizon: {impact: 1, peak: 2, decay: null}
+state_dependence: []
+assumptions:
+  - the coefficient is the absolute Okun relationship; the sign is negative
+  - participation and hours margins are not in this library slice
+competing: []
+evidence: [payrolls, claims, hours, output gap]
+falsification: "growth slows for two quarters with no change in hours or hiring indicators"
+uncertainty: {type: parameter, note: the coefficient varies by country and over time inside the cited range}
+confidence: E
+references: [BallLeighLoungani2017]
+monotone: {d_output: -1}
+tests:
+  example:
+    inputs:
+      d_output: {value: -2, unit: pct}
+    params:
+      okun:
+        low: 0.3
+        high: 0.5
+        unit: ratio
+        provenance: BallLeighLoungani2017
+    expected:
+      d_unemployment: {low: 0.6, high: 1.0, unit: pp}
