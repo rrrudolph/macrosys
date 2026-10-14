@@ -1,0 +1,99 @@
+# Scenario library (spec §6.5, §11.4).
+#
+# Historical windows are inclusive calendar dates. Factor-shock moves are simple
+# factor returns in percent (10 means +10%). Credit factors are credit-portfolio
+# returns, so a widening is a negative return once it is calibrated — this file
+# does not store spread changes.
+#
+# Null moves are uncalibrated (provenance: TODO_calibrate). scenario_pnl raises
+# on a null move. Do not fill these with guessed magnitudes.
+
+scenarios:
+  - name: hist_2008q4
+    kind: historical
+    start: 2008-10-01
+    end: 2008-12-31
+    note: "2008 Q4 (spec §6.5)"
+
+  - name: hist_2011_08
+    kind: historical
+    start: 2011-08-01
+    end: 2011-08-31
+    note: "2011 Aug (spec §6.5)"
+
+  - name: hist_2013_taper
+    kind: historical
+    start: 2013-05-01
+    end: 2013-06-30
+    note: "2013 taper, May–Jun 2013 (spec §6.5)"
+
+  - name: hist_2015_08
+    kind: historical
+    start: 2015-08-01
+    end: 2015-08-31
+    note: "2015 Aug (spec §6.5)"
+
+  - name: hist_2018q4
+    kind: historical
+    start: 2018-10-01
+    end: 2018-12-31
+    note: "2018 Q4 (spec §6.5)"
+
+  - name: hist_2020_03
+    kind: historical
+    start: 2020-03-01
+    end: 2020-03-31
+    note: "2020 Mar (spec §6.5)"
+
+  - name: hist_2022
+    kind: historical
+    start: 2022-01-01
+    end: 2022-12-31
+    note: "2022 full year (spec §6.5)"
+
+  - name: funding_squeeze
+    kind: factor_shock
+    provenance: TODO_calibrate
+    note: >
+      Funding squeeze via B27/B18 (spec §6.5, §12.4). Directions only, from the
+      spec: USD up; US duration down then up; credit wide; EM down; commodities
+      down. Sizes are named parameters left null until calibrated. scenario_pnl
+      refuses to price this scenario while any move is null.
+    phases:
+      - name: squeeze
+        note: >
+          Initial phase. USD up; US duration down (Treasury prices down); credit
+          wide, which is a negative credit-factor return; EM equity down;
+          commodities down (energy, industrial metals, gold).
+        factor_moves_pct:
+          usd: null
+          us_duration: null
+          credit_ig: null
+          credit_hy: null
+          em_equity: null
+          energy: null
+          industrial_metals: null
+          gold: null
+      - name: duration_reversal
+        note: >
+          Second phase of the same shock: US duration up after the initial
+          selloff (spec §6.5, "duration down then up"). No other factor is given
+          a second move. The size stays null.
+        factor_moves_pct:
+          us_duration: null
+
+  - name: inflation_shock
+    kind: factor_shock
+    provenance: TODO_calibrate
+    note: >
+      Inflation/policy shock (spec §6.6, B10/B11, C04/C12). Spec §6.6 describes
+      the regime in which equities and duration can fall together; it does not
+      give sizes. Breakeven, duration, equity, and commodity moves are null
+      until calibrated. Do not fill them with guessed magnitudes.
+    factor_moves_pct:
+      inflation_breakeven: null
+      us_duration: null
+      global_equity: null
+      energy: null
+      industrial_metals: null
+      gold: null
