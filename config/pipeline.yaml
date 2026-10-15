@@ -29,6 +29,12 @@ series:
       - FRED:VIXCLS
       - FRED:DEXUSEU
       - FRED:DEXJPUS
+      - FRED:DEXUSUK
+      - FRED:DEXUSAL
+      - FRED:DEXUSNZ
+      - FRED:DEXCAUS
+      - FRED:DEXSZUS
+      - FRED:DEXCHUS
       - FRED:DTWEXBGS
   - source_id: FRED
     max_lag_days: 120

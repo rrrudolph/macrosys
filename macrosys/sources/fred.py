@@ -66,6 +66,13 @@ FRED_UNIT_MAP: dict[str, str] = {
     "Thousand Barrels per Day": "kbd",
     "U.S. Dollars to One Euro": "ratio",    # DEXUSEU
     "Japanese Yen to One U.S. Dollar": "ratio",
+    # Fed H.10 daily rates for the rest of the v0 currency set (spec §5.5)
+    "U.S. Dollars to One U.K. Pound Sterling": "ratio",  # DEXUSUK
+    "U.S. Dollars to One Australian Dollar": "ratio",    # DEXUSAL
+    "U.S. Dollars to One New Zealand Dollar": "ratio",   # DEXUSNZ
+    "Canadian Dollars to One U.S. Dollar": "ratio",      # DEXCAUS
+    "Swiss Francs to One U.S. Dollar": "ratio",          # DEXSZUS
+    "Chinese Yuan Renminbi to One U.S. Dollar": "ratio", # DEXCHUS
 }
 
 # ALFRED rejects an observations call that spans more vintage dates than this (verified 2026-10-14).
