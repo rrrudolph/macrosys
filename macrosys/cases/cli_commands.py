@@ -18,6 +18,7 @@ from macrosys.cases.replay_params import load_replay_parameters, missing_replay_
 from macrosys.cases.runner import CaseResult, CaseSuite
 from macrosys.cases.schema import default_cases_dir, load_cases
 from macrosys.decide.mandate import Mandate
+from macrosys.eval.promotion import ResearchCounts, research_to_paper
 from macrosys.mechanisms.library import load_library
 
 
@@ -94,44 +95,37 @@ def research_gate_lines(mandate_path: Path | None, results: Sequence[CaseResult]
     if not path.is_file():
         return []
     gate = Mandate.load(path).promotion_gates.research_to_paper
-    evidential = sum(item.n_evidential for item in results)
-    evidential_correct = sum(item.n_evidential_correct for item in results)
-    scored = sum(item.n_scored for item in results)
-    if evidential == 0:
-        return [
-            "research sign bar: not evaluable",
-            f"  0 of {scored} scored outcomes are evidential; every sign came from an author-supplied "
-            "input sign or a replay fixture, so this run checks formula direction only",
-            "paper clock: not started",
-        ]
-    reasons: list[str] = []
-    scored_cases = sum(1 for item in results if item.n_evidential > 0)
-    if scored_cases < gate.min_cases_scored:
-        reasons.append(f"{scored_cases} cases produced an evidential sign, the bar is {gate.min_cases_scored}")
     held = [item for item in results if item.held_out_group in held_out]
-    held_n = sum(item.n_evidential for item in held)
-    held_correct = sum(item.n_evidential_correct for item in held)
-    if gate.min_sign_accuracy is not None:
-        if held_n == 0:
-            reasons.append("held-out split produced no evidential signs")
-        elif held_correct / held_n < gate.min_sign_accuracy:
-            reasons.append(f"held-out evidential agreement {_pct(held_correct, held_n)} is under {gate.min_sign_accuracy:.0%}")
-        if evidential_correct / evidential < gate.min_sign_accuracy:
-            reasons.append(
-                f"overall evidential agreement {_pct(evidential_correct, evidential)} is under {gate.min_sign_accuracy:.0%}"
-            )
     named = [item for item in results if item.dominant_competing_listed is not None]
-    listed = sum(1 for item in named if item.dominant_competing_listed)
-    if named and listed * 2 <= len(named):
-        reasons.append(f"dominant competing effect is on the mechanism in {listed} of {len(named)} cases; the bar is most")
+    evidential = sum(item.n_evidential for item in results)
+    scored_cases = sum(1 for item in results if item.n_evidential > 0)
+    result = research_to_paper(
+        min_cases_scored=gate.min_cases_scored,
+        min_sign_accuracy=gate.min_sign_accuracy,
+        counts=ResearchCounts(
+            n_scored=sum(item.n_scored for item in results),
+            n_evidential=evidential,
+            n_evidential_correct=sum(item.n_evidential_correct for item in results),
+            n_cases_with_evidential=scored_cases,
+            held_out_evidential=sum(item.n_evidential for item in held),
+            held_out_evidential_correct=sum(item.n_evidential_correct for item in held),
+            n_cases_naming_competing=len(named),
+            n_cases_competing_listed=sum(1 for item in named if item.dominant_competing_listed),
+        ),
+    )
     lines: list[str] = []
-    if reasons:
+    if not result.evaluable:
+        lines.append("research sign bar: not evaluable")
+        lines.extend(f"  {reason}" for reason in result.reasons)
+    elif not result.met:
         lines.append("research sign bar: not met")
-        lines.extend(f"  {reason}" for reason in reasons)
+        lines.extend(f"  {reason}" for reason in result.reasons)
     else:
         bar = "unset" if gate.min_sign_accuracy is None else f"{gate.min_sign_accuracy:.0%}"
-        lines.append(f"research sign bar: met ({scored_cases} cases, {evidential} evidential outcomes, held-out bar {bar})")
-    lines.append("paper clock: not started")
+        lines.append(
+            f"research sign bar: met ({scored_cases} cases, {evidential} evidential outcomes, held-out bar {bar})"
+        )
+    lines.append("paper orders are not started by this command")
     return lines
 
 

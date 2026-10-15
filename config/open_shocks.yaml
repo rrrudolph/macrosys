@@ -1,0 +1,4 @@
+# The owner files the week's shocks here. Each item is a macrosys.decide.shock.Shock.
+# An empty list is a finished week: the action is no-trade, and no thesis is frozen.
+# This file does not place an order.
+shocks: []

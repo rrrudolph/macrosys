@@ -1,4 +1,5 @@
-# Live pipeline (spec §9.4). Series ids are ones the connectors already parse.
+# Live pipeline (spec §9.4). Coverage ids are the series the parsers write.
+# A fetch id such as CBOE:VIX or BEA:NIPA:T10105 downloads a file and stores one row per column or line.
 # Price history is long enough for a later walk-forward. Secrets stay in the environment.
 db_path: data/store/macrosys.duckdb
 raw_root: raw
@@ -16,7 +17,6 @@ series:
       - FRED:DFF
       - FRED:SOFR
       - FRED:IORB
-      - FRED:FEDFUNDS
       - FRED:DGS2
       - FRED:DGS10
       - FRED:DGS30
@@ -39,6 +39,8 @@ series:
   - source_id: FRED
     max_lag_days: 120
     series_ids:
+      # Monthly average. A 14-day lag marks it stale for most of the month.
+      - FRED:FEDFUNDS
       - FRED:GDPC1
       - FRED:TCU
       - FRED:CPIAUCSL
@@ -62,9 +64,9 @@ series:
   - source_id: CBOE
     max_lag_days: 5
     series_ids:
-      - CBOE:VIX
-      - CBOE:OVX
-      - CBOE:GVZ
+      - CBOE:VIX:CLOSE
+      - CBOE:OVX:OVX
+      - CBOE:GVZ:GVZ
   - source_id: EIA
     max_lag_days: 14
     series_ids:
@@ -72,12 +74,12 @@ series:
   - source_id: BEA
     max_lag_days: 120
     series_ids:
-      - BEA:NIPA:T10105
-      - BEA:NIPA:T10101
+      - BEA:NIPA:T10105:1
+      - BEA:NIPA:T10101:1
   - source_id: FEDGSW
     max_lag_days: 14
     series_ids:
-      - FEDGSW:curve
+      - FEDGSW:SVENY10
 prices:
   - source_id: TIINGO
     instrument_ids:

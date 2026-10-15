@@ -19,6 +19,7 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 from macrosys.core.contracts import EntityKey, QualityFlag
 from macrosys.core.units import assert_unit
 from macrosys.decide.shock import Shock
+from macrosys.mechanisms.compose import Wire
 from macrosys.mechanisms.spec import MECHANISM_ID
 
 Sign = Literal[-1, 0, 1]
@@ -109,7 +110,11 @@ class FixtureLevel(BaseModel):
 
 
 class ReplayStep(BaseModel):
-    """How one hinted mechanism receives the case shock and its other inputs (spec §10.1 item 2)."""
+    """How one hinted mechanism receives the case shock and its other inputs (spec §10.1 item 2).
+
+    ``consumes`` holds optional wires ``{input, from_step, output}`` matching ``Wire`` (spec §3.4).
+    An empty list connects nothing, and the runner does not infer a wire.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -117,6 +122,7 @@ class ReplayStep(BaseModel):
     shock_value: float | None = None
     shock_unit: str | None = None
     inputs: dict[str, FixtureLevel] = Field(default_factory=dict)
+    consumes: list[Wire] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def _shock(self) -> Self:
@@ -175,7 +181,11 @@ class StateRow(BaseModel):
 
 
 class Case(BaseModel):
-    """One frozen historical case (spec §10.1 item 2, §12)."""
+    """One frozen historical case (spec §10.1 item 2, §12).
+
+    ``compose_path`` runs ``mechanism_path_hint`` as one wired propagation (spec §3.4). The default
+    is false, and that is how the historical files are scored: each hinted mechanism on its own path.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -187,6 +197,7 @@ class Case(BaseModel):
     expected_structure: list[StructurePoint] = Field(min_length=1)
     observed_structure: list[ObservedPoint] = Field(min_length=1)
     mechanism_path_hint: list[str] | None = None
+    compose_path: bool = False
     fixture_observations: str = Field(min_length=1)
     notes: str = Field(min_length=1)
     state_rows: list[StateRow] = Field(default_factory=list)

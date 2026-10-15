@@ -69,7 +69,7 @@ Event study on the ingested store: `python -m macrosys.cli events build --db dat
 With a local calendar extract (spec §9.8, P2.4): `python -m macrosys.cli events consensus-load --db data\store\macrosys.duckdb --sqlite <path to economic_data.db>`,
 then add `--forecaster consensus` to `build` and `study`.
 
-Not yet built: the structural `TODO_estimate` elasticities (the event study estimates market-response slopes, not
-IO elasticities), path-based case replay through the composition rules, the evaluation harness end-to-end on
-real snapshots, a terms-clean consensus source that can be fetched (§9.8), and any live broker adapter. See
-`docs/spec.md` §13 for the backlog and §15 for the decisions only the owner can make (mandate limits, universe, gates).
+`macrosys weekly --config config/pipeline.yaml` ingests, then records that UTC date's forward decision. It does not place an order. A second run the same day keeps the first thesis. To record a date without ingesting: `python -m macrosys.cli forward week --config config/pipeline.yaml --as-of YYYY-MM-DD --shocks config/open_shocks.yaml --mandate config/mandate.yaml --ledger data/forward/ledger.jsonl --week-log data/forward/weeks.jsonl --out data/forward/YYYY-MM-DD`.
+`forward status` prints the dry-run clock. An empty shock file is a recorded no-trade. Paper stays off until the research sign bar in the mandate is met, and the 8-week gate is not claimed before eight finished weeks are on the log.
+
+Still open, on purpose: structural `TODO_estimate` elasticities (the event study estimates market-response slopes, not IO elasticities; a mechanism with a null parameter refuses to run), a terms-clean consensus source that can be fetched (§9.8; Fair Economy's terms block a scheduled fetch), historical case files still score one mechanism at a time unless `compose_path: true`, and any live broker adapter. The live adapter waits on the paper gates in §10.3. See `docs/spec.md` §13 and §15.

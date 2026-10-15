@@ -6,12 +6,14 @@ Scheduling stays outside this process (cron or Windows Task Scheduler), for exam
 
     macrosys daily --config config/pipeline.yaml
     macrosys weekly --config config/pipeline.yaml
+    # weekly also records that day's forward decision (no order) when ingest did not error
     macrosys pipeline releases --db data/store/macrosys.duckdb --as-of 2026-10-14T21:00:00+00:00
 """
 
 from __future__ import annotations
 
 import argparse
+import sys
 from datetime import UTC, datetime
 from pathlib import Path
 
@@ -47,7 +49,10 @@ def register_cli(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]
     daily.add_argument("--config", type=Path, required=True)
     daily.set_defaults(func=_cmd_daily)
 
-    weekly = subparsers.add_parser("weekly", help="daily steps plus manifest; refresh hook is in-process")
+    weekly = subparsers.add_parser(
+        "weekly",
+        help="ingest, then record the forward decision for that day; does not place an order",
+    )
     weekly.add_argument("--config", type=Path, required=True)
     weekly.set_defaults(func=_cmd_weekly)
 
@@ -153,9 +158,44 @@ def _cmd_daily(args: argparse.Namespace) -> int:
 
 
 def _cmd_weekly(args: argparse.Namespace) -> int:
-    report = weekly_job(load_config(args.config))
+    """Ingest, then freeze that day's forward decision when ingest did not error (spec §11.2).
+
+    An ingest error skips the decision. A second weekly run on the same UTC date keeps the
+    ingest result and does not append another thesis. The forward week does not place an order.
+    """
+    from macrosys.exec.runbook import RunbookBlockedError
+    from macrosys.forward.week import DuplicateWeekError, forward_week
+
+    config = load_config(args.config)
+    report = weekly_job(config)
     _print_job(report.status, report.manifest_digest)
-    return _exit(report.status)
+    if report.status == "error":
+        return 1
+    day = report.started_at.astimezone(UTC).date().isoformat()
+    try:
+        result = forward_week(
+            config.db_path,
+            report.started_at,
+            pipeline_config=args.config,
+            shocks_path=Path("config/open_shocks.yaml"),
+            mandate_path=Path("config/mandate.yaml"),
+            ledger_path=Path("data/forward/ledger.jsonl"),
+            week_log_path=Path("data/forward/weeks.jsonl"),
+            out_dir=Path("data/forward") / day,
+        )
+    except DuplicateWeekError as exc:
+        print(str(exc), file=sys.stderr)
+        return _exit(report.status)
+    except RunbookBlockedError as exc:
+        print(str(exc), file=sys.stderr)
+        return 1
+    allowed = "yes" if result.paper_allowed else "no"
+    print(f"forward {result.status} theses={result.n_theses} paper_allowed={allowed}")
+    if result.status == "error":
+        return 1
+    if result.status == "blocked" or report.status == "blocked":
+        return 2
+    return 0
 
 
 def _cmd_releases(args: argparse.Namespace) -> int:

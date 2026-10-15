@@ -14,6 +14,9 @@ dist/
 # Data (never commit raw payloads, stores, or secrets)
 raw/
 data/store/
+data/manifests/
+# Prospective week logs and reports are operational, not source (spec §11.2).
+data/forward/
 *.duckdb
 *.duckdb.wal
 *.parquet

@@ -19,6 +19,7 @@ from macrosys.eval.ledger import (
     LedgerIntegrityError,
     Outcome,
 )
+from macrosys.eval.promotion import ResearchCounts, ResearchGateResult, research_to_paper
 from macrosys.eval.scoring import (
     brier,
     deflated_sharpe_ratio,
@@ -41,6 +42,8 @@ __all__ = [
     "LedgerEntry",
     "LedgerIntegrityError",
     "Outcome",
+    "ResearchCounts",
+    "ResearchGateResult",
     "backtest",
     "brier",
     "deflated_sharpe_ratio",
@@ -53,6 +56,7 @@ __all__ = [
     "purged_walk_forward_splits",
     "rank_correlation",
     "reliability_table",
+    "research_to_paper",
     "sign_accuracy",
     "sixty_forty",
     "tsmom_12m",

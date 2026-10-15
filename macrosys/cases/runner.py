@@ -1,7 +1,9 @@
 """Replay a historical case and score the structural result (spec §10.1 item 2, §4.4).
 
 The runner loads the case fixture into an in-memory store, refreshes world state from the
-recipes, and runs each hinted mechanism through ``Propagator``. A mechanism that refuses
+recipes, and runs the hinted mechanisms through ``Propagator``. When ``compose_path`` is
+false, as on every historical case file, each hint is its own one-step path. When it is true,
+the hint runs once as a wired ``PropagationPath`` (spec §3.4). A mechanism that refuses
 because a parameter is still ``TODO_estimate`` is ``blocked``. That is not a wrong sign.
 Rank correlation is ``None`` (n/a) unless both a predicted magnitude and an observed magnitude
 exist; this library does not store observed magnitudes.
@@ -30,9 +32,11 @@ from macrosys.core.quantity import Quantity
 from macrosys.mechanisms import (
     AcceptedCompeting,
     MechanismInstance,
+    MechanismSpec,
     MissingParameterError,
     PropagationPath,
     Propagator,
+    bind_parameters,
 )
 from macrosys.mechanisms import Shock as PropagationShock
 from macrosys.mechanisms.library import Library
@@ -224,6 +228,8 @@ def _aggregate(label: str, results: list[CaseResult]) -> GroupAggregate:
 def _propagate(
     case: Case, library: Library, state, fixtures: ReplayParameterSet
 ) -> tuple[list[_StepOut], list[BlockedMechanism], list[str]]:
+    if case.compose_path:
+        return _propagate_composed(case, library, state, fixtures)
     ids = list(case.mechanism_path_hint or [])
     if not ids:
         try:
@@ -334,6 +340,137 @@ def _single_path(
         ],
         materiality_threshold=Quantity(value=0.0, unit="share", provenance=_CLOSURE),
     )
+
+
+def _propagate_composed(
+    case: Case, library: Library, state, fixtures: ReplayParameterSet
+) -> tuple[list[_StepOut], list[BlockedMechanism], list[str]]:
+    """Replay the hint as one propagation (spec §3.4, §10.1).
+
+    The path is the hinted mechanisms in order, and it must name at least two. Wires are only
+    those listed on each replay step; no converter and no coefficient are invented, so a unit
+    break is an error and the case is not scored. A parameter that is still ``TODO_estimate``
+    blocks that mechanism, as in the one-step replay. The shock is the case shock on the first
+    step's target input. A later step that sets ``shock_value`` is author-fed, so its outcomes
+    are not evidential, and replay parameter overrides are fixture parameters, so those outcomes
+    are not evidential either.
+    """
+    ids = list(case.mechanism_path_hint or [])
+    if len(ids) < 2:
+        return [], [], ["compose_path requires at least two mechanism ids"]
+    specs: list[MechanismSpec] = []
+    for mechanism_id in ids:
+        try:
+            specs.append(library.get(mechanism_id))
+        except KeyError:
+            return [], [], [f"{mechanism_id}: unknown mechanism"]
+    path = _composed_path(case, ids, specs, fixtures)
+    first = case.replay.get(ids[0])
+    target = first.shock_input if first is not None and first.shock_input else specs[0].inputs[0].name
+    try:
+        run = Propagator(library).run(
+            PropagationShock(shock_id=case.shock.id, magnitude=case.shock.size, target_input=target),
+            state,
+            path,
+        )
+    except MissingParameterError as exc:
+        return [], _blocked_missing(ids, library, fixtures, exc), []
+    except Exception as exc:
+        return [], [], [f"{' -> '.join(ids)}: {type(exc).__name__}: {exc}"]
+    author_fed = _author_fed_flags(case, ids)
+    steps = [
+        _StepOut(
+            mechanism_id=step.mechanism_id,
+            outputs=dict(step.outputs),
+            competing=list(step.competing_accounted),
+            peak_q=library.get(step.mechanism_id).horizon.peak,
+            author_fed=author_fed.get(step.mechanism_id, False),
+            fixture_params=bool(fixtures.get(step.mechanism_id)),
+        )
+        for step in run.steps
+    ]
+    return steps, [], []
+
+
+def _composed_path(
+    case: Case, ids: list[str], specs: list[MechanismSpec], fixtures: ReplayParameterSet
+) -> PropagationPath:
+    """Build one wired path for a composed case replay (spec §3.4, §10.1).
+
+    Steps follow ``mechanism_path_hint``. Each step carries that mechanism's fixed inputs and
+    replay-parameter overrides, bound to the shock's origin. A wire is copied from the replay
+    step's ``consumes`` list and is never inferred. Competitors that are not later steps are
+    accepted with the ``case_replay`` closure token, the same marker one-step replay uses; it
+    closes the path and is not an estimated magnitude. No unit converter is attached.
+    """
+    token = Quantity(value=0.01, unit="share", provenance=_CLOSURE)
+    accepted: list[AcceptedCompeting] = []
+    seen: set[str] = set()
+    for index, spec in enumerate(specs):
+        later = set(ids[index + 1 :])
+        for name in spec.competing:
+            if name in later or name in seen:
+                continue
+            seen.add(name)
+            accepted.append(
+                AcceptedCompeting(mechanism=name, observable="not on this case path", threshold=token)
+            )
+    steps = []
+    for mechanism_id in ids:
+        binding = case.replay.get(mechanism_id)
+        steps.append(
+            MechanismInstance(
+                mechanism_id=mechanism_id,
+                parameter_overrides=dict(fixtures.get(mechanism_id, {})),
+                fixed_inputs=_fixed_inputs(binding),
+                bindings={
+                    "entity_type": case.shock.origin.entity_type,
+                    "entity_id": case.shock.origin.entity_id,
+                },
+                consumes=list(binding.consumes) if binding is not None else [],
+            )
+        )
+    return PropagationPath(
+        steps=steps,
+        accepted_competing=accepted,
+        materiality_threshold=Quantity(value=0.0, unit="share", provenance=_CLOSURE),
+    )
+
+
+def _author_fed_flags(case: Case, ids: list[str]) -> dict[str, bool]:
+    """Which composed steps are author-fed (spec §10.1).
+
+    The case shock is the only impulse, and it lands on the first step, so a ``shock_value`` on
+    that step is not used. A later step that sets ``shock_value`` keeps the wired input and is
+    marked author-fed, so its outcomes are not evidential.
+    """
+    flags: dict[str, bool] = {}
+    for index, mechanism_id in enumerate(ids):
+        binding = case.replay.get(mechanism_id)
+        # [J] Later shock_value is a scoring flag, not a second impulse. Injecting it would
+        # invent a magnitude the wire did not produce (spec §10.1).
+        flags[mechanism_id] = index > 0 and binding is not None and binding.shock_value is not None
+    return flags
+
+
+def _blocked_missing(
+    ids: list[str], library: Library, fixtures: ReplayParameterSet, raised: MissingParameterError
+) -> list[BlockedMechanism]:
+    """Name the hinted mechanisms that refuse ``raised`` (spec §3.1, §10.1).
+
+    The propagator stops at the first missing estimate. Each hinted mechanism is checked the
+    same way, and every one that refuses that parameter is blocked rather than scored as a miss.
+    """
+    blocked: list[BlockedMechanism] = []
+    for mechanism_id in ids:
+        try:
+            bind_parameters(library.get(mechanism_id), dict(fixtures.get(mechanism_id, {})))
+        except MissingParameterError as exc:
+            if exc.parameter == raised.parameter:
+                blocked.append(BlockedMechanism(mechanism_id=mechanism_id, parameter=exc.parameter))
+    if not blocked:
+        blocked.append(BlockedMechanism(mechanism_id=ids[0], parameter=raised.parameter))
+    return blocked
 
 
 def _score(
