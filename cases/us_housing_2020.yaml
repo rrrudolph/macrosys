@@ -59,7 +59,7 @@ replay:
     shock_input: d_permits
   B11_monetary_transmission:
     shock_input: d_policy
-    shock_value: 1.0
+    shock_value: -1.0
     shock_unit: pp
   B03_bottleneck_pricing:
     shock_input: d_demand
@@ -68,5 +68,7 @@ replay:
 fixture_observations: fixtures/us_housing_2020.csv
 notes: >
   The shock size is a case_fixture sign-carrier for replay, not a measured magnitude.
+  B11 is fed the policy move known at the information cutoff: the 2020 cut to the lower bound,
+  sign negative. The 2022 rate rise is after the cutoff and is not an input to this replay.
   Observation rows are case_fixture placeholders with quality_flag estimated.
   Observed outcomes record signs, ordering, and the dominant competing channel only.

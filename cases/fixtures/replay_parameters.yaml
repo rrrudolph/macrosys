@@ -1,0 +1,76 @@
+# Replay fixtures for parameters the library still marks TODO_estimate (spec §3.1, §10.1 item 2).
+#
+# This file carries no estimates. It exists so a historical case can be replayed through a
+# mechanism whose coefficient has not been estimated yet. Two roles only:
+#
+#   sign   value is exactly +1 or -1: the direction the mechanism's `form` already states, and
+#          nothing else. The replay scores signs, so a unit coefficient is all it needs.
+#   level  a placeholder the formula needs to be well defined (a threshold, a share that must
+#          sit strictly inside (0, 1), an additive premium set to zero). `why` states the
+#          constraint the value satisfies. It is not a reading and not a literature point.
+#
+# Provenance on every bound quantity is `case_fixture:replay_<role>`. The weekly decision job
+# never loads this file; `bind_parameters` in the propagator still refuses TODO_estimate there.
+# Any outcome scored with one of these bindings is reported as non-evidential by `cases score`.
+parameters:
+  B03_bottleneck_pricing:
+    eps_s_slack: {role: sign, value: 1.0, unit: ratio}
+    eps_s_tight: {role: sign, value: 1.0, unit: ratio}
+    eps_d: {role: sign, value: 1.0, unit: ratio}
+    u_cap: {role: level, value: 0.95, unit: share, why: "must exceed u_kink (0.70) and not exceed 1 for the kinked supply curve"}
+  B05_capacity_pipeline:
+    slippage: {role: level, value: 0.5, unit: share, why: "must sit strictly inside (0, 1) so both on-schedule and delayed supply are nonzero"}
+  B06_demand_elasticity:
+    eps_sr: {role: sign, value: -1.0, unit: ratio}
+    eps_lr: {role: sign, value: -1.0, unit: ratio}
+    speed: {role: level, value: 1.0, unit: share, why: "adjustment share in (0, 1]; 1 reaches the long run inside the replay window"}
+  B07_substitution:
+    sigma: {role: sign, value: 1.0, unit: ratio}
+  B08_pass_through:
+    capture: {role: level, value: 0.5, unit: share, why: "must sit strictly inside (0, 1) so both retained and passed_on are nonzero"}
+  B10_phillips:
+    slope_wage: {role: sign, value: 1.0, unit: ratio}
+    slope_core: {role: sign, value: 1.0, unit: ratio}
+  B11_monetary_transmission:
+    multiplier: {role: sign, value: 1.0, unit: ratio}
+  B12_bank_credit:
+    elasticity: {role: sign, value: 1.0, unit: ratio}
+  B13_financial_accelerator:
+    elasticity: {role: sign, value: 1.0, unit: ratio}
+  B14_housing:
+    elasticity: {role: sign, value: 1.0, unit: ratio}
+  B16_fx_passthrough:
+    pt_import: {role: sign, value: 1.0, unit: share}
+    pt_cpi: {role: sign, value: 1.0, unit: share}
+  B18_global_financial_cycle:
+    elasticity: {role: sign, value: 1.0, unit: ratio}
+  B19_carry:
+    carry_coeff: {role: sign, value: 1.0, unit: ratio}
+    crash_coeff: {role: sign, value: 1.0, unit: ratio}
+  B20_momentum:
+    continuation: {role: sign, value: 1.0, unit: ratio}
+    reversal: {role: sign, value: 1.0, unit: ratio}
+  B21_positioning:
+    multiplier: {role: sign, value: 1.0, unit: ratio}
+  B22_intermediary_capacity:
+    elasticity: {role: sign, value: 1.0, unit: ratio}
+  B23_expectations:
+    overreaction: {role: sign, value: 1.0, unit: ratio}
+  B24_supply_chain:
+    loss_coeff: {role: sign, value: 1.0, unit: ratio}
+    cushion: {role: sign, value: 1.0, unit: ratio}
+  B25_transport:
+    freight_elasticity: {role: sign, value: 1.0, unit: ratio}
+  B26_productivity:
+    pass_through: {role: sign, value: 1.0, unit: share}
+  B27_funding_squeeze:
+    elasticity: {role: sign, value: 1.0, unit: ratio}
+  C04_breakeven:
+    irp: {role: level, value: 0.0, unit: pct, why: "additive premium; zero leaves the replay sign to the breakeven itself"}
+    liquidity: {role: level, value: 0.0, unit: pct, why: "additive premium; zero leaves the replay sign to the breakeven itself"}
+  C05_equity_duration:
+    duration: {role: sign, value: 1.0, unit: y}
+  C09_policy_path:
+    risk_premium: {role: level, value: 0.0, unit: pct, why: "additive premium; zero leaves the replay sign to the futures rate itself"}
+  C11_ppp:
+    half_life: {role: level, value: 1.0, unit: y, why: "any positive half-life gives the mean-reversion formula a direction"}

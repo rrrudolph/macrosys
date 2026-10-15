@@ -5,6 +5,13 @@ recipes, and runs each hinted mechanism through ``Propagator``. A mechanism that
 because a parameter is still ``TODO_estimate`` is ``blocked``. That is not a wrong sign.
 Rank correlation is ``None`` (n/a) unless both a predicted magnitude and an observed magnitude
 exist; this library does not store observed magnitudes.
+
+Every scored outcome is classed as **evidential** or not. An outcome is evidential only when the
+mechanism received the sign of the recorded case shock (not a per-mechanism ``shock_value`` the
+case author chose) and ran on library parameters (not replay fixtures). A non-evidential hit
+shows the formula has the direction its ``form`` states; it says nothing about whether the
+library reaches the historical outcome from the shock. Only evidential outcomes may count toward
+the research promotion gate (spec §10.3).
 """
 
 from __future__ import annotations
@@ -16,7 +23,7 @@ import duckdb
 import pandas as pd
 from pydantic import BaseModel, ConfigDict, Field
 
-from macrosys.cases.operating import OperatingSet, load_operating_parameters
+from macrosys.cases.replay_params import ReplayParameterSet, load_replay_parameters
 from macrosys.cases.schema import Case, ObservedPoint, ReplayStep, StructurePoint, default_cases_dir
 from macrosys.core.contracts import Observation
 from macrosys.core.quantity import Quantity
@@ -70,6 +77,10 @@ class CaseResult(BaseModel):
     refresh_written: int
     unmapped: list[str] = Field(default_factory=list)
     n_unmapped: int = 0
+    n_author_fed: int = 0
+    n_fixture_params: int = 0
+    n_evidential: int = 0
+    n_evidential_correct: int = 0
 
 
 class GroupAggregate(BaseModel):
@@ -83,6 +94,8 @@ class GroupAggregate(BaseModel):
     n_scored: int
     n_sign_correct: int
     n_sign_wrong: int
+    n_evidential: int = 0
+    n_evidential_correct: int = 0
 
 
 class SuiteReport(BaseModel):
@@ -103,25 +116,32 @@ class _StepOut(BaseModel):
     outputs: dict[str, Quantity]
     competing: list[str]
     peak_q: float
+    author_fed: bool = False
+    fixture_params: bool = False
 
 
 class CaseRunner:
-    """Replay one case from its fixture and its information cutoff (spec §10.1 item 2)."""
+    """Replay one case from its fixture and its information cutoff (spec §10.1 item 2).
+
+    ``replay_parameters`` is ``True`` to load ``cases/fixtures/replay_parameters.yaml``, ``False`` to run
+    on library parameters only (mechanisms with ``TODO_estimate`` parameters are then blocked),
+    or an explicit fixture set.
+    """
 
     def __init__(
         self,
         recipes: list[Recipe] | None = None,
         case_root: str | Path | None = None,
-        operating: OperatingSet | None | bool = True,
+        replay_parameters: ReplayParameterSet | None | bool = True,
     ) -> None:
         self.recipes = recipes
         self.case_root = Path(case_root) if case_root is not None else default_cases_dir()
-        if operating is True:
-            self.operating: OperatingSet = load_operating_parameters()
-        elif operating is False or operating is None:
-            self.operating = {}
+        if replay_parameters is True:
+            self.replay_parameters: ReplayParameterSet = load_replay_parameters()
+        elif replay_parameters is False or replay_parameters is None:
+            self.replay_parameters = {}
         else:
-            self.operating = operating
+            self.replay_parameters = replay_parameters
 
     def replay(self, case: Case, library: Library, as_of: datetime | None = None) -> CaseResult:
         """Refresh state at ``as_of`` and score the hinted path (spec §10.1 item 2, §9.2).
@@ -150,7 +170,7 @@ class CaseRunner:
                     f"case_fixture:{case.case_id} quality:{row.quality_flag}",
                 )
             state = state_store.view(instant)
-            steps, blocked, errors = _propagate(case, library, state, self.operating)
+            steps, blocked, errors = _propagate(case, library, state, self.replay_parameters)
         finally:
             conn.close()
         return _score(case, instant, steps, blocked, errors, report)
@@ -196,11 +216,13 @@ def _aggregate(label: str, results: list[CaseResult]) -> GroupAggregate:
         n_scored=sum(item.n_scored for item in results),
         n_sign_correct=sum(item.n_sign_correct for item in results),
         n_sign_wrong=sum(item.n_sign_wrong for item in results),
+        n_evidential=sum(item.n_evidential for item in results),
+        n_evidential_correct=sum(item.n_evidential_correct for item in results),
     )
 
 
 def _propagate(
-    case: Case, library: Library, state, operating: OperatingSet
+    case: Case, library: Library, state, fixtures: ReplayParameterSet
 ) -> tuple[list[_StepOut], list[BlockedMechanism], list[str]]:
     ids = list(case.mechanism_path_hint or [])
     if not ids:
@@ -245,10 +267,12 @@ def _propagate(
             continue
         binding = case.replay.get(mechanism_id)
         target = binding.shock_input if binding is not None and binding.shock_input else spec.inputs[0].name
+        overrides = dict(fixtures.get(mechanism_id, {}))
+        author_fed = binding is not None and binding.shock_value is not None
         path = _single_path(
             mechanism_id,
             spec.competing,
-            overrides=dict(operating.get(mechanism_id, {})),
+            overrides=overrides,
             fixed_inputs=_fixed_inputs(binding),
             origin_type=case.shock.origin.entity_type,
             origin_id=case.shock.origin.entity_id,
@@ -272,6 +296,8 @@ def _propagate(
                     outputs=dict(step.outputs),
                     competing=list(step.competing_accounted),
                     peak_q=spec.horizon.peak,
+                    author_fed=author_fed,
+                    fixture_params=bool(overrides),
                 )
             )
     return steps, blocked, errors
@@ -289,7 +315,7 @@ def _single_path(
     """One mechanism with its competitors accepted so the path closes (spec §3.4 rule 3).
 
     The acceptance threshold is a closure token for replay, not an estimated economic magnitude.
-    Provenance is ``case_replay``. Operating ranges arrive as parameter overrides. Companion
+    Provenance is ``case_replay``. Replay fixtures arrive as parameter overrides. Companion
     inputs are fixed levels from the case file.
     """
     token = Quantity(value=0.01, unit="share", provenance=_CLOSURE)
@@ -320,6 +346,10 @@ def _score(
 ) -> CaseResult:
     correct = 0
     scored = 0
+    author_fed = 0
+    fixture_params = 0
+    evidential = 0
+    evidential_correct = 0
     horizon_errors: list[float] = []
     dominant: list[bool] = []
     predicted: list[float] = []
@@ -349,8 +379,17 @@ def _score(
         seen.add(key)
         step, quantity = match
         scored += 1
-        if _agrees(quantity, point):
+        agrees = _agrees(quantity, point)
+        if agrees:
             correct += 1
+        if step.author_fed:
+            author_fed += 1
+        if step.fixture_params:
+            fixture_params += 1
+        if not step.author_fed and not step.fixture_params:
+            evidential += 1
+            if agrees:
+                evidential_correct += 1
         midpoint = 0.5 * (point.horizon_q[0] + point.horizon_q[1])
         horizon_errors.append(abs(step.peak_q - midpoint))
         if point.dominant_competing is not None:
@@ -383,6 +422,10 @@ def _score(
         refresh_written=len(report.written),
         unmapped=unmapped,
         n_unmapped=len(unmapped),
+        n_author_fed=author_fed,
+        n_fixture_params=fixture_params,
+        n_evidential=evidential,
+        n_evidential_correct=evidential_correct,
     )
 
 
