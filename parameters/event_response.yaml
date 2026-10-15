@@ -1,0 +1,1449 @@
+generated_at: '2026-10-15T02:25:23.226509+00:00'
+method: OLS of the market change on the standardized statistical surprise with an
+  intercept; HC1 standard errors; 95% interval is beta +- 1.96 se. Sign tests count
+  events with |surprise| >= threshold sd. Out-of-sample accuracy uses the slope sign
+  fitted on purged walk-forward training folds (spec 10.1 item 11, 10.2 item 1).
+caveat: Surprises are against a statistical forecast from earlier prints, not a survey
+  consensus (spec 9.8, P2.4). Coefficients are market responses per 1 sd surprise,
+  not structural elasticities; they feed pricing-gap timing and B23, not the IO propagation.
+entries:
+- name: FRED:CPIAUCSL->FRED:DGS2@1d
+  release: FRED:CPIAUCSL
+  market: FRED:DGS2
+  horizon_days: 1
+  beta:
+    value: 0.687322
+    low: 0.116645
+    high: 1.258
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:CPIAUCSL->FRED:DGS2@1d per 1sd surprise; n=603; 1976-06-22..2026-09-11;
+      forecaster=ar1:60; HC1
+  t_stat: 2.361
+  r_squared: 0.0112
+  n: 603
+  n_effective: 603.0
+  predicted_sign: 1
+  sign_accuracy: 0.5545
+  n_signed: 312
+  p_value: 0.0616
+  oos_sign_accuracy: 0.5545
+  oos_n: 312
+  beta_fold_range: 0.36296
+  mechanisms:
+  - C09_policy_path
+  - B10_phillips
+  reference: GurkaynakSackSwanson2005
+  window: 1976-06-22..2026-09-11
+  regimes: []
+- name: FRED:CPIAUCSL->FRED:DGS2@5d
+  release: FRED:CPIAUCSL
+  market: FRED:DGS2
+  horizon_days: 5
+  beta:
+    value: 0.176716
+    low: -0.894393
+    high: 1.247824
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:CPIAUCSL->FRED:DGS2@5d per 1sd surprise; n=603; 1976-06-22..2026-09-11;
+      forecaster=ar1:60; HC1
+  t_stat: 0.323
+  r_squared: 0.0002
+  n: 603
+  n_effective: 603.0
+  predicted_sign: 1
+  sign_accuracy: 0.5072
+  n_signed: 345
+  p_value: 0.8295
+  oos_sign_accuracy: 0.4493
+  oos_n: 345
+  beta_fold_range: 0.925405
+  mechanisms:
+  - C09_policy_path
+  - B10_phillips
+  reference: GurkaynakSackSwanson2005
+  window: 1976-06-22..2026-09-11
+  regimes: []
+- name: FRED:CPIAUCSL->FRED:DGS2@20d
+  release: FRED:CPIAUCSL
+  market: FRED:DGS2
+  horizon_days: 20
+  beta:
+    value: 2.129607
+    low: -0.750781
+    high: 5.009994
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:CPIAUCSL->FRED:DGS2@20d per 1sd surprise; n=603; 1976-06-22..2026-09-11;
+      forecaster=ar1:60; HC1
+  t_stat: 1.449
+  r_squared: 0.0033
+  n: 603
+  n_effective: 603.0
+  predicted_sign: 1
+  sign_accuracy: 0.5718
+  n_signed: 355
+  p_value: 0.0079
+  oos_sign_accuracy: 0.5718
+  oos_n: 355
+  beta_fold_range: 1.240713
+  mechanisms:
+  - C09_policy_path
+  - B10_phillips
+  reference: GurkaynakSackSwanson2005
+  window: 1976-06-22..2026-09-11
+  regimes: []
+- name: FRED:CPIAUCSL->FRED:DGS10@1d
+  release: FRED:CPIAUCSL
+  market: FRED:DGS10
+  horizon_days: 1
+  beta:
+    value: 0.602862
+    low: 0.094561
+    high: 1.111163
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:CPIAUCSL->FRED:DGS10@1d per 1sd surprise; n=640; 1973-05-22..2026-09-11;
+      forecaster=ar1:60; HC1
+  t_stat: 2.325
+  r_squared: 0.0109
+  n: 640
+  n_effective: 640.0
+  predicted_sign: 1
+  sign_accuracy: 0.5514
+  n_signed: 370
+  p_value: 0.0543
+  oos_sign_accuracy: 0.5514
+  oos_n: 370
+  beta_fold_range: 0.23839
+  mechanisms:
+  - C09_policy_path
+  - C03_expectations_hypothesis
+  reference: GurkaynakSackSwanson2005
+  window: 1973-05-22..2026-09-11
+  regimes: []
+- name: FRED:CPIAUCSL->FRED:DGS10@5d
+  release: FRED:CPIAUCSL
+  market: FRED:DGS10
+  horizon_days: 5
+  beta:
+    value: 0.468218
+    low: -0.607273
+    high: 1.543709
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:CPIAUCSL->FRED:DGS10@5d per 1sd surprise; n=640; 1973-05-22..2026-09-11;
+      forecaster=ar1:60; HC1
+  t_stat: 0.853
+  r_squared: 0.0014
+  n: 640
+  n_effective: 640.0
+  predicted_sign: 1
+  sign_accuracy: 0.5339
+  n_signed: 369
+  p_value: 0.2115
+  oos_sign_accuracy: 0.5339
+  oos_n: 369
+  beta_fold_range: 0.526947
+  mechanisms:
+  - C09_policy_path
+  - C03_expectations_hypothesis
+  reference: GurkaynakSackSwanson2005
+  window: 1973-05-22..2026-09-11
+  regimes: []
+- name: FRED:CPIAUCSL->FRED:DGS10@20d
+  release: FRED:CPIAUCSL
+  market: FRED:DGS10
+  horizon_days: 20
+  beta:
+    value: 1.311136
+    low: -0.965622
+    high: 3.587893
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:CPIAUCSL->FRED:DGS10@20d per 1sd surprise; n=640; 1973-05-22..2026-09-11;
+      forecaster=ar1:60; HC1
+  t_stat: 1.129
+  r_squared: 0.0022
+  n: 640
+  n_effective: 640.0
+  predicted_sign: 1
+  sign_accuracy: 0.5469
+  n_signed: 384
+  p_value: 0.0739
+  oos_sign_accuracy: 0.5469
+  oos_n: 384
+  beta_fold_range: 0.490854
+  mechanisms:
+  - C09_policy_path
+  - C03_expectations_hypothesis
+  reference: GurkaynakSackSwanson2005
+  window: 1973-05-22..2026-09-11
+  regimes: []
+- name: FRED:CPIAUCSL->FRED:T10YIE@1d
+  release: FRED:CPIAUCSL
+  market: FRED:T10YIE
+  horizon_days: 1
+  beta:
+    value: 0.600262
+    low: 0.078141
+    high: 1.122383
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:CPIAUCSL->FRED:T10YIE@1d per 1sd surprise; n=284; 2003-01-16..2026-09-11;
+      forecaster=ar1:60; HC1
+  t_stat: 2.253
+  r_squared: 0.0351
+  n: 284
+  n_effective: 284.0
+  predicted_sign: 1
+  sign_accuracy: 0.6296
+  n_signed: 162
+  p_value: 0.0012
+  oos_sign_accuracy: 0.6296
+  oos_n: 162
+  beta_fold_range: 0.197258
+  mechanisms:
+  - C04_breakeven
+  - B23_expectations
+  reference: GurkaynakSackSwanson2005
+  window: 2003-01-16..2026-09-11
+  regimes: []
+- name: FRED:CPIAUCSL->FRED:T10YIE@5d
+  release: FRED:CPIAUCSL
+  market: FRED:T10YIE
+  horizon_days: 5
+  beta:
+    value: 0.611883
+    low: -0.16073
+    high: 1.384496
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:CPIAUCSL->FRED:T10YIE@5d per 1sd surprise; n=284; 2003-01-16..2026-09-11;
+      forecaster=ar1:60; HC1
+  t_stat: 1.552
+  r_squared: 0.0102
+  n: 284
+  n_effective: 284.0
+  predicted_sign: 1
+  sign_accuracy: 0.6025
+  n_signed: 161
+  p_value: 0.0114
+  oos_sign_accuracy: 0.6025
+  oos_n: 161
+  beta_fold_range: 0.188493
+  mechanisms:
+  - C04_breakeven
+  - B23_expectations
+  reference: GurkaynakSackSwanson2005
+  window: 2003-01-16..2026-09-11
+  regimes: []
+- name: FRED:CPIAUCSL->FRED:T10YIE@20d
+  release: FRED:CPIAUCSL
+  market: FRED:T10YIE
+  horizon_days: 20
+  beta:
+    value: 0.05527
+    low: -1.488214
+    high: 1.598754
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:CPIAUCSL->FRED:T10YIE@20d per 1sd surprise; n=284; 2003-01-16..2026-09-11;
+      forecaster=ar1:60; HC1
+  t_stat: 0.07
+  r_squared: 0.0
+  n: 284
+  n_effective: 284.0
+  predicted_sign: 1
+  sign_accuracy: 0.5235
+  n_signed: 170
+  p_value: 0.5915
+  oos_sign_accuracy: 0.4706
+  oos_n: 170
+  beta_fold_range: 0.513215
+  mechanisms:
+  - C04_breakeven
+  - B23_expectations
+  reference: GurkaynakSackSwanson2005
+  window: 2003-01-16..2026-09-11
+  regimes: []
+- name: FRED:CPIAUCSL->FRED:DTWEXBGS@1d
+  release: FRED:CPIAUCSL
+  market: FRED:DTWEXBGS
+  horizon_days: 1
+  beta:
+    value: 0.023055
+    low: -0.017794
+    high: 0.063904
+    unit: pct
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:CPIAUCSL->FRED:DTWEXBGS@1d per 1sd surprise; n=248; 2006-01-18..2026-09-11;
+      forecaster=ar1:60; HC1
+  t_stat: 1.106
+  r_squared: 0.0053
+  n: 248
+  n_effective: 248.0
+  predicted_sign: 1
+  sign_accuracy: 0.4759
+  n_signed: 145
+  p_value: 0.6184
+  oos_sign_accuracy: 0.3862
+  oos_n: 145
+  beta_fold_range: 0.076729
+  mechanisms:
+  - C09_policy_path
+  - C02_uip
+  reference: AndersenBollerslevDieboldVega2003
+  window: 2006-01-18..2026-09-11
+  regimes: []
+- name: FRED:CPIAUCSL->FRED:DTWEXBGS@5d
+  release: FRED:CPIAUCSL
+  market: FRED:DTWEXBGS
+  horizon_days: 5
+  beta:
+    value: 0.039426
+    low: -0.034287
+    high: 0.113139
+    unit: pct
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:CPIAUCSL->FRED:DTWEXBGS@5d per 1sd surprise; n=248; 2006-01-18..2026-09-11;
+      forecaster=ar1:60; HC1
+  t_stat: 1.048
+  r_squared: 0.0033
+  n: 248
+  n_effective: 248.0
+  predicted_sign: 1
+  sign_accuracy: 0.5241
+  n_signed: 145
+  p_value: 0.6184
+  oos_sign_accuracy: 0.4069
+  oos_n: 145
+  beta_fold_range: 0.08675
+  mechanisms:
+  - C09_policy_path
+  - C02_uip
+  reference: AndersenBollerslevDieboldVega2003
+  window: 2006-01-18..2026-09-11
+  regimes: []
+- name: FRED:CPIAUCSL->FRED:DTWEXBGS@20d
+  release: FRED:CPIAUCSL
+  market: FRED:DTWEXBGS
+  horizon_days: 20
+  beta:
+    value: 0.091044
+    low: -0.104545
+    high: 0.286633
+    unit: pct
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:CPIAUCSL->FRED:DTWEXBGS@20d per 1sd surprise; n=248;
+      2006-01-18..2026-09-11; forecaster=ar1:60; HC1
+  t_stat: 0.912
+  r_squared: 0.0051
+  n: 248
+  n_effective: 248.0
+  predicted_sign: 1
+  sign_accuracy: 0.4828
+  n_signed: 145
+  p_value: 0.7399
+  oos_sign_accuracy: 0.3931
+  oos_n: 145
+  beta_fold_range: 0.170146
+  mechanisms:
+  - C09_policy_path
+  - C02_uip
+  reference: AndersenBollerslevDieboldVega2003
+  window: 2006-01-18..2026-09-11
+  regimes: []
+- name: FRED:CPIAUCSL->FRED:SP500@1d
+  release: FRED:CPIAUCSL
+  market: FRED:SP500
+  horizon_days: 1
+  beta:
+    value: 0.020882
+    low: -0.178396
+    high: 0.22016
+    unit: pct
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:CPIAUCSL->FRED:SP500@1d per 1sd surprise; n=119; 2016-10-18..2026-09-11;
+      forecaster=ar1:60; HC1
+  t_stat: 0.205
+  r_squared: 0.0005
+  n: 119
+  n_effective: 119.0
+  predicted_sign: -1
+  sign_accuracy: 0.4559
+  n_signed: 68
+  p_value: 0.5446
+  oos_sign_accuracy: 0.4265
+  oos_n: 68
+  beta_fold_range: 0.282144
+  mechanisms:
+  - C05_equity_duration
+  - C09_policy_path
+  reference: null
+  window: 2016-10-18..2026-09-11
+  regimes: []
+- name: FRED:CPIAUCSL->FRED:SP500@5d
+  release: FRED:CPIAUCSL
+  market: FRED:SP500
+  horizon_days: 5
+  beta:
+    value: -0.099763
+    low: -0.497426
+    high: 0.2979
+    unit: pct
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:CPIAUCSL->FRED:SP500@5d per 1sd surprise; n=119; 2016-10-18..2026-09-11;
+      forecaster=ar1:60; HC1
+  t_stat: -0.492
+  r_squared: 0.0028
+  n: 119
+  n_effective: 119.0
+  predicted_sign: -1
+  sign_accuracy: 0.4412
+  n_signed: 68
+  p_value: 0.3961
+  oos_sign_accuracy: 0.4412
+  oos_n: 68
+  beta_fold_range: 0.366708
+  mechanisms:
+  - C05_equity_duration
+  - C09_policy_path
+  reference: null
+  window: 2016-10-18..2026-09-11
+  regimes: []
+- name: FRED:CPIAUCSL->FRED:SP500@20d
+  release: FRED:CPIAUCSL
+  market: FRED:SP500
+  horizon_days: 20
+  beta:
+    value: -0.072953
+    low: -0.755186
+    high: 0.60928
+    unit: pct
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:CPIAUCSL->FRED:SP500@20d per 1sd surprise; n=119; 2016-10-18..2026-09-11;
+      forecaster=ar1:60; HC1
+  t_stat: -0.21
+  r_squared: 0.0004
+  n: 119
+  n_effective: 119.0
+  predicted_sign: -1
+  sign_accuracy: 0.4265
+  n_signed: 68
+  p_value: 0.275
+  oos_sign_accuracy: 0.4265
+  oos_n: 68
+  beta_fold_range: 0.313565
+  mechanisms:
+  - C05_equity_duration
+  - C09_policy_path
+  reference: null
+  window: 2016-10-18..2026-09-11
+  regimes: []
+- name: FRED:CPILFESL->FRED:DGS2@1d
+  release: FRED:CPILFESL
+  market: FRED:DGS2
+  horizon_days: 1
+  beta:
+    value: 1.09927
+    low: 0.502611
+    high: 1.695928
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:CPILFESL->FRED:DGS2@1d per 1sd surprise; n=347; 1997-10-16..2026-09-11;
+      forecaster=ar1:60; HC1
+  t_stat: 3.611
+  r_squared: 0.0391
+  n: 347
+  n_effective: 347.0
+  predicted_sign: 1
+  sign_accuracy: 0.608
+  n_signed: 176
+  p_value: 0.0051
+  oos_sign_accuracy: 0.608
+  oos_n: 176
+  beta_fold_range: 0.794799
+  mechanisms:
+  - C09_policy_path
+  - B10_phillips
+  reference: GurkaynakSackSwanson2005
+  window: 1997-10-16..2026-09-11
+  regimes: []
+- name: FRED:CPILFESL->FRED:DGS2@5d
+  release: FRED:CPILFESL
+  market: FRED:DGS2
+  horizon_days: 5
+  beta:
+    value: 1.217396
+    low: 0.366789
+    high: 2.068003
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:CPILFESL->FRED:DGS2@5d per 1sd surprise; n=347; 1997-10-16..2026-09-11;
+      forecaster=ar1:60; HC1
+  t_stat: 2.805
+  r_squared: 0.0161
+  n: 347
+  n_effective: 347.0
+  predicted_sign: 1
+  sign_accuracy: 0.5628
+  n_signed: 199
+  p_value: 0.0886
+  oos_sign_accuracy: 0.5628
+  oos_n: 199
+  beta_fold_range: 0.724651
+  mechanisms:
+  - C09_policy_path
+  - B10_phillips
+  reference: GurkaynakSackSwanson2005
+  window: 1997-10-16..2026-09-11
+  regimes: []
+- name: FRED:CPILFESL->FRED:DGS2@20d
+  release: FRED:CPILFESL
+  market: FRED:DGS2
+  horizon_days: 20
+  beta:
+    value: 2.000416
+    low: 0.070752
+    high: 3.930081
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:CPILFESL->FRED:DGS2@20d per 1sd surprise; n=347; 1997-10-16..2026-09-11;
+      forecaster=ar1:60; HC1
+  t_stat: 2.032
+  r_squared: 0.0101
+  n: 347
+  n_effective: 347.0
+  predicted_sign: 1
+  sign_accuracy: 0.5534
+  n_signed: 206
+  p_value: 0.1432
+  oos_sign_accuracy: 0.5534
+  oos_n: 206
+  beta_fold_range: 1.823601
+  mechanisms:
+  - C09_policy_path
+  - B10_phillips
+  reference: GurkaynakSackSwanson2005
+  window: 1997-10-16..2026-09-11
+  regimes: []
+- name: FRED:CPILFESL->FRED:T10YIE@1d
+  release: FRED:CPILFESL
+  market: FRED:T10YIE
+  horizon_days: 1
+  beta:
+    value: 1.030486
+    low: 0.630579
+    high: 1.430393
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:CPILFESL->FRED:T10YIE@1d per 1sd surprise; n=284; 2003-01-16..2026-09-11;
+      forecaster=ar1:60; HC1
+  t_stat: 5.051
+  r_squared: 0.0969
+  n: 284
+  n_effective: 284.0
+  predicted_sign: 1
+  sign_accuracy: 0.7178
+  n_signed: 163
+  p_value: 0.0
+  oos_sign_accuracy: 0.7178
+  oos_n: 163
+  beta_fold_range: 0.364323
+  mechanisms:
+  - C04_breakeven
+  - B23_expectations
+  reference: GurkaynakSackSwanson2005
+  window: 2003-01-16..2026-09-11
+  regimes: []
+- name: FRED:CPILFESL->FRED:T10YIE@5d
+  release: FRED:CPILFESL
+  market: FRED:T10YIE
+  horizon_days: 5
+  beta:
+    value: 1.170967
+    low: 0.344634
+    high: 1.997299
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:CPILFESL->FRED:T10YIE@5d per 1sd surprise; n=284; 2003-01-16..2026-09-11;
+      forecaster=ar1:60; HC1
+  t_stat: 2.777
+  r_squared: 0.0349
+  n: 284
+  n_effective: 284.0
+  predicted_sign: 1
+  sign_accuracy: 0.5904
+  n_signed: 166
+  p_value: 0.0241
+  oos_sign_accuracy: 0.5904
+  oos_n: 166
+  beta_fold_range: 0.310146
+  mechanisms:
+  - C04_breakeven
+  - B23_expectations
+  reference: GurkaynakSackSwanson2005
+  window: 2003-01-16..2026-09-11
+  regimes: []
+- name: FRED:CPILFESL->FRED:T10YIE@20d
+  release: FRED:CPILFESL
+  market: FRED:T10YIE
+  horizon_days: 20
+  beta:
+    value: 0.367707
+    low: -1.142805
+    high: 1.878218
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:CPILFESL->FRED:T10YIE@20d per 1sd surprise; n=284; 2003-01-16..2026-09-11;
+      forecaster=ar1:60; HC1
+  t_stat: 0.477
+  r_squared: 0.001
+  n: 284
+  n_effective: 284.0
+  predicted_sign: 1
+  sign_accuracy: 0.5858
+  n_signed: 169
+  p_value: 0.0309
+  oos_sign_accuracy: 0.5858
+  oos_n: 169
+  beta_fold_range: 0.675566
+  mechanisms:
+  - C04_breakeven
+  - B23_expectations
+  reference: GurkaynakSackSwanson2005
+  window: 2003-01-16..2026-09-11
+  regimes: []
+- name: FRED:PCEPI->FRED:DGS2@1d
+  release: FRED:PCEPI
+  market: FRED:DGS2
+  horizon_days: 1
+  beta:
+    value: 0.111818
+    low: -0.361439
+    high: 0.585075
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:PCEPI->FRED:DGS2@1d per 1sd surprise; n=304; 2001-07-02..2026-09-30;
+      forecaster=ar1:60; HC1
+  t_stat: 0.463
+  r_squared: 0.0007
+  n: 304
+  n_effective: 304.0
+  predicted_sign: 1
+  sign_accuracy: 0.5
+  n_signed: 154
+  p_value: 1.0
+  oos_sign_accuracy: 0.4481
+  oos_n: 154
+  beta_fold_range: 0.372255
+  mechanisms:
+  - C09_policy_path
+  - B10_phillips
+  reference: GurkaynakSackSwanson2005
+  window: 2001-07-02..2026-09-30
+  regimes: []
+- name: FRED:PCEPI->FRED:DGS2@5d
+  release: FRED:PCEPI
+  market: FRED:DGS2
+  horizon_days: 5
+  beta:
+    value: 0.904797
+    low: -0.219264
+    high: 2.028858
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:PCEPI->FRED:DGS2@5d per 1sd surprise; n=304; 2001-07-02..2026-09-30;
+      forecaster=ar1:60; HC1
+  t_stat: 1.578
+  r_squared: 0.0104
+  n: 304
+  n_effective: 304.0
+  predicted_sign: 1
+  sign_accuracy: 0.5207
+  n_signed: 169
+  p_value: 0.6445
+  oos_sign_accuracy: 0.5207
+  oos_n: 169
+  beta_fold_range: 0.545077
+  mechanisms:
+  - C09_policy_path
+  - B10_phillips
+  reference: GurkaynakSackSwanson2005
+  window: 2001-07-02..2026-09-30
+  regimes: []
+- name: FRED:PCEPI->FRED:DGS2@20d
+  release: FRED:PCEPI
+  market: FRED:DGS2
+  horizon_days: 20
+  beta:
+    value: -0.489365
+    low: -3.349486
+    high: 2.370756
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:PCEPI->FRED:DGS2@20d per 1sd surprise; n=303; 2001-07-02..2026-08-26;
+      forecaster=ar1:60; HC1
+  t_stat: -0.335
+  r_squared: 0.0007
+  n: 303
+  n_effective: 303.0
+  predicted_sign: 1
+  sign_accuracy: 0.5879
+  n_signed: 182
+  p_value: 0.0213
+  oos_sign_accuracy: 0.456
+  oos_n: 182
+  beta_fold_range: 2.253937
+  mechanisms:
+  - C09_policy_path
+  - B10_phillips
+  reference: GurkaynakSackSwanson2005
+  window: 2001-07-02..2026-08-26
+  regimes: []
+- name: FRED:UNRATE->FRED:DGS2@1d
+  release: FRED:UNRATE
+  market: FRED:DGS2
+  horizon_days: 1
+  beta:
+    value: -1.346872
+    low: -2.176973
+    high: -0.516771
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:UNRATE->FRED:DGS2@1d per 1sd surprise; n=604; 1976-06-04..2026-10-02;
+      forecaster=ar1:60; HC1
+  t_stat: -3.18
+  r_squared: 0.0188
+  n: 604
+  n_effective: 604.0
+  predicted_sign: -1
+  sign_accuracy: 0.5795
+  n_signed: 352
+  p_value: 0.0033
+  oos_sign_accuracy: 0.5795
+  oos_n: 352
+  beta_fold_range: 1.246368
+  mechanisms:
+  - C09_policy_path
+  - B09_okun
+  reference: GurkaynakSackSwanson2005
+  window: 1976-06-04..2026-10-02
+  regimes: []
+- name: FRED:UNRATE->FRED:DGS2@5d
+  release: FRED:UNRATE
+  market: FRED:DGS2
+  horizon_days: 5
+  beta:
+    value: -2.004079
+    low: -3.591164
+    high: -0.416995
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:UNRATE->FRED:DGS2@5d per 1sd surprise; n=604; 1976-06-04..2026-10-02;
+      forecaster=ar1:60; HC1
+  t_stat: -2.475
+  r_squared: 0.0145
+  n: 604
+  n_effective: 604.0
+  predicted_sign: -1
+  sign_accuracy: 0.5546
+  n_signed: 366
+  p_value: 0.0413
+  oos_sign_accuracy: 0.5546
+  oos_n: 366
+  beta_fold_range: 2.464079
+  mechanisms:
+  - C09_policy_path
+  - B09_okun
+  reference: GurkaynakSackSwanson2005
+  window: 1976-06-04..2026-10-02
+  regimes: []
+- name: FRED:UNRATE->FRED:DGS2@20d
+  release: FRED:UNRATE
+  market: FRED:DGS2
+  horizon_days: 20
+  beta:
+    value: -3.339675
+    low: -6.021049
+    high: -0.658301
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:UNRATE->FRED:DGS2@20d per 1sd surprise; n=603; 1976-06-04..2026-09-04;
+      forecaster=ar1:60; HC1
+  t_stat: -2.441
+  r_squared: 0.0079
+  n: 603
+  n_effective: 603.0
+  predicted_sign: -1
+  sign_accuracy: 0.5511
+  n_signed: 372
+  p_value: 0.0549
+  oos_sign_accuracy: 0.5511
+  oos_n: 372
+  beta_fold_range: 2.351337
+  mechanisms:
+  - C09_policy_path
+  - B09_okun
+  reference: GurkaynakSackSwanson2005
+  window: 1976-06-04..2026-09-04
+  regimes: []
+- name: FRED:UNRATE->FRED:DGS10@1d
+  release: FRED:UNRATE
+  market: FRED:DGS10
+  horizon_days: 1
+  beta:
+    value: -0.491888
+    low: -0.999935
+    high: 0.016159
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:UNRATE->FRED:DGS10@1d per 1sd surprise; n=777; 1962-01-09..2026-10-02;
+      forecaster=ar1:60; HC1
+  t_stat: -1.898
+  r_squared: 0.0045
+  n: 777
+  n_effective: 777.0
+  predicted_sign: -1
+  sign_accuracy: 0.5154
+  n_signed: 454
+  p_value: 0.5418
+  oos_sign_accuracy: 0.5154
+  oos_n: 454
+  beta_fold_range: 0.721009
+  mechanisms:
+  - C09_policy_path
+  - B09_okun
+  reference: GurkaynakSackSwanson2005
+  window: 1962-01-09..2026-10-02
+  regimes: []
+- name: FRED:UNRATE->FRED:DGS10@5d
+  release: FRED:UNRATE
+  market: FRED:DGS10
+  horizon_days: 5
+  beta:
+    value: -0.375482
+    low: -1.281965
+    high: 0.531001
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:UNRATE->FRED:DGS10@5d per 1sd surprise; n=777; 1962-01-09..2026-10-02;
+      forecaster=ar1:60; HC1
+  t_stat: -0.812
+  r_squared: 0.0009
+  n: 777
+  n_effective: 777.0
+  predicted_sign: -1
+  sign_accuracy: 0.4832
+  n_signed: 476
+  p_value: 0.4918
+  oos_sign_accuracy: 0.4475
+  oos_n: 476
+  beta_fold_range: 0.974291
+  mechanisms:
+  - C09_policy_path
+  - B09_okun
+  reference: GurkaynakSackSwanson2005
+  window: 1962-01-09..2026-10-02
+  regimes: []
+- name: FRED:UNRATE->FRED:DGS10@20d
+  release: FRED:UNRATE
+  market: FRED:DGS10
+  horizon_days: 20
+  beta:
+    value: -0.282546
+    low: -2.021934
+    high: 1.456842
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:UNRATE->FRED:DGS10@20d per 1sd surprise; n=776; 1962-01-09..2026-09-04;
+      forecaster=ar1:60; HC1
+  t_stat: -0.318
+  r_squared: 0.0001
+  n: 776
+  n_effective: 776.0
+  predicted_sign: -1
+  sign_accuracy: 0.5052
+  n_signed: 483
+  p_value: 0.8556
+  oos_sign_accuracy: 0.4617
+  oos_n: 483
+  beta_fold_range: 0.932937
+  mechanisms:
+  - C09_policy_path
+  - B09_okun
+  reference: GurkaynakSackSwanson2005
+  window: 1962-01-09..2026-09-04
+  regimes: []
+- name: FRED:UNRATE->FRED:DTWEXBGS@1d
+  release: FRED:UNRATE
+  market: FRED:DTWEXBGS
+  horizon_days: 1
+  beta:
+    value: -0.007542
+    low: -0.044861
+    high: 0.029776
+    unit: pct
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:UNRATE->FRED:DTWEXBGS@1d per 1sd surprise; n=249; 2006-01-06..2026-10-02;
+      forecaster=ar1:60; HC1
+  t_stat: -0.396
+  r_squared: 0.0006
+  n: 249
+  n_effective: 249.0
+  predicted_sign: -1
+  sign_accuracy: 0.5871
+  n_signed: 155
+  p_value: 0.0364
+  oos_sign_accuracy: 0.3613
+  oos_n: 155
+  beta_fold_range: 0.043962
+  mechanisms:
+  - C09_policy_path
+  - C02_uip
+  reference: AndersenBollerslevDieboldVega2003
+  window: 2006-01-06..2026-10-02
+  regimes: []
+- name: FRED:UNRATE->FRED:DTWEXBGS@5d
+  release: FRED:UNRATE
+  market: FRED:DTWEXBGS
+  horizon_days: 5
+  beta:
+    value: 0.051666
+    low: -0.024116
+    high: 0.127449
+    unit: pct
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:UNRATE->FRED:DTWEXBGS@5d per 1sd surprise; n=249; 2006-01-06..2026-10-02;
+      forecaster=ar1:60; HC1
+  t_stat: 1.336
+  r_squared: 0.0069
+  n: 249
+  n_effective: 249.0
+  predicted_sign: -1
+  sign_accuracy: 0.4581
+  n_signed: 155
+  p_value: 0.3351
+  oos_sign_accuracy: 0.5419
+  oos_n: 155
+  beta_fold_range: 0.078104
+  mechanisms:
+  - C09_policy_path
+  - C02_uip
+  reference: AndersenBollerslevDieboldVega2003
+  window: 2006-01-06..2026-10-02
+  regimes: []
+- name: FRED:UNRATE->FRED:DTWEXBGS@20d
+  release: FRED:UNRATE
+  market: FRED:DTWEXBGS
+  horizon_days: 20
+  beta:
+    value: -0.002376
+    low: -0.172079
+    high: 0.167327
+    unit: pct
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:UNRATE->FRED:DTWEXBGS@20d per 1sd surprise; n=248; 2006-01-06..2026-09-04;
+      forecaster=ar1:60; HC1
+  t_stat: -0.027
+  r_squared: 0.0
+  n: 248
+  n_effective: 248.0
+  predicted_sign: -1
+  sign_accuracy: 0.4675
+  n_signed: 154
+  p_value: 0.4684
+  oos_sign_accuracy: 0.4935
+  oos_n: 154
+  beta_fold_range: 0.069732
+  mechanisms:
+  - C09_policy_path
+  - C02_uip
+  reference: AndersenBollerslevDieboldVega2003
+  window: 2006-01-06..2026-09-04
+  regimes: []
+- name: FRED:UNRATE->FRED:SP500@1d
+  release: FRED:UNRATE
+  market: FRED:SP500
+  horizon_days: 1
+  beta:
+    value: -0.025491
+    low: -0.175788
+    high: 0.124807
+    unit: pct
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:UNRATE->FRED:SP500@1d per 1sd surprise; n=119; 2016-11-04..2026-10-02;
+      forecaster=ar1:60; HC1
+  t_stat: -0.332
+  r_squared: 0.0011
+  n: 119
+  n_effective: 119.0
+  predicted_sign: null
+  sign_accuracy: 0.5694
+  n_signed: 72
+  p_value: 0.2888
+  oos_sign_accuracy: 0.375
+  oos_n: 72
+  beta_fold_range: 0.193848
+  mechanisms:
+  - B11_monetary_transmission
+  - C05_equity_duration
+  reference: BoydHuJagannathan2005
+  window: 2016-11-04..2026-10-02
+  regimes:
+  - regime: us_expansion
+    state: true
+    predicted_sign: 1
+    n: 106
+    n_signed: 61
+    sign_accuracy: 0.541
+    beta: 0.040056
+    t_stat: 0.352
+  - regime: us_expansion
+    state: false
+    predicted_sign: -1
+    n: 13
+    n_signed: 11
+    sign_accuracy: 0.7273
+    beta: null
+    t_stat: null
+- name: FRED:UNRATE->FRED:SP500@5d
+  release: FRED:UNRATE
+  market: FRED:SP500
+  horizon_days: 5
+  beta:
+    value: 0.281494
+    low: -0.115455
+    high: 0.678442
+    unit: pct
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:UNRATE->FRED:SP500@5d per 1sd surprise; n=119; 2016-11-04..2026-10-02;
+      forecaster=ar1:60; HC1
+  t_stat: 1.39
+  r_squared: 0.0223
+  n: 119
+  n_effective: 119.0
+  predicted_sign: null
+  sign_accuracy: 0.625
+  n_signed: 72
+  p_value: 0.0444
+  oos_sign_accuracy: 0.5278
+  oos_n: 72
+  beta_fold_range: 0.104264
+  mechanisms:
+  - B11_monetary_transmission
+  - C05_equity_duration
+  reference: BoydHuJagannathan2005
+  window: 2016-11-04..2026-10-02
+  regimes:
+  - regime: us_expansion
+    state: true
+    predicted_sign: 1
+    n: 106
+    n_signed: 61
+    sign_accuracy: 0.5902
+    beta: 0.492727
+    t_stat: 1.397
+  - regime: us_expansion
+    state: false
+    predicted_sign: -1
+    n: 13
+    n_signed: 11
+    sign_accuracy: 0.8182
+    beta: null
+    t_stat: null
+- name: FRED:UNRATE->FRED:SP500@20d
+  release: FRED:UNRATE
+  market: FRED:SP500
+  horizon_days: 20
+  beta:
+    value: 0.360013
+    low: -0.261004
+    high: 0.981031
+    unit: pct
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:UNRATE->FRED:SP500@20d per 1sd surprise; n=118; 2016-11-04..2026-09-04;
+      forecaster=ar1:60; HC1
+  t_stat: 1.136
+  r_squared: 0.0152
+  n: 118
+  n_effective: 118.0
+  predicted_sign: null
+  sign_accuracy: 0.5352
+  n_signed: 71
+  p_value: 0.6353
+  oos_sign_accuracy: 0.493
+  oos_n: 71
+  beta_fold_range: 0.278931
+  mechanisms:
+  - B11_monetary_transmission
+  - C05_equity_duration
+  reference: BoydHuJagannathan2005
+  window: 2016-11-04..2026-09-04
+  regimes:
+  - regime: us_expansion
+    state: true
+    predicted_sign: 1
+    n: 105
+    n_signed: 60
+    sign_accuracy: 0.5167
+    beta: 0.858957
+    t_stat: 1.778
+  - regime: us_expansion
+    state: false
+    predicted_sign: -1
+    n: 13
+    n_signed: 11
+    sign_accuracy: 0.6364
+    beta: null
+    t_stat: null
+- name: FRED:GDPC1->FRED:DGS10@1d
+  release: FRED:GDPC1
+  market: FRED:DGS10
+  horizon_days: 1
+  beta:
+    value: 0.135601
+    low: -0.469438
+    high: 0.74064
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:GDPC1->FRED:DGS10@1d per 1sd surprise; n=127; 1995-01-27..2026-07-30;
+      forecaster=ar1:60; HC1
+  t_stat: 0.439
+  r_squared: 0.0009
+  n: 127
+  n_effective: 127.0
+  predicted_sign: 1
+  sign_accuracy: 0.4648
+  n_signed: 71
+  p_value: 0.6353
+  oos_sign_accuracy: 0.3944
+  oos_n: 71
+  beta_fold_range: 0.536019
+  mechanisms:
+  - C09_policy_path
+  - A01_expenditure_identity
+  reference: GurkaynakSackSwanson2005
+  window: 1995-01-27..2026-07-30
+  regimes: []
+- name: FRED:GDPC1->FRED:DGS10@5d
+  release: FRED:GDPC1
+  market: FRED:DGS10
+  horizon_days: 5
+  beta:
+    value: -0.342214
+    low: -1.494701
+    high: 0.810273
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:GDPC1->FRED:DGS10@5d per 1sd surprise; n=127; 1995-01-27..2026-07-30;
+      forecaster=ar1:60; HC1
+  t_stat: -0.582
+  r_squared: 0.0018
+  n: 127
+  n_effective: 127.0
+  predicted_sign: 1
+  sign_accuracy: 0.4459
+  n_signed: 74
+  p_value: 0.416
+  oos_sign_accuracy: 0.5541
+  oos_n: 74
+  beta_fold_range: 0.469206
+  mechanisms:
+  - C09_policy_path
+  - A01_expenditure_identity
+  reference: GurkaynakSackSwanson2005
+  window: 1995-01-27..2026-07-30
+  regimes: []
+- name: FRED:GDPC1->FRED:DGS10@20d
+  release: FRED:GDPC1
+  market: FRED:DGS10
+  horizon_days: 20
+  beta:
+    value: 0.505947
+    low: -3.116603
+    high: 4.128497
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:GDPC1->FRED:DGS10@20d per 1sd surprise; n=127; 1995-01-27..2026-07-30;
+      forecaster=ar1:60; HC1
+  t_stat: 0.274
+  r_squared: 0.0008
+  n: 127
+  n_effective: 127.0
+  predicted_sign: 1
+  sign_accuracy: 0.473
+  n_signed: 74
+  p_value: 0.7275
+  oos_sign_accuracy: 0.473
+  oos_n: 74
+  beta_fold_range: 1.187332
+  mechanisms:
+  - C09_policy_path
+  - A01_expenditure_identity
+  reference: GurkaynakSackSwanson2005
+  window: 1995-01-27..2026-07-30
+  regimes: []
+- name: FRED:GDPC1->FRED:DTWEXBGS@1d
+  release: FRED:GDPC1
+  market: FRED:DTWEXBGS
+  horizon_days: 1
+  beta:
+    value: 0.047078
+    low: -0.017722
+    high: 0.111878
+    unit: pct
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:GDPC1->FRED:DTWEXBGS@1d per 1sd surprise; n=83; 2006-01-27..2026-07-30;
+      forecaster=ar1:60; HC1
+  t_stat: 1.424
+  r_squared: 0.0392
+  n: 83
+  n_effective: 83.0
+  predicted_sign: 1
+  sign_accuracy: 0.5652
+  n_signed: 46
+  p_value: 0.4614
+  oos_sign_accuracy: 0.5652
+  oos_n: 46
+  beta_fold_range: 0.071408
+  mechanisms:
+  - C09_policy_path
+  - C02_uip
+  reference: AndersenBollerslevDieboldVega2003
+  window: 2006-01-27..2026-07-30
+  regimes: []
+- name: FRED:GDPC1->FRED:DTWEXBGS@5d
+  release: FRED:GDPC1
+  market: FRED:DTWEXBGS
+  horizon_days: 5
+  beta:
+    value: 0.067021
+    low: -0.02494
+    high: 0.158981
+    unit: pct
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:GDPC1->FRED:DTWEXBGS@5d per 1sd surprise; n=83; 2006-01-27..2026-07-30;
+      forecaster=ar1:60; HC1
+  t_stat: 1.428
+  r_squared: 0.0236
+  n: 83
+  n_effective: 83.0
+  predicted_sign: 1
+  sign_accuracy: 0.5435
+  n_signed: 46
+  p_value: 0.6587
+  oos_sign_accuracy: 0.5435
+  oos_n: 46
+  beta_fold_range: 0.085056
+  mechanisms:
+  - C09_policy_path
+  - C02_uip
+  reference: AndersenBollerslevDieboldVega2003
+  window: 2006-01-27..2026-07-30
+  regimes: []
+- name: FRED:GDPC1->FRED:DTWEXBGS@20d
+  release: FRED:GDPC1
+  market: FRED:DTWEXBGS
+  horizon_days: 20
+  beta:
+    value: 0.015636
+    low: -0.238874
+    high: 0.270145
+    unit: pct
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:GDPC1->FRED:DTWEXBGS@20d per 1sd surprise; n=83; 2006-01-27..2026-07-30;
+      forecaster=ar1:60; HC1
+  t_stat: 0.12
+  r_squared: 0.0003
+  n: 83
+  n_effective: 83.0
+  predicted_sign: 1
+  sign_accuracy: 0.6087
+  n_signed: 46
+  p_value: 0.1839
+  oos_sign_accuracy: 0.587
+  oos_n: 46
+  beta_fold_range: 0.078299
+  mechanisms:
+  - C09_policy_path
+  - C02_uip
+  reference: AndersenBollerslevDieboldVega2003
+  window: 2006-01-27..2026-07-30
+  regimes: []
+- name: FRED:RSAFS->FRED:DGS2@1d
+  release: FRED:RSAFS
+  market: FRED:DGS2
+  horizon_days: 1
+  beta:
+    value: 0.262115
+    low: -0.181498
+    high: 0.705728
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:RSAFS->FRED:DGS2@1d per 1sd surprise; n=294; 2002-04-12..2026-09-16;
+      forecaster=ar1:60; HC1
+  t_stat: 1.158
+  r_squared: 0.0049
+  n: 294
+  n_effective: 294.0
+  predicted_sign: 1
+  sign_accuracy: 0.6184
+  n_signed: 152
+  p_value: 0.0044
+  oos_sign_accuracy: 0.6184
+  oos_n: 152
+  beta_fold_range: 0.251106
+  mechanisms:
+  - C09_policy_path
+  - A01_expenditure_identity
+  reference: GurkaynakSackSwanson2005
+  window: 2002-04-12..2026-09-16
+  regimes: []
+- name: FRED:RSAFS->FRED:DGS2@5d
+  release: FRED:RSAFS
+  market: FRED:DGS2
+  horizon_days: 5
+  beta:
+    value: 0.242078
+    low: -0.57243
+    high: 1.056586
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:RSAFS->FRED:DGS2@5d per 1sd surprise; n=294; 2002-04-12..2026-09-16;
+      forecaster=ar1:60; HC1
+  t_stat: 0.583
+  r_squared: 0.0012
+  n: 294
+  n_effective: 294.0
+  predicted_sign: 1
+  sign_accuracy: 0.5515
+  n_signed: 165
+  p_value: 0.2128
+  oos_sign_accuracy: 0.4788
+  oos_n: 165
+  beta_fold_range: 0.954354
+  mechanisms:
+  - C09_policy_path
+  - A01_expenditure_identity
+  reference: GurkaynakSackSwanson2005
+  window: 2002-04-12..2026-09-16
+  regimes: []
+- name: FRED:RSAFS->FRED:DGS2@20d
+  release: FRED:RSAFS
+  market: FRED:DGS2
+  horizon_days: 20
+  beta:
+    value: -0.125014
+    low: -1.921797
+    high: 1.671768
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:RSAFS->FRED:DGS2@20d per 1sd surprise; n=293; 2002-04-12..2026-08-14;
+      forecaster=ar1:60; HC1
+  t_stat: -0.136
+  r_squared: 0.0001
+  n: 293
+  n_effective: 293.0
+  predicted_sign: 1
+  sign_accuracy: 0.5697
+  n_signed: 165
+  p_value: 0.0865
+  oos_sign_accuracy: 0.4606
+  oos_n: 165
+  beta_fold_range: 1.439123
+  mechanisms:
+  - C09_policy_path
+  - A01_expenditure_identity
+  reference: GurkaynakSackSwanson2005
+  window: 2002-04-12..2026-08-14
+  regimes: []
+- name: FRED:INDPRO->FRED:DGS10@1d
+  release: FRED:INDPRO
+  market: FRED:DGS10
+  horizon_days: 1
+  beta:
+    value: 0.41017
+    low: 0.06047
+    high: 0.75987
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:INDPRO->FRED:DGS10@1d per 1sd surprise; n=777; 1962-01-16..2026-09-18;
+      forecaster=ar1:60; HC1
+  t_stat: 2.299
+  r_squared: 0.0068
+  n: 777
+  n_effective: 777.0
+  predicted_sign: 1
+  sign_accuracy: 0.5486
+  n_signed: 401
+  p_value: 0.0576
+  oos_sign_accuracy: 0.5486
+  oos_n: 401
+  beta_fold_range: 0.118775
+  mechanisms:
+  - C09_policy_path
+  - B04_inventory_cycle
+  reference: GurkaynakSackSwanson2005
+  window: 1962-01-16..2026-09-18
+  regimes: []
+- name: FRED:INDPRO->FRED:DGS10@5d
+  release: FRED:INDPRO
+  market: FRED:DGS10
+  horizon_days: 5
+  beta:
+    value: 0.377974
+    low: -0.563953
+    high: 1.319902
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:INDPRO->FRED:DGS10@5d per 1sd surprise; n=777; 1962-01-16..2026-09-18;
+      forecaster=ar1:60; HC1
+  t_stat: 0.787
+  r_squared: 0.0009
+  n: 777
+  n_effective: 777.0
+  predicted_sign: 1
+  sign_accuracy: 0.4989
+  n_signed: 435
+  p_value: 1.0
+  oos_sign_accuracy: 0.4989
+  oos_n: 435
+  beta_fold_range: 0.591297
+  mechanisms:
+  - C09_policy_path
+  - B04_inventory_cycle
+  reference: GurkaynakSackSwanson2005
+  window: 1962-01-16..2026-09-18
+  regimes: []
+- name: FRED:INDPRO->FRED:DGS10@20d
+  release: FRED:INDPRO
+  market: FRED:DGS10
+  horizon_days: 20
+  beta:
+    value: 0.335447
+    low: -1.580744
+    high: 2.251638
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:INDPRO->FRED:DGS10@20d per 1sd surprise; n=776; 1962-01-16..2026-08-18;
+      forecaster=ar1:60; HC1
+  t_stat: 0.343
+  r_squared: 0.0002
+  n: 776
+  n_effective: 776.0
+  predicted_sign: 1
+  sign_accuracy: 0.4901
+  n_signed: 455
+  p_value: 0.7077
+  oos_sign_accuracy: 0.4813
+  oos_n: 455
+  beta_fold_range: 1.882604
+  mechanisms:
+  - C09_policy_path
+  - B04_inventory_cycle
+  reference: GurkaynakSackSwanson2005
+  window: 1962-01-16..2026-08-18
+  regimes: []

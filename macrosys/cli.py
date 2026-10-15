@@ -64,7 +64,12 @@ def _parser() -> argparse.ArgumentParser:
     lib.add_parser("validate", help="load the library and report the version hash")
 
     # Optional command groups register themselves (each package owns its own commands).
-    for module in ("macrosys.pipeline.cli_commands", "macrosys.exec.cli_commands", "macrosys.cases.cli_commands"):
+    for module in (
+        "macrosys.pipeline.cli_commands",
+        "macrosys.exec.cli_commands",
+        "macrosys.cases.cli_commands",
+        "macrosys.events.cli_commands",
+    ):
         try:
             register = __import__(module, fromlist=["register_cli"]).register_cli
         except ImportError:

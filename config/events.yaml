@@ -1,0 +1,224 @@
+# Release event study (spec §10.1 item 11, backlog E4.4).
+#
+# Releases are ALFRED series the pipeline already ingests with vintages. The event is the first
+# print of each reference period; the surprise is the as-reported change minus a forecast built
+# from earlier prints only. A consensus surprise (actual minus pre-release survey median) is the
+# better input and is blocked on terms (spec §9.8, P2.4); the `forecaster` block is what stands in
+# for it, and every result is labelled with the forecaster that produced the surprise.
+#
+# Markets are daily series from the same store. `response: diff` reports the change in the series
+# unit (pct -> bp); `pct_change` reports a percent return. Horizons are trading days counted from
+# the close before the event date, so 1 is the release-day close.
+#
+# Responses are the signs the mechanism library predicts for each release-to-market pair, with the
+# mechanism ids and the paper the sign is taken from. A state-dependent sign names a regime and
+# gives the sign in and out of that state. These are the hypotheses the study scores; it does not
+# fit them. Signs here are claims [E] or [H]; the labels are on each entry.
+close_cutoff_utc_hour: 20   # a release clock at or after 20:00 UTC counts for the next trading day [J]
+max_release_lag_days: 120   # an earliest stored vintage later than this after the period end is not a first print
+horizons_days: [1, 5, 20]
+min_history_events: 12      # standardized surprise needs this many earlier surprises
+sigma_window: 60            # scale from the last 60 surprises, not an expanding window, so one 2020 print does not shrink a decade of later events
+sigma_method: mad           # 1.4826 x median absolute deviation; robust to the outliers an expanding std is not. std is the alternative
+sigma_cap: 5.0              # standardized surprises are clipped at +-5 sd before regression so one print cannot set the slope [J]
+sign_threshold_sigma: 0.5   # events inside +-0.5 sd carry no sign information and are not scored
+min_events_for_regression: 24
+walk_forward_splits: 4
+forecaster:
+  method: ar1               # OLS of the headline change on its lag over the last `window` changes, extrapolated one step
+  window: 60                # a trailing mean lags a trend and calls every 2021-22 CPI print a surprise; the AR(1) extrapolates persistence
+  min_fit: 12               # until this many changes exist the forecast is the trailing mean
+
+releases:
+  - series_id: FRED:CPIAUCSL
+    label: us_cpi_headline
+    transform: pct_change
+  - series_id: FRED:CPILFESL
+    label: us_cpi_core
+    transform: pct_change
+  - series_id: FRED:PCEPI
+    label: us_pce_headline
+    transform: pct_change
+  - series_id: FRED:UNRATE
+    label: us_unemployment_rate
+    transform: diff
+  - series_id: FRED:PAYEMS
+    label: us_payrolls
+    transform: diff
+  - series_id: FRED:GDPC1
+    label: us_real_gdp
+    transform: pct_change
+  - series_id: FRED:INDPRO
+    label: us_industrial_production
+    transform: pct_change
+  - series_id: FRED:RSAFS
+    label: us_retail_sales
+    transform: pct_change
+
+markets:
+  - series_id: FRED:DGS2
+    label: ust_2y
+    response: diff
+  - series_id: FRED:DGS10
+    label: ust_10y
+    response: diff
+  - series_id: FRED:T10YIE
+    label: breakeven_10y
+    response: diff
+  - series_id: FRED:DTWEXBGS
+    label: usd_broad
+    response: pct_change
+  - series_id: FRED:SP500
+    label: spx
+    response: pct_change
+  - series_id: FRED:BAMLH0A0HYM2
+    label: hy_oas
+    response: diff
+
+regimes:
+  # Boyd, Hu & Jagannathan (2005) split on NBER expansion/contraction, which is not known in real
+  # time. The Sahm rule on the unemployment rate is the point-in-time stand-in [J]: contraction
+  # when the 3-month mean of the latest visible prints exceeds the 12-month minimum by 0.5 pp.
+  - name: us_expansion
+    series_id: FRED:UNRATE
+    rule: sahm
+    threshold_pp: 0.5
+
+responses:
+  # Inflation prints. Rates and breakevens rise on an upside surprise; the dollar follows the
+  # front end. Gürkaynak, Sack & Swanson (2005) for yields; Andersen, Bollerslev, Diebold & Vega
+  # (2003) for FX. [E]
+  - release: FRED:CPIAUCSL
+    market: FRED:DGS2
+    sign: 1
+    mechanisms: [C09_policy_path, B10_phillips]
+    reference: GurkaynakSackSwanson2005
+    label: E
+  - release: FRED:CPIAUCSL
+    market: FRED:DGS10
+    sign: 1
+    mechanisms: [C09_policy_path, C03_expectations_hypothesis]
+    reference: GurkaynakSackSwanson2005
+    label: E
+  - release: FRED:CPIAUCSL
+    market: FRED:T10YIE
+    sign: 1
+    mechanisms: [C04_breakeven, B23_expectations]
+    reference: GurkaynakSackSwanson2005
+    label: E
+  - release: FRED:CPIAUCSL
+    market: FRED:DTWEXBGS
+    sign: 1
+    mechanisms: [C09_policy_path, C02_uip]
+    reference: AndersenBollerslevDieboldVega2003
+    label: E
+  - release: FRED:CPIAUCSL
+    market: FRED:SP500
+    sign: -1
+    mechanisms: [C05_equity_duration, C09_policy_path]
+    reference: null
+    label: H
+  - release: FRED:CPILFESL
+    market: FRED:DGS2
+    sign: 1
+    mechanisms: [C09_policy_path, B10_phillips]
+    reference: GurkaynakSackSwanson2005
+    label: E
+  - release: FRED:CPILFESL
+    market: FRED:T10YIE
+    sign: 1
+    mechanisms: [C04_breakeven, B23_expectations]
+    reference: GurkaynakSackSwanson2005
+    label: E
+  - release: FRED:PCEPI
+    market: FRED:DGS2
+    sign: 1
+    mechanisms: [C09_policy_path, B10_phillips]
+    reference: GurkaynakSackSwanson2005
+    label: E
+
+  # Labour prints. Unemployment up is weaker activity: yields and the dollar fall. Equities are
+  # state-dependent: in expansions higher unemployment is good news for stocks (lower expected
+  # policy rate dominates), in contractions it is bad news (earnings dominate). Boyd, Hu &
+  # Jagannathan (2005). [E]
+  - release: FRED:UNRATE
+    market: FRED:DGS2
+    sign: -1
+    mechanisms: [C09_policy_path, B09_okun]
+    reference: GurkaynakSackSwanson2005
+    label: E
+  - release: FRED:UNRATE
+    market: FRED:DGS10
+    sign: -1
+    mechanisms: [C09_policy_path, B09_okun]
+    reference: GurkaynakSackSwanson2005
+    label: E
+  - release: FRED:UNRATE
+    market: FRED:DTWEXBGS
+    sign: -1
+    mechanisms: [C09_policy_path, C02_uip]
+    reference: AndersenBollerslevDieboldVega2003
+    label: E
+  - release: FRED:UNRATE
+    market: FRED:SP500
+    sign: {regime: us_expansion, when_true: 1, when_false: -1}
+    mechanisms: [B11_monetary_transmission, C05_equity_duration]
+    reference: BoydHuJagannathan2005
+    label: E
+  - release: FRED:PAYEMS
+    market: FRED:DGS2
+    sign: 1
+    mechanisms: [C09_policy_path, B09_okun]
+    reference: GurkaynakSackSwanson2005
+    label: E
+  - release: FRED:PAYEMS
+    market: FRED:DGS10
+    sign: 1
+    mechanisms: [C09_policy_path, B09_okun]
+    reference: GurkaynakSackSwanson2005
+    label: E
+  - release: FRED:PAYEMS
+    market: FRED:DTWEXBGS
+    sign: 1
+    mechanisms: [C09_policy_path, C02_uip]
+    reference: AndersenBollerslevDieboldVega2003
+    label: E
+  - release: FRED:PAYEMS
+    market: FRED:SP500
+    sign: {regime: us_expansion, when_true: -1, when_false: 1}
+    mechanisms: [B11_monetary_transmission, C05_equity_duration]
+    reference: BoydHuJagannathan2005
+    label: E
+  - release: FRED:PAYEMS
+    market: FRED:BAMLH0A0HYM2
+    sign: -1
+    mechanisms: [C06_credit_spread, B13_financial_accelerator]
+    reference: null
+    label: H
+
+  # Activity prints. Stronger activity lifts yields and the dollar. [E] for yields (Gürkaynak,
+  # Sack & Swanson 2005 cover GDP advance, retail sales, and industrial production).
+  - release: FRED:GDPC1
+    market: FRED:DGS10
+    sign: 1
+    mechanisms: [C09_policy_path, A01_expenditure_identity]
+    reference: GurkaynakSackSwanson2005
+    label: E
+  - release: FRED:GDPC1
+    market: FRED:DTWEXBGS
+    sign: 1
+    mechanisms: [C09_policy_path, C02_uip]
+    reference: AndersenBollerslevDieboldVega2003
+    label: E
+  - release: FRED:RSAFS
+    market: FRED:DGS2
+    sign: 1
+    mechanisms: [C09_policy_path, A01_expenditure_identity]
+    reference: GurkaynakSackSwanson2005
+    label: E
+  - release: FRED:INDPRO
+    market: FRED:DGS10
+    sign: 1
+    mechanisms: [C09_policy_path, B04_inventory_cycle]
+    reference: GurkaynakSackSwanson2005
+    label: E

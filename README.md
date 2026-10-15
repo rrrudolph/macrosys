@@ -58,9 +58,15 @@ Built and tested (369 tests; 6 strict `xfail`s that name mechanism parameters st
 | E4.1–E4.2 | Hash-chained forecast ledger, Brier/PSR/deflated Sharpe, purged walk-forward splits, baselines | `eval/` |
 | X5.1 | SQLite OMS, paper broker, class-A halt on reconciliation break, kill switch, runbook hash check | `exec/`, `docs/runbook.md` |
 | S0.1–S0.2 | Walking skeleton: one command runs shock → propagation → priced-in → gates → no-trade → ledger → manifest → report, on three unrelated shocks | `skeleton/`, `docs/walkthrough.md` |
+| E4.4 | Release event study: ALFRED first prints → point-in-time surprises (AR(1) forecast, robust scale) → market responses at 1/5/20 days → predicted-sign tests with binomial and walk-forward checks, regime split, HC1 slopes written to `parameters/event_response.yaml`. Runs on the live store | `events/`, `config/events.yaml` |
+| W1.6 (scoring) | Case replay labels each scored outcome evidential (sign from the recorded shock on library parameters) or formula-direction (author-fed input or replay fixture); the research gate reads evidential outcomes only | `cases/`, `cases/fixtures/replay_parameters.yaml` |
 
 Try it: `.\.venv\Scripts\python -m macrosys.cli skeleton demo --out .scratch\demo`.
 
-Not yet built: live ingestion runs (need API keys in env), estimation of the `TODO_estimate` parameters from
-data, the evaluation harness end-to-end on real snapshots, and any live broker adapter. See `docs/spec.md`
-§13 for the backlog and §15 for the decisions only the owner can make (mandate limits, universe, gates).
+Event study on the ingested store: `python -m macrosys.cli events build --db data\store\macrosys.duckdb` then
+`python -m macrosys.cli events study --db data\store\macrosys.duckdb --write-parameters parameters\event_response.yaml`.
+
+Not yet built: the structural `TODO_estimate` elasticities (the event study estimates market-response slopes, not
+IO elasticities), path-based case replay through the composition rules, the evaluation harness end-to-end on
+real snapshots, a consensus surprise source (blocked on terms, §9.8), and any live broker adapter. See
+`docs/spec.md` §13 for the backlog and §15 for the decisions only the owner can make (mandate limits, universe, gates).

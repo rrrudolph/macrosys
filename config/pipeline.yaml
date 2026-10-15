@@ -39,6 +39,7 @@ series:
       - FRED:CPILFESL
       - FRED:PCEPI
       - FRED:UNRATE
+      - FRED:PAYEMS
       - FRED:INDPRO
       - FRED:M2SL
       - FRED:WALCL
