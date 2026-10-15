@@ -1,10 +1,11 @@
 # Release event study (spec §10.1 item 11, backlog E4.4).
 #
 # Releases are ALFRED series the pipeline already ingests with vintages. The event is the first
-# print of each reference period; the surprise is the as-reported change minus a forecast built
-# from earlier prints only. A consensus surprise (actual minus pre-release survey median) is the
-# better input and is blocked on terms (spec §9.8, P2.4); the `forecaster` block is what stands in
-# for it, and every result is labelled with the forecaster that produced the surprise.
+# print of each reference period; the surprise is the as-reported change minus a forecast. Two
+# forecasters exist and every result is labelled with the one that produced the surprise: the
+# `forecaster` block is a statistical forecast from earlier prints only; the `consensus` block maps
+# releases onto the pre-release survey median in a locally loaded calendar extract (spec §9.8, P2.4;
+# `events consensus-load`). The consensus is the better input where it exists; it is research tier.
 #
 # Markets are daily series from the same store. `response: diff` reports the change in the series
 # unit (pct -> bp); `pct_change` reports a percent return. Horizons are trading days counted from
@@ -28,6 +29,53 @@ forecaster:
   method: ar1               # OLS of the headline change on its lag over the last `window` changes, extrapolated one step
   window: 60                # a trailing mean lags a trend and calls every 2021-22 CPI print a surprise; the AR(1) extrapolates persistence
   min_fit: 12               # until this many changes exist the forecast is the trailing mean
+
+# Survey consensus from a local calendar extract (research tier; spec §9.6, §9.8). `event` is the
+# calendar's `ccy_event` string. The extract dropped the printed unit, so `unit` restates it; `kind`
+# says whether the print is already the headline change, a level, or an annualized quarterly rate.
+# `tolerance` is the print's rounding resolution in change units: the calendar's printed actual must
+# agree with the store's as-reported change within it or the event is dropped (the unit guard).
+# Headline PCE (FRED:PCEPI) has no calendar event (the calendar carries core PCE only) and stays on
+# the statistical forecaster.
+consensus:
+  source_id: forexfactory_legacy
+  forecaster_name: ff_consensus
+  mappings:
+    - release: FRED:PAYEMS
+      event: USD Non-Farm Employment Change
+      kind: change              # printed in thousands of persons (the "K" the extract dropped)
+      unit: persons_k
+      tolerance: 1.0            # 1K: BLS prints the change in thousands
+    - release: FRED:UNRATE
+      event: USD Unemployment Rate
+      kind: level               # printed as the rate itself; change formed against the prior print
+      unit: pct
+      tolerance: 0.051          # 0.1 pp print resolution
+    - release: FRED:CPIAUCSL
+      event: USD CPI m/m
+      kind: change
+      unit: pct
+      tolerance: 0.051          # 0.1% print; the store's change is from a 3-decimal index
+    - release: FRED:CPILFESL
+      event: USD Core CPI m/m
+      kind: change
+      unit: pct
+      tolerance: 0.051
+    - release: FRED:GDPC1
+      event: USD Advance GDP q/q
+      kind: annualized_q_pct    # printed at an annual rate; de-annualized to the quarterly change
+      unit: pct
+      tolerance: 0.026          # 0.1 annualized ~ 0.025 quarterly
+    - release: FRED:INDPRO
+      event: USD Industrial Production m/m
+      kind: change
+      unit: pct
+      tolerance: 0.051
+    - release: FRED:RSAFS
+      event: USD Retail Sales m/m
+      kind: change
+      unit: pct
+      tolerance: 0.051
 
 releases:
   - series_id: FRED:CPIAUCSL

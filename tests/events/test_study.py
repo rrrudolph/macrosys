@@ -294,8 +294,8 @@ def test_write_parameters_and_cli(tmp_path, rng, capsys):
     config_path = tmp_path / "events.yaml"
     config_path.write_text(yaml.safe_dump(config.model_dump(mode="json"), sort_keys=False), encoding="utf-8")
 
-    build_args = SimpleNamespace(db=db, config=config_path, as_of=None)
-    study_args = SimpleNamespace(db=db, config=config_path, as_of=None, write_parameters=tmp_path / "event_response.yaml")
+    build_args = SimpleNamespace(db=db, config=config_path, as_of=None, forecaster="statistical")
+    study_args = SimpleNamespace(db=db, config=config_path, as_of=None, forecaster="statistical", write_parameters=tmp_path / "event_response.yaml")
     assert _cmd_build(build_args) == 0
     assert _cmd_study(study_args) == 0
     out = capsys.readouterr().out
@@ -307,6 +307,7 @@ def test_write_parameters_and_cli(tmp_path, rng, capsys):
     assert entry["beta"]["low"] < 4.0 < entry["beta"]["high"]
     assert "event_study" in entry["beta"]["source"]
     assert "consensus" in written["caveat"]
+    assert written["forecaster"] == config.forecaster.name
 
     conn = duckdb.connect(str(db), read_only=True)
     try:
@@ -317,9 +318,12 @@ def test_write_parameters_and_cli(tmp_path, rng, capsys):
 
 
 def test_format_report_handles_empty_results():
-    lines = format_report([], 0.5)
+    from macrosys.events.estimate import forecaster_caveat
+
+    lines = format_report([], 0.5, forecaster_caveat("ar1:60", "ff_consensus"))
     assert lines[0].startswith("release")
     assert "not a consensus" in lines[-1]
+    assert "survey consensus (ff_consensus)" in forecaster_caveat("ff_consensus", "ff_consensus")
 
 
 def test_write_parameters_omits_pairs_without_a_coefficient(tmp_path):
@@ -327,5 +331,5 @@ def test_write_parameters_omits_pairs_without_a_coefficient(tmp_path):
     config = make_config(responses=[YIELD_UP], horizons=[1])
     store.append(monthly_release_rows([100.0 + i for i in range(4)], month_start(2020, 1)))
     results = run_study(conn, config)
-    path = write_parameters(results, tmp_path / "p.yaml", generated_at=datetime(2026, 10, 14, tzinfo=UTC))
+    path = write_parameters(results, tmp_path / "p.yaml", generated_at=datetime(2026, 10, 14, tzinfo=UTC), forecaster=config.forecaster.name)
     assert yaml.safe_load(path.read_text(encoding="utf-8"))["entries"] == []

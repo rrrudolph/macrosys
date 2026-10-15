@@ -72,6 +72,7 @@ def test_percent_and_index_unit_map(fixtures_dir: Path):
     assert map_fred_unit("Index 1982-1984=100") == "index"
     assert map_fred_unit("Index Jan 2006=100") == "index"
     assert map_fred_unit("Millions of U.S. Dollars") == "USD_mn"
+    assert map_fred_unit("Thousands of Persons") == "persons_k"  # PAYEMS
     with pytest.raises(ValueError, match="no mapping"):
         map_fred_unit("Billions of Widgets")
     content = (fixtures_dir / "sources" / "fred" / "dgs10_observations.json").read_bytes()

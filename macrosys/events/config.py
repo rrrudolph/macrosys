@@ -8,6 +8,7 @@ from typing import Literal, Self
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
+from macrosys.core.units import assert_unit
 from macrosys.mechanisms.spec import MECHANISM_ID
 
 Transform = Literal["pct_change", "diff"]
@@ -93,6 +94,50 @@ class ForecasterSpec(_Strict):
         return f"{self.method}:{self.window}"
 
 
+ConsensusKind = Literal["change", "level", "annualized_q_pct"]
+
+
+class ConsensusMapping(_Strict):
+    """How one calendar event's printed numbers become the release's headline change (spec §9.8, P2.4).
+
+    ``kind`` says what the printed number is: ``change`` when it already is the headline change in
+    the release's change unit (payrolls in thousands, CPI month-on-month in percent); ``level`` when
+    it is the level the release reports (the unemployment rate), so the change is formed against the
+    prior print exactly as the actual is; ``annualized_q_pct`` when it is a quarterly rate quoted at an
+    annual rate (GDP), de-annualized to the quarterly percent change the store computes. ``unit`` is
+    the unit of the printed number; the calendar source dropped the suffix, so it is restated here.
+    ``tolerance`` is the largest gap, in change units, allowed between the calendar's printed actual and
+    the store's as-reported change before the match is refused; it is the print's rounding resolution.
+    """
+
+    release: str
+    event: str
+    kind: ConsensusKind
+    unit: str
+    tolerance: float = Field(gt=0)
+
+    @field_validator("unit")
+    @classmethod
+    def _known_unit(cls, value: str) -> str:
+        assert_unit(value)
+        return value
+
+
+class ConsensusConfig(_Strict):
+    """The survey-consensus input to the surprise (spec §9.8). Loaded from a local file, never fetched."""
+
+    source_id: str
+    forecaster_name: str
+    mappings: list[ConsensusMapping] = Field(min_length=1)
+
+    def mapping_for(self, release_id: str) -> ConsensusMapping | None:
+        return next((item for item in self.mappings if item.release == release_id), None)
+
+    @property
+    def events(self) -> set[str]:
+        return {item.event for item in self.mappings}
+
+
 class EventsConfig(_Strict):
     """Everything the event study reads from configuration (spec §10.1 item 11)."""
 
@@ -111,6 +156,7 @@ class EventsConfig(_Strict):
     markets: list[MarketSpec] = Field(min_length=1)
     regimes: list[RegimeSpec] = Field(default_factory=list)
     responses: list[ResponseSpec] = Field(min_length=1)
+    consensus: ConsensusConfig | None = None
 
     @model_validator(mode="after")
     def _cross_refs(self) -> Self:
@@ -139,6 +185,20 @@ class EventsConfig(_Strict):
             if key in seen:
                 raise ValueError(f"duplicate response for {item.release} -> {item.market}")
             seen.add(key)
+        if self.consensus is not None:
+            if self.consensus.forecaster_name == self.forecaster.name:
+                raise ValueError("consensus forecaster_name collides with the statistical forecaster name")
+            mapped_releases: set[str] = set()
+            mapped_events: set[str] = set()
+            for mapping in self.consensus.mappings:
+                if mapping.release not in releases:
+                    raise ValueError(f"consensus mapping names unknown release {mapping.release!r}")
+                if mapping.release in mapped_releases:
+                    raise ValueError(f"duplicate consensus mapping for release {mapping.release!r}")
+                if mapping.event in mapped_events:
+                    raise ValueError(f"calendar event {mapping.event!r} is mapped to two releases")
+                mapped_releases.add(mapping.release)
+                mapped_events.add(mapping.event)
         return self
 
     def release(self, series_id: str) -> ReleaseSpec:

@@ -76,21 +76,43 @@ def parameter_entries(results: list[ResponseStudy]) -> list[dict[str, object]]:
     return entries
 
 
-def write_parameters(results: list[ResponseStudy], path: str | Path | None = None, generated_at: datetime | None = None) -> Path:
-    """Write the coefficient file and return its path. The file is regenerated whole, never edited."""
+def forecaster_caveat(forecaster: str, consensus_name: str | None) -> str:
+    """One sentence on what the surprise was measured against, for the parameter file and the report."""
+    if consensus_name is not None and forecaster == consensus_name:
+        return (
+            f"Surprises are against the pre-release survey consensus ({consensus_name}), a research-tier "
+            "calendar extract with no publication time of its own (spec 9.6, 9.8, P2.4)."
+        )
+    return f"Surprises are against a statistical forecast from earlier prints ({forecaster}), not a consensus (spec 9.8, P2.4)."
+
+
+def write_parameters(
+    results: list[ResponseStudy],
+    path: str | Path | None = None,
+    generated_at: datetime | None = None,
+    *,
+    forecaster: str,
+    consensus_name: str | None = None,
+) -> Path:
+    """Write the coefficient file and return its path. The file is regenerated whole, never edited.
+
+    ``forecaster`` names what every surprise in ``results`` was measured against; it is written at the
+    top of the file so a reader can tell a consensus-based estimate from a statistical one.
+    """
     target = Path(path) if path is not None else default_parameters_path()
     stamp = generated_at if generated_at is not None else datetime.now(UTC)
     document = {
         "generated_at": stamp.astimezone(UTC).isoformat(),
+        "forecaster": forecaster,
         "method": (
-            "OLS of the market change on the standardized statistical surprise with an intercept; "
+            "OLS of the market change on the standardized surprise with an intercept; "
             "HC1 standard errors; 95% interval is beta +- 1.96 se. Sign tests count events with "
             "|surprise| >= threshold sd. Out-of-sample accuracy uses the slope sign fitted on purged "
             "walk-forward training folds (spec 10.1 item 11, 10.2 item 1)."
         ),
         "caveat": (
-            "Surprises are against a statistical forecast from earlier prints, not a survey consensus "
-            "(spec 9.8, P2.4). Coefficients are market responses per 1 sd surprise, not structural "
+            forecaster_caveat(forecaster, consensus_name)
+            + " Coefficients are market responses per 1 sd surprise, not structural "
             "elasticities; they feed pricing-gap timing and B23, not the IO propagation."
         ),
         "entries": parameter_entries(results),

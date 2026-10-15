@@ -11,6 +11,8 @@ those slopes: a front end that has already moved by the conservative edge is not
 
 from macrosys.events.assess import ReleaseAssessment, assess_release
 from macrosys.events.config import (
+    ConsensusConfig,
+    ConsensusMapping,
     EventsConfig,
     MarketSpec,
     RegimeSpec,
@@ -18,6 +20,7 @@ from macrosys.events.config import (
     ResponseSpec,
     load_events_config,
 )
+from macrosys.events.consensus import ConsensusLookup, read_legacy_sqlite
 from macrosys.events.outcomes import market_outcomes
 from macrosys.events.response import (
     ResponseBook,
@@ -27,12 +30,17 @@ from macrosys.events.response import (
     load_responses,
     response_block,
 )
-from macrosys.events.schema import EventOutcome, ResponseStudy, SurpriseEvent
-from macrosys.events.store import SurpriseStore, create_events_schema
+from macrosys.events.schema import ConsensusPrint, EventOutcome, ResponseStudy, SurpriseEvent
+from macrosys.events.store import ConsensusStore, SurpriseStore, create_events_schema
 from macrosys.events.study import run_study
 from macrosys.events.surprise import build_surprises
 
 __all__ = [
+    "ConsensusConfig",
+    "ConsensusLookup",
+    "ConsensusMapping",
+    "ConsensusPrint",
+    "ConsensusStore",
     "EventOutcome",
     "EventsConfig",
     "MarketSpec",
@@ -53,6 +61,7 @@ __all__ = [
     "load_events_config",
     "load_responses",
     "market_outcomes",
+    "read_legacy_sqlite",
     "response_block",
     "run_study",
 ]

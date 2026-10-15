@@ -49,6 +49,7 @@ FRED_UNIT_MAP: dict[str, str] = {
     "Millions of Dollars": "USD_mn",
     "Millions of U.S. Dollars": "USD_mn",  # WALCL
     "Thousands of Dollars": "USD_k",
+    "Thousands of Persons": "persons_k",   # PAYEMS
     "Dollars": "USD",
     "Percent": "pct",
     "Percent Change": "pct",

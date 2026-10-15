@@ -16,6 +16,7 @@ Dimensions
 - ``rate``: ``pct`` (percent), ``pp`` (percentage points), ``bp`` (basis points) — these are *not*
   interconvertible with each other except pp<->bp (both are differences); pct is a level or growth rate.
 - ``ratio``: ``share`` (0..1), ``ratio``; ``index``: ``index``; ``count``: ``count``.
+- ``persons``: ``persons``, ``persons_k`` (thousands; payroll employment is published this way).
 - ``time``: ``d``, ``w``, ``m``, ``q``, ``y``.
 """
 
@@ -71,6 +72,9 @@ _STATIC: dict[str, Unit] = {
     "ratio": Unit("ratio", "ratio", 1.0),
     "index": Unit("index", "index", 1.0),
     "count": Unit("count", "count", 1.0),
+    # persons (own dimension so a head count is never added to a generic count)
+    "persons": Unit("persons", "persons", 1.0),
+    "persons_k": Unit("persons_k", "persons", 1e3),
     # time
     "d": Unit("d", "time", 1.0),
     "w": Unit("w", "time", 7.0),
