@@ -11,6 +11,7 @@ from macrosys.risk import (
     correlation_changed,
     correlation_interval,
     dcc,
+    equity_regime_flag,
     ewma_correlation,
     rolling_correlation,
     two_state_variance_regime,
@@ -85,3 +86,21 @@ def test_dcc_returns_a_correlation_path():
     assert 0.0 <= result.b
     assert result.a + result.b < 1.0
     assert result.correlation[:, 0, 1].mean() == pytest.approx(rho, abs=0.15)
+
+
+def test_equity_regime_flag_deteriorates_only_when_absorption_jumps():
+    rng = np.random.default_rng(1)
+    factor = rng.normal(scale=0.01, size=(400, 1))
+    calm = factor @ np.ones((1, 3))
+    calm_flag = equity_regime_flag(calm[:, 0], pd.DataFrame(calm, columns=list("abc")))
+    assert calm_flag in {"stable", "stressed"}
+
+    independent = rng.normal(scale=0.01, size=(340, 3))
+    spike = rng.normal(scale=0.01, size=(70, 1)) @ np.ones((1, 3))
+    broken = np.vstack([independent, spike])
+    flag = equity_regime_flag(broken[:, 0], pd.DataFrame(broken, columns=list("abc")))
+    assert flag == "deteriorating"
+
+
+def test_equity_regime_flag_is_unknown_on_a_short_series():
+    assert equity_regime_flag(np.zeros(10)) == "unknown"

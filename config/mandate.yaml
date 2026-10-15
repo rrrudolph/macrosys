@@ -9,8 +9,20 @@ decision:
   tz: America/Chicago
 horizon_months: {min: 1, max: 12}
 leverage: {allowed: false}
-shorting: {allowed: false}
+# Owner decision 2026-10-15: outright shorts of any universe ETF. Without leverage the book's gross
+# exposure (longs plus shorts) stays at or under 100% of NAV. borrow_cost_bp_annual is the broker's
+# stock-loan rate on the short notional; null means no short can be costed until it is entered.
+shorting:
+  allowed: true
+  borrow_cost_bp_annual: null   # TODO_owner: enter the broker's general-collateral ETF borrow rate
 excluded_structures: [leveraged, inverse, vix_linked]
+# Owner decision 2026-10-15: the resting book when no thesis passes. One fund per asset class, each
+# weighted by the inverse of its trailing 63-day volatility, held under the position limit below.
+# The list is configuration; the method is the only one implemented.
+baseline:
+  method: inverse_vol
+  window_days: 63
+  instruments: [SPY, EFA, EEM, IEF, TIP, LQD, GLD, DBC]
 risk:
   # About 12% annual volatility: above a 60/40 book (~8–10%), below an all-equity book (~15–18%).
   vol_target_annual_pct: 17

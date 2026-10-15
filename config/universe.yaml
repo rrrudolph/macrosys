@@ -1,58 +1,317 @@
 # Illustrative ETF universe (spec §11.1). Tickers are configuration, not design; the owner edits this file.
 # `structure`: physical | futures | synthetic | hedged. Leveraged/inverse/VIX-linked products are excluded by mandate.
+#
+# `exposure` and `expense_ratio` below are issuer facts [M], read 2026-10-15. A label means the fund's
+# stated objective (weight 1 of that bucket), not a holdings estimate. A field the page did not support
+# is omitted, and the expression check then fails. The store's holding_snapshot table is empty, so this
+# file is the exposure path until N-PORT rows exist. Expense ratios are annual NAV shares (0.0049 = 0.49%).
+# Where the issuer publishes a gross and a net figure, the net is stored and the gross is in the comment.
 instruments:
   # Global / regional equity
-  - {ticker: ACWI, structure: physical, role: factor_global_equity}
-  - {ticker: SPY,  structure: physical}
-  - {ticker: IWM,  structure: physical}
-  - {ticker: EFA,  structure: physical}
-  - {ticker: HEFA, structure: hedged, hedged_pair_of: EFA}
-  - {ticker: EEM,  structure: physical, role: factor_em_equity}
-  - {ticker: EWJ,  structure: physical}
-  - {ticker: DXJ,  structure: hedged, hedged_pair_of: EWJ}
-  - {ticker: EWG,  structure: physical}
-  - {ticker: EWU,  structure: physical}
-  - {ticker: MCHI, structure: physical}
-  - {ticker: EWY,  structure: physical}
-  - {ticker: EWT,  structure: physical}
-  - {ticker: INDA, structure: physical}
-  - {ticker: EWZ,  structure: physical}
-  - {ticker: EWW,  structure: physical}
-  - {ticker: EWC,  structure: physical}
-  - {ticker: EWA,  structure: physical}
-  # US sectors
-  - {ticker: XLE, structure: physical}
-  - {ticker: XLB, structure: physical}
-  - {ticker: XLI, structure: physical}
-  - {ticker: XLF, structure: physical}
-  - {ticker: XLK, structure: physical}
-  - {ticker: XLU, structure: physical}
-  - {ticker: XLV, structure: physical}
-  - {ticker: XLY, structure: physical}
-  - {ticker: XLP, structure: physical}
-  - {ticker: XLRE, structure: physical}
-  - {ticker: XHB, structure: physical}
-  # Rates
-  - {ticker: BIL, structure: physical}
-  - {ticker: SHY, structure: physical}
-  - {ticker: IEI, structure: physical}
-  - {ticker: IEF, structure: physical, role: factor_us_duration}
-  - {ticker: TLT, structure: physical}
-  - {ticker: TIP, structure: physical}
-  # Credit
-  - {ticker: LQD, structure: physical, role: factor_ig_credit}
-  - {ticker: HYG, structure: physical, role: factor_hy_credit}
-  - {ticker: EMB, structure: physical}
-  - {ticker: EMLC, structure: physical}
+  # ACWI 0.32% gross = net. Global large/mid equities; no single country.
+  # https://www.ishares.com/us/products/239600/ishares-msci-acwi-etf
+  # https://www.ishares.com/us/products/etf-investments
+  - ticker: ACWI
+    structure: physical
+    role: factor_global_equity
+    expense_ratio: 0.0032
+    exposure: {asset_class: equity}
+  # SPY gross = net 0.0945%. Benchmark S&P 500 Index (US equities).
+  # https://www.ssga.com/us/en/intermediary/etfs/state-street-spdr-sp-500-etf-trust-spy
+  - ticker: SPY
+    structure: physical
+    expense_ratio: 0.000945
+    exposure: {asset_class: equity, country: USA, currency: USD}
+  # IWM 0.19% gross = net. Russell 2000 US small-cap, from the iShares product name on the fund list.
+  # https://www.ishares.com/us/products/etf-investments
+  - ticker: IWM
+    structure: physical
+    expense_ratio: 0.0019
+    exposure: {asset_class: equity, country: USA, currency: USD}
+  # EFA 0.32%. Developed equities outside the US and Canada; no single country.
+  # https://www.ishares.com/us/products/239623/ishares-msci-eafe-etf
+  - ticker: EFA
+    structure: physical
+    expense_ratio: 0.0032
+    exposure: {asset_class: equity}
+  # HEFA gross 0.70%, net 0.35% after the prospectus waiver. MSCI EAFE 100% hedged to USD.
+  # No single country. Currency left is the dollar.
+  # https://www.ishares.com/us/products/259622/ishares-currency-hedged-msci-eafe-etf
+  - ticker: HEFA
+    structure: hedged
+    hedged_pair_of: EFA
+    expense_ratio: 0.0035
+    exposure: {asset_class: equity, currency: USD}
+  # EEM 0.72%. Emerging-market equities; no single country on the fund list.
+  # https://www.ishares.com/us/products/etf-investments
+  - ticker: EEM
+    structure: physical
+    role: factor_em_equity
+    expense_ratio: 0.0072
+    exposure: {asset_class: equity}
+  # EWJ 0.49%. "seeks to track an index composed of Japanese equities." Unhedged, so the yen remains.
+  # https://www.ishares.com/us/products/239665/ishares-msci-japan-etf
+  - ticker: EWJ
+    structure: physical
+    expense_ratio: 0.0049
+    exposure: {asset_class: equity, country: JPN, currency: JPY}
+  # DXJ expense ratio 0.48% as of 2026-10-14. Japanese equities, hedged USD/JPY.
+  # The page says the cost to hedge is in the NAV and is not a separate fee.
+  # https://www.wisdomtree.com/us/products/equity/dxj
+  - ticker: DXJ
+    structure: hedged
+    hedged_pair_of: EWJ
+    expense_ratio: 0.0048
+    exposure: {asset_class: equity, country: JPN, currency: USD}
+  # Single-country iShares MSCI funds. Expense ratios are gross = net on the fund list.
+  # Currency is the unhedged local listing currency; the hedged class is a different ticker.
+  # https://www.ishares.com/us/products/etf-investments
+  - ticker: EWG
+    structure: physical
+    expense_ratio: 0.0049
+    exposure: {asset_class: equity, country: DEU, currency: EUR}
+  - ticker: EWU
+    structure: physical
+    expense_ratio: 0.0050
+    exposure: {asset_class: equity, country: GBR, currency: GBP}
+  # MSCI China holds mainland, Hong Kong, and US listings, so currency is left unset.
+  - ticker: MCHI
+    structure: physical
+    expense_ratio: 0.0059
+    exposure: {asset_class: equity, country: CHN}
+  - ticker: EWY
+    structure: physical
+    expense_ratio: 0.0059
+    exposure: {asset_class: equity, country: KOR, currency: KRW}
+  - ticker: EWT
+    structure: physical
+    expense_ratio: 0.0059
+    exposure: {asset_class: equity, country: TWN, currency: TWD}
+  - ticker: INDA
+    structure: physical
+    expense_ratio: 0.0061
+    exposure: {asset_class: equity, country: IND, currency: INR}
+  - ticker: EWZ
+    structure: physical
+    expense_ratio: 0.0059
+    exposure: {asset_class: equity, country: BRA, currency: BRL}
+  - ticker: EWW
+    structure: physical
+    expense_ratio: 0.0050
+    exposure: {asset_class: equity, country: MEX, currency: MXN}
+  - ticker: EWC
+    structure: physical
+    expense_ratio: 0.0050
+    exposure: {asset_class: equity, country: CAN, currency: CAD}
+  - ticker: EWA
+    structure: physical
+    expense_ratio: 0.0050
+    exposure: {asset_class: equity, country: AUS, currency: AUD}
+  # US sectors. Select Sector SPDRs are gross 0.08% and track that sector of the S&P 500, in USD.
+  # Read 2026-10-15. Each URL is that fund's State Street page.
+  # XLE https://www.ssga.com/us/en/intermediary/etfs/state-street-energy-select-sector-spdr-etf-xle
+  - ticker: XLE
+    structure: physical
+    expense_ratio: 0.0008
+    exposure: {asset_class: equity, country: USA, sector: energy, currency: USD}
+  # XLB materials sector of the S&P 500. Gross 0.08%.
+  # https://www.ssga.com/us/en/intermediary/etfs/state-street-materials-select-sector-spdr-etf-xlb
+  - ticker: XLB
+    structure: physical
+    expense_ratio: 0.0008
+    exposure: {asset_class: equity, country: USA, sector: materials, currency: USD}
+  # XLI industrial sector of the S&P 500. Gross 0.08%.
+  # https://www.ssga.com/us/en/intermediary/etfs/state-street-industrial-select-sector-spdr-etf-xli
+  - ticker: XLI
+    structure: physical
+    expense_ratio: 0.0008
+    exposure: {asset_class: equity, country: USA, sector: industrials, currency: USD}
+  # XLF financial sector of the S&P 500. Gross 0.08%.
+  # https://www.ssga.com/us/en/intermediary/etfs/state-street-financial-select-sector-spdr-etf-xlf
+  - ticker: XLF
+    structure: physical
+    expense_ratio: 0.0008
+    exposure: {asset_class: equity, country: USA, sector: financials, currency: USD}
+  # XLK technology sector of the S&P 500. Gross 0.08%.
+  # https://www.ssga.com/us/en/intermediary/etfs/state-street-technology-select-sector-spdr-etf-xlk
+  - ticker: XLK
+    structure: physical
+    expense_ratio: 0.0008
+    exposure: {asset_class: equity, country: USA, sector: technology, currency: USD}
+  # XLU utilities sector of the S&P 500. Gross 0.08%.
+  # https://www.ssga.com/us/en/intermediary/etfs/state-street-utilities-select-sector-spdr-etf-xlu
+  - ticker: XLU
+    structure: physical
+    expense_ratio: 0.0008
+    exposure: {asset_class: equity, country: USA, sector: utilities, currency: USD}
+  # XLV health care sector of the S&P 500. Gross 0.08%.
+  # https://www.ssga.com/us/en/intermediary/etfs/state-street-health-care-select-sector-spdr-etf-xlv
+  - ticker: XLV
+    structure: physical
+    expense_ratio: 0.0008
+    exposure: {asset_class: equity, country: USA, sector: health care, currency: USD}
+  # XLY consumer discretionary sector of the S&P 500. Gross 0.08%.
+  # https://www.ssga.com/us/en/individual/etfs/state-street-consumer-discretionary-select-sector-spdr-etf-xly
+  - ticker: XLY
+    structure: physical
+    expense_ratio: 0.0008
+    exposure: {asset_class: equity, country: USA, sector: consumer discretionary, currency: USD}
+  # XLP consumer staples sector of the S&P 500. Gross 0.08%.
+  # https://www.ssga.com/us/en/intermediary/etfs/state-street-consumer-staples-select-sector-spdr-etf-xlp
+  - ticker: XLP
+    structure: physical
+    expense_ratio: 0.0008
+    exposure: {asset_class: equity, country: USA, sector: consumer staples, currency: USD}
+  # XLRE real estate sector of the S&P 500. Gross 0.08%.
+  # https://www.ssga.com/us/en/intermediary/etfs/state-street-real-estate-select-sector-spdr-etf-xlre
+  - ticker: XLRE
+    structure: physical
+    expense_ratio: 0.0008
+    exposure: {asset_class: equity, country: USA, sector: real estate, currency: USD}
+  # XHB is not a Select Sector fund. Gross 0.35%. S&P Homebuilders Select Industry Index
+  # (homebuilders segment of the S&P TMI, US large/mid/small cap). Read 2026-10-15.
+  # https://www.ssga.com/us/en/intermediary/etfs/state-street-spdr-sp-homebuilders-etf-xhb
+  - ticker: XHB
+    structure: physical
+    expense_ratio: 0.0035
+    exposure: {asset_class: equity, country: USA, sector: homebuilders, currency: USD}
+  # Rates. iShares Treasury names state the maturity band and the US Treasury issuer.
+  # Fees are gross = net on https://www.ishares.com/us/products/etf-investments
+  # BIL gross expense ratio 0.1353%. Publicly issued U.S. Treasury bills with 1–3 months left.
+  # Benchmark: Bloomberg 1-3 Month U.S. Treasury Bill Index. Base currency USD. Read 2026-10-15.
+  # https://www.ssga.com/us/en/individual/etfs/state-street-spdr-bloomberg-1-3-month-t-bill-etf-bil
+  - ticker: BIL
+    structure: physical
+    expense_ratio: 0.001353
+    exposure: {asset_class: fixed_income, country: USA, currency: USD, duration_bucket: "1_3m"}
+  - ticker: SHY
+    structure: physical
+    expense_ratio: 0.0015
+    exposure: {asset_class: fixed_income, country: USA, currency: USD, duration_bucket: "1_3y"}
+  - ticker: IEI
+    structure: physical
+    expense_ratio: 0.0015
+    exposure: {asset_class: fixed_income, country: USA, currency: USD, duration_bucket: "3_7y"}
+  - ticker: IEF
+    structure: physical
+    role: factor_us_duration
+    expense_ratio: 0.0015
+    exposure: {asset_class: fixed_income, country: USA, currency: USD, duration_bucket: "7_10y"}
+  - ticker: TLT
+    structure: physical
+    expense_ratio: 0.0015
+    exposure: {asset_class: fixed_income, country: USA, currency: USD, duration_bucket: "20y_plus"}
+  # TIP 0.18%. US Treasury inflation-protected securities; maturities are mixed, so no single bucket
+  # beyond the TIPS label. https://www.ishares.com/us/products/239467/ishares-tips-bond-etf
+  - ticker: TIP
+    structure: physical
+    expense_ratio: 0.0018
+    exposure: {asset_class: fixed_income, country: USA, currency: USD, duration_bucket: tips}
+  # Credit. "$" on the iShares name is the dollar, not a single country of issuer.
+  - ticker: LQD
+    structure: physical
+    role: factor_ig_credit
+    expense_ratio: 0.0014
+    exposure: {asset_class: fixed_income, currency: USD}
+  - ticker: HYG
+    structure: physical
+    role: factor_hy_credit
+    expense_ratio: 0.0049
+    exposure: {asset_class: fixed_income, currency: USD}
+  # EMB 0.39%. J.P. Morgan USD emerging-markets bond; dollar bonds, no single country.
+  - ticker: EMB
+    structure: physical
+    expense_ratio: 0.0039
+    exposure: {asset_class: fixed_income, currency: USD}
+  # EMLC gross 0.31%, net 0.30% with a waiver through at least 2027-05-01.
+  # Local-currency EM bonds; no single country or currency.
+  # https://www.vaneck.com/us/en/investments/jp-morgan-em-local-currency-bond-etf-emlc/
+  - ticker: EMLC
+    structure: physical
+    expense_ratio: 0.0030
+    exposure: {asset_class: fixed_income}
   # Commodities and FX
-  - {ticker: GLD, structure: physical, role: factor_gold}
-  - {ticker: SLV, structure: physical}
-  - {ticker: DBC, structure: futures}
-  - {ticker: USO, structure: futures, role: factor_energy}
-  - {ticker: UNG, structure: futures}
-  - {ticker: CPER, structure: futures}
-  - {ticker: DBB, structure: futures, role: factor_industrial_metals}
-  - {ticker: DBA, structure: futures}
-  - {ticker: UUP, structure: futures, role: factor_usd}
-  - {ticker: FXE, structure: physical}
-  - {ticker: FXY, structure: physical}
+  # GLD gross expense ratio 0.40%. Gold custodians; physical bullion, not a country.
+  # https://www.ssga.com/us/en/intermediary/etfs/spdr-gold-shares-gld
+  - ticker: GLD
+    structure: physical
+    role: factor_gold
+    expense_ratio: 0.0040
+    exposure: {asset_class: commodity, commodity: gold}
+  # SLV 0.50% sponsor fee on the iShares list. Silver bullion.
+  # https://www.ishares.com/us/products/etf-investments
+  - ticker: SLV
+    structure: physical
+    expense_ratio: 0.0050
+    exposure: {asset_class: commodity, commodity: silver}
+  # Invesco DB funds, total / net: DBC 0.89 / 0.84, DBA 0.93 / 0.88, DBB 0.79 / 0.75.
+  # Baskets, so no single commodity. https://www.invesco.com/us/en/solutions/invesco-etfs/commodity-investing.html
+  - ticker: DBC
+    structure: futures
+    expense_ratio: 0.0084
+    exposure: {asset_class: commodity}
+  # USO: light sweet crude (WTI) futures. The uscfinvestments.com fee cell is blank.
+  # Prospectus dated 2026-04-24: total annual fund operating expenses 0.86%
+  # (management 0.45% + other 0.41% for the year ended 2025). Read 2026-10-15.
+  # https://www.uscfinvestments.com/uso
+  # https://www.sec.gov/Archives/edgar/data/1327068/000207187626000128/i26211_uso-424b3.htm
+  - ticker: USO
+    structure: futures
+    role: factor_energy
+    underlying: WTI
+    expense_ratio: 0.0086
+    exposure: {asset_class: commodity, commodity: WTI}
+  # UNG: natural gas futures (Henry Hub benchmark contract). The site fee cell is blank;
+  # the footnote is only the tiered management fee. Prospectus dated 2026-04-24 states
+  # total annual fund operating expenses of 1.17% (management 0.60% on assets up to $1bn,
+  # other 0.57% for 2025). Above $1bn the management fee on the increment is 0.50% and the
+  # total would be lower. 2025 average assets were about $520m, so 1.17% is the stated total.
+  # Read 2026-10-15.
+  # https://www.uscfinvestments.com/ung
+  # https://www.sec.gov/Archives/edgar/data/1376227/000207187626000124/i26207_ung-424b3.htm
+  - ticker: UNG
+    structure: futures
+    underlying: natural gas
+    expense_ratio: 0.0117
+    exposure: {asset_class: commodity, commodity: natural gas}
+  # CPER total expense ratio 0.88% (0.65% management + 0.23% other, year ended 2025).
+  # Objective: SummerHaven Copper Index via copper futures.
+  # https://www.uscfinvestments.com/cper
+  # https://www.sec.gov/Archives/edgar/data/1479247/000207187626000122/i26205_cper-424b3.htm
+  - ticker: CPER
+    structure: futures
+    underlying: copper
+    expense_ratio: 0.0088
+    exposure: {asset_class: commodity, commodity: copper}
+  - ticker: DBB
+    structure: futures
+    role: factor_industrial_metals
+    expense_ratio: 0.0075
+    exposure: {asset_class: commodity}
+  - ticker: DBA
+    structure: futures
+    expense_ratio: 0.0088
+    exposure: {asset_class: commodity}
+  # UUP: long DX futures tracking the Deutsche Bank Long USD Currency Portfolio Index
+  # (long the dollar against the USDX basket). Filing states aggregate fees of about 0.78%
+  # a year; the same report shows expenses prior to waivers of 0.78% and after waivers of
+  # 0.76%, 0.68%, and 0.75% across the three periods, so 0.78% is the gross figure.
+  # Read 2026-10-15.
+  # https://www.invesco.com/us-rest/contentdetail?contentId=3d46d72b-1df3-4f04-b1fc-b57c7e70abf3&dnsName=us
+  - ticker: UUP
+    structure: futures
+    role: factor_usd
+    expense_ratio: 0.0078
+    exposure: {currency: USD}
+  # FXE: holds euro deposits. Sponsor fee 0.40% a year of the euro in the trust. Read 2026-10-15.
+  # https://www.invesco.com/us-rest/contentdetail?contentId=a03a182b-68e7-418a-8cde-bf2b89d58813&dnsName=us
+  - ticker: FXE
+    structure: physical
+    expense_ratio: 0.0040
+    exposure: {asset_class: cash, currency: EUR}
+  # FXY: holds yen deposits. Sponsor fee 0.40% a year of the yen in the trust. Read 2026-10-15.
+  # https://www.invesco.com/us-rest/contentdetail?contentId=92a4dc36-ea7d-4a1d-ba3f-31ba6d4208a2&dnsName=us
+  - ticker: FXY
+    structure: physical
+    expense_ratio: 0.0040
+    exposure: {asset_class: cash, currency: JPY}

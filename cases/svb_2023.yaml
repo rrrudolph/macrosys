@@ -36,7 +36,7 @@ observed_structure:
     horizon_q: [0, 1]
     dominant_competing: A07_central_bank_balance_sheet
     source_url: "https://www.federalreserve.gov/publications/files/svb-review-20230428.pdf"
-    source_note: "Federal Reserve SVB review (April 2023): uninsured deposit outflows and securities losses produced funding failure. The stress sign is positive. No deposit total is stored."
+    source_note: "Federal Reserve SVB review (April 2023): uninsured deposit outflows and securities losses produced funding failure. The stress sign is positive. No deposit total is stored. The funding-squeeze card lists the central-bank facility response (A07) as the competing backstop (spec §3.3 B27)."
     mechanism_id: B27_funding_squeeze
     output: d_spread
   - entity:

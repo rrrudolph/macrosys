@@ -5,12 +5,18 @@ miss, duplicate write-ups are one fact, and non-evidential outcomes are labelled
 assert that the library is right about history; that is the score's job, not the test's.
 """
 
+from datetime import UTC, date, datetime
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from macrosys.cases.runner import CaseRunner, CaseSuite
-from macrosys.cases.schema import load_cases
+import duckdb
+
+from macrosys.cases.runner import CaseRunner, CaseSuite, read_input_level
+from macrosys.cases.schema import FixtureLevel, load_cases
 from macrosys.mechanisms.library import load_library
+from macrosys.store.observations import ObservationStore
+from macrosys.store.schema import create_schema
+from tests.store.factories import obs
 
 CASES = load_cases(Path(__file__).resolve().parents[2] / "cases")
 LIBRARY = load_library(Path(__file__).resolve().parents[2] / "mechanisms")
@@ -84,6 +90,45 @@ def test_duplicate_write_ups_of_one_outcome_score_once():
     once = CaseRunner().replay(case, LIBRARY)
     twice = CaseRunner().replay(doubled, LIBRARY)
     assert twice.n_scored == once.n_scored
+
+
+def test_snapshot_input_ignores_a_reading_published_after_the_cutoff():
+    cutoff = datetime(2020, 6, 30, 23, 59, 59, tzinfo=UTC)
+    level = FixtureLevel(value=0.85, unit="share", series_id="FRED:TCU", scale=0.01)
+    conn = duckdb.connect(database=":memory:")
+    try:
+        create_schema(conn)
+        ObservationStore(conn).append(
+            [
+                obs(
+                    "FRED:TCU",
+                    date(2020, 4, 1),
+                    date(2020, 4, 30),
+                    64.2,
+                    datetime(2020, 5, 15, tzinfo=UTC),
+                    "v1",
+                    unit="pct",
+                ),
+                obs(
+                    "FRED:TCU",
+                    date(2020, 5, 1),
+                    date(2020, 5, 31),
+                    99.0,
+                    datetime(2020, 7, 15, tzinfo=UTC),
+                    "v2",
+                    unit="pct",
+                ),
+            ]
+        )
+        view = ObservationStore(conn).snapshot(cutoff)
+        got = read_input_level(level, view)
+    finally:
+        conn.close()
+    assert got.value == 0.642
+    assert got.unit == "share"
+    assert got.provenance == "snapshot:FRED:TCU"
+    assert read_input_level(level, None).provenance == "case_fixture"
+    assert read_input_level(level, None).value == 0.85
 
 
 def test_held_out_split_adds_up():

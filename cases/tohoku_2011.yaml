@@ -9,7 +9,7 @@ shock:
     entity_id: JPN
   size:
     value: -1.0
-    unit: pct
+    unit: USD_bn
     provenance: case_fixture
   start: 2011-03-11
   stage: observed
@@ -33,7 +33,7 @@ expected_structure:
     variable: auto_output
     sign: -1
     horizon_q: [0, 2]
-    dominant_competing: B24_supply_chain
+    dominant_competing: B04_inventory_cycle
 observed_structure:
   - entity:
       type: economy
@@ -52,9 +52,9 @@ observed_structure:
     variable: auto_output
     sign: -1
     horizon_q: [0, 2]
-    dominant_competing: B24_supply_chain
+    dominant_competing: B04_inventory_cycle
     source_url: "https://www.federalreserve.gov/monetarypolicy/fomcminutes20110427.htm"
-    source_note: "FOMC minutes 26-27 April 2011: the disaster disrupted global supply chains, especially autos, and was discussed as temporary. Sign only."
+    source_note: "FOMC minutes 26-27 April 2011: the disaster disrupted global supply chains, especially autos, and was discussed as temporary. Sign only. The supply-chain card lists inventory buffers (B04) as the competing offset (spec §3.3 B24)."
     mechanism_id: B24_supply_chain
     output: output_loss
     polarity: opposite
@@ -71,8 +71,6 @@ replay:
       inventory_days: {value: 0.0, unit: d}
   B04_inventory_cycle:
     shock_input: d_sales
-    shock_value: -1.0
-    shock_unit: USD_bn
     inputs:
       inventory: {value: 100.0, unit: USD_bn}
       sales: {value: 200.0, unit: USD_bn}
@@ -80,5 +78,7 @@ replay:
 fixture_observations: fixtures/tohoku_2011.csv
 notes: >
   The shock size is a case_fixture sign-carrier for replay, not a measured magnitude.
+  Its unit is USD_bn so the recorded sign can enter B04's sales change. Inventory and sales
+  levels stay case_fixture because Japanese stocks are not in the store.
   Observation rows are case_fixture placeholders with quality_flag estimated.
   Observed outcomes record signs, ordering, and the dominant competing channel only.

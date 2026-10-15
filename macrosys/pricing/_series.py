@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import math
-from datetime import date
+from datetime import date, datetime
 
 from macrosys.core.quantity import Quantity
+from macrosys.pricing.errors import NoPricedInError
 from macrosys.store.observations import PointInTime
 
 
@@ -26,6 +27,36 @@ def latest(snapshot: PointInTime, series_id: str, as_of: date | None = None) -> 
     if value is None or _missing(value):
         return None
     return Quantity(value=float(value), unit=str(row["unit"]), provenance=series_id)
+
+
+def history(snapshot: PointInTime, series_id: str, as_of: date) -> tuple[list[tuple[date, float]], str | None]:
+    """Visible prints of ``series_id`` with ``ref_period_end <= as_of``, oldest first (spec §9.2).
+
+    The snapshot has already applied ``published_at``. A null value is dropped.
+    Every remaining row must share one unit. The date is the reference-period end.
+    """
+    frame = snapshot.get(series_id, end=as_of)
+    if frame.empty:
+        return [], None
+    ordered = frame.sort_values(["ref_period_end", "ref_period_start"], kind="mergesort")
+    points: list[tuple[date, float]] = []
+    unit: str | None = None
+    for _, row in ordered.iterrows():
+        value = row["value"]
+        if value is None or _missing(value):
+            continue
+        end = row["ref_period_end"]
+        if isinstance(end, datetime):
+            end = end.date()
+        if end > as_of:
+            continue
+        row_unit = str(row["unit"])
+        if unit is None:
+            unit = row_unit
+        elif row_unit != unit:
+            raise NoPricedInError(f"{series_id} mixes units {unit} and {row_unit}")
+        points.append((end, float(value)))
+    return points, unit
 
 
 def month_starts(origin: date, count: int) -> list[date]:

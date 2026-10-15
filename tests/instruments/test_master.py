@@ -56,6 +56,31 @@ def test_mandate_rejects_leveraged_inverse_and_vix(fixtures_dir: Path):
     MandateExclusions.check({"ticker": "UUP", "structure": "futures"})
 
 
+def test_working_universe_keeps_verified_exposure_and_fees():
+    book = {row.ticker: row for row in load_universe(EXAMPLE.parent / "universe.yaml")}
+    assert book["SPY"].expense_ratio == 0.000945
+    assert book["SPY"].exposure is not None
+    assert book["SPY"].exposure.country == "USA"
+    assert book["SPY"].exposure.asset_class == "equity"
+    assert book["CPER"].expense_ratio == 0.0088
+    assert book["CPER"].exposure is not None
+    assert book["CPER"].exposure.commodity == "copper"
+    assert book["CPER"].underlying == "copper"
+    assert book["HEFA"].expense_ratio == 0.0035
+    assert book["HEFA"].exposure is not None
+    assert book["HEFA"].exposure.currency == "USD"
+    # Fees read from the 2026-04-24 prospectuses; the USCF pages leave the cell blank.
+    assert book["USO"].expense_ratio == 0.0086
+    assert book["USO"].exposure is not None
+    assert book["USO"].exposure.commodity == "wti"
+    assert book["XLB"].exposure is not None and book["XLB"].exposure.sector is not None
+    assert book["XLB"].expense_ratio == 0.0008
+    assert book["UNG"].exposure is not None and book["UNG"].expense_ratio == 0.0117
+    assert book["FXE"].expense_ratio == 0.004
+    # Every universe record now carries both facts, so the approver never falls back to a blank.
+    assert all(row.expense_ratio is not None and row.exposure is not None for row in book.values())
+
+
 def test_hedged_pair_and_structure_rules(tmp_path: Path):
     missing = tmp_path / "missing.yaml"
     missing.write_text("instruments:\n  - {ticker: HEFA, structure: hedged}\n", encoding="utf-8")

@@ -72,6 +72,22 @@ def test_industry_falls_back_with_low_confidence_and_a_wider_range(store):
     assert "TODO_estimate" in (got.implied_change.provenance or "")
 
 
+def test_borrowing_and_emb_credit_name_the_series_that_would_close_them(store):
+    paths = StoreImpliedPaths(store.snapshot(_AS_OF))
+    with pytest.raises(NoPricedInError) as borrowing:
+        priced_in(EntityKey(entity_type="economy", entity_id="USA"), "borrowing", (0.0, 4.0), paths, _DAY)
+    borrowing_text = str(borrowing.value)
+    assert "TODO_estimate" in borrowing_text
+    assert "TIINGO:SPY" in borrowing_text
+    assert "FRED:NCBCMDPMVCE" in borrowing_text
+    with pytest.raises(NoPricedInError) as emb:
+        priced_in(EntityKey(entity_type="instrument", entity_id="EMB"), "credit", (0.0, 4.0), paths, _DAY)
+    emb_text = str(emb.value)
+    assert "TODO_estimate" in emb_text
+    assert "FRED:BAMLEMCBPIOAS" in emb_text
+    assert "J.P. Morgan EMBI" in emb_text
+
+
 def test_unmapped_entity_names_what_is_missing(store):
     snap = _policy_store(store)
     paths = StoreImpliedPaths(snap)

@@ -26,7 +26,14 @@ import pandas as pd
 from pydantic import BaseModel, ConfigDict, Field
 
 from macrosys.cases.replay_params import ReplayParameterSet, load_replay_parameters
-from macrosys.cases.schema import Case, ObservedPoint, ReplayStep, StructurePoint, default_cases_dir
+from macrosys.cases.schema import (
+    Case,
+    FixtureLevel,
+    ObservedPoint,
+    ReplayStep,
+    StructurePoint,
+    default_cases_dir,
+)
 from macrosys.core.contracts import Observation
 from macrosys.core.quantity import Quantity
 from macrosys.mechanisms import (
@@ -137,9 +144,11 @@ class CaseRunner:
         recipes: list[Recipe] | None = None,
         case_root: str | Path | None = None,
         replay_parameters: ReplayParameterSet | None | bool = True,
+        store: duckdb.DuckDBPyConnection | None = None,
     ) -> None:
         self.recipes = recipes
         self.case_root = Path(case_root) if case_root is not None else default_cases_dir()
+        self.store = store
         if replay_parameters is True:
             self.replay_parameters: ReplayParameterSet = load_replay_parameters()
         elif replay_parameters is False or replay_parameters is None:
@@ -174,7 +183,8 @@ class CaseRunner:
                     f"case_fixture:{case.case_id} quality:{row.quality_flag}",
                 )
             state = state_store.view(instant)
-            steps, blocked, errors = _propagate(case, library, state, self.replay_parameters)
+            view = ObservationStore(self.store).snapshot(instant) if self.store is not None else None
+            steps, blocked, errors = _propagate(case, library, state, self.replay_parameters, view)
         finally:
             conn.close()
         return _score(case, instant, steps, blocked, errors, report)
@@ -226,10 +236,10 @@ def _aggregate(label: str, results: list[CaseResult]) -> GroupAggregate:
 
 
 def _propagate(
-    case: Case, library: Library, state, fixtures: ReplayParameterSet
+    case: Case, library: Library, state, fixtures: ReplayParameterSet, view=None
 ) -> tuple[list[_StepOut], list[BlockedMechanism], list[str]]:
     if case.compose_path:
-        return _propagate_composed(case, library, state, fixtures)
+        return _propagate_composed(case, library, state, fixtures, view)
     ids = list(case.mechanism_path_hint or [])
     if not ids:
         try:
@@ -279,7 +289,7 @@ def _propagate(
             mechanism_id,
             spec.competing,
             overrides=overrides,
-            fixed_inputs=_fixed_inputs(binding),
+            fixed_inputs=_fixed_inputs(binding, view),
             origin_type=case.shock.origin.entity_type,
             origin_id=case.shock.origin.entity_id,
         )
@@ -343,7 +353,7 @@ def _single_path(
 
 
 def _propagate_composed(
-    case: Case, library: Library, state, fixtures: ReplayParameterSet
+    case: Case, library: Library, state, fixtures: ReplayParameterSet, view=None
 ) -> tuple[list[_StepOut], list[BlockedMechanism], list[str]]:
     """Replay the hint as one propagation (spec §3.4, §10.1).
 
@@ -364,7 +374,7 @@ def _propagate_composed(
             specs.append(library.get(mechanism_id))
         except KeyError:
             return [], [], [f"{mechanism_id}: unknown mechanism"]
-    path = _composed_path(case, ids, specs, fixtures)
+    path = _composed_path(case, ids, specs, fixtures, view)
     first = case.replay.get(ids[0])
     target = first.shock_input if first is not None and first.shock_input else specs[0].inputs[0].name
     try:
@@ -395,7 +405,7 @@ def _propagate_composed(
 
 
 def _composed_path(
-    case: Case, ids: list[str], specs: list[MechanismSpec], fixtures: ReplayParameterSet
+    case: Case, ids: list[str], specs: list[MechanismSpec], fixtures: ReplayParameterSet, view=None
 ) -> PropagationPath:
     """Build one wired path for a composed case replay (spec §3.4, §10.1).
 
@@ -424,7 +434,7 @@ def _composed_path(
             MechanismInstance(
                 mechanism_id=mechanism_id,
                 parameter_overrides=todo_fixture_overrides(spec, fixtures.get(mechanism_id, {})),
-                fixed_inputs=_fixed_inputs(binding),
+                fixed_inputs=_fixed_inputs(binding, view),
                 bindings={
                     "entity_type": case.shock.origin.entity_type,
                     "entity_id": case.shock.origin.entity_id,
@@ -595,14 +605,34 @@ def _magnitude(case: Case, binding: ReplayStep | None) -> Quantity:
     return case.shock.size
 
 
-def _fixed_inputs(binding: ReplayStep | None) -> dict[str, Quantity]:
-    """Companion inputs declared on the case, labelled as fixtures (spec §10.1)."""
+def _fixed_inputs(binding: ReplayStep | None, view=None) -> dict[str, Quantity]:
+    """Companion inputs for one replay step (spec §10.1, §9.2).
+
+    A level that names ``series_id`` is read from ``view``, which is ``snapshot(as_of)`` at the
+    case cutoff. Anything published later is already invisible. The YAML number remains only
+    when that read is absent.
+    """
     if binding is None:
         return {}
-    return {
-        name: Quantity(value=level.value, unit=level.unit, provenance="case_fixture")
-        for name, level in binding.inputs.items()
-    }
+    return {name: read_input_level(level, view) for name, level in binding.inputs.items()}
+
+
+def read_input_level(level: FixtureLevel, view) -> Quantity:
+    """One companion input, from the cutoff snapshot when the case names a series (spec §9.2, §10.1).
+
+    ``level.scale`` converts the stored unit into the mechanism's unit. Percent to share is
+    ``0.01``. That factor is the unit, not a fitted coefficient. Provenance is
+    ``snapshot:<series_id>`` for a store read and ``case_fixture`` for the YAML fallback.
+    """
+    if level.series_id and view is not None:
+        got = view.latest_value(level.series_id)
+        if got is not None and got.value is not None:
+            return Quantity(
+                value=got.value * level.scale,
+                unit=level.unit,
+                provenance=f"snapshot:{level.series_id}",
+            )
+    return Quantity(value=level.value, unit=level.unit, provenance="case_fixture")
 
 
 def _agrees(quantity: Quantity, point: ObservedPoint) -> bool:

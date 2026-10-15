@@ -26,7 +26,7 @@ expected_structure:
     variable: freight_rate
     sign: 1
     horizon_q: [0, 1]
-    dominant_competing: B04_inventory_cycle
+    dominant_competing: B06_demand_elasticity
 observed_structure:
   - entity:
       type: commodity
@@ -34,9 +34,9 @@ observed_structure:
     variable: freight_rate
     sign: 1
     horizon_q: [0, 1]
-    dominant_competing: B04_inventory_cycle
+    dominant_competing: B06_demand_elasticity
     source_url: "https://www.bbc.com/news/world-middle-east-56505413"
-    source_note: "BBC: the Ever Given blocked the Suez Canal from 23 March 2021 and was refloated within days. Transit fell while the ship was stuck; the horizon is inside one quarter."
+    source_note: "BBC: the Ever Given blocked the Suez Canal from 23 March 2021 and was refloated within days. Transit fell while the ship was stuck; the horizon is inside one quarter. The transport card lists demand softness (B06) as the competing offset (spec §3.3 B25). Inventory demand is a downstream effect in that section, not the competing line."
     mechanism_id: B25_transport
     output: d_freight
   - entity:
@@ -45,7 +45,7 @@ observed_structure:
     variable: freight_rate
     sign: 1
     horizon_q: [0, 1]
-    dominant_competing: B04_inventory_cycle
+    dominant_competing: B06_demand_elasticity
     source_url: "https://www.reuters.com/world/middle-east/suez-canal-says-container-ship-ever-given-partially-refloated-2021-03-29/"
     source_note: "Reuters: the ship was partially refloated on 29 March 2021. The disruption did not persist for multiple quarters."
     mechanism_id: B25_transport

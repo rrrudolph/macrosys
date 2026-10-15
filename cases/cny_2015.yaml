@@ -26,7 +26,7 @@ expected_structure:
     variable: import_price
     sign: 1
     horizon_q: [0, 2]
-    dominant_competing: B17_terms_of_trade
+    dominant_competing: B08_pass_through
 observed_structure:
   - entity:
       type: currency
@@ -34,9 +34,9 @@ observed_structure:
     variable: import_price
     sign: 1
     horizon_q: [0, 2]
-    dominant_competing: B17_terms_of_trade
+    dominant_competing: B08_pass_through
     source_url: "https://www.bis.org/publ/qtrpdf/r_qt1509.htm"
-    source_note: "BIS September 2015 quarterly review: the August fixing change was followed by renminbi depreciation. A weaker CNY raises the local-currency price of USD-invoiced imports. Sign only."
+    source_note: "BIS September 2015 quarterly review: the August fixing change was followed by renminbi depreciation. A weaker CNY raises the local-currency price of USD-invoiced imports. Sign only. The pass-through card lists margin absorption (B08) as the competing offset (spec §3.3 B16). Terms of trade is not on that card."
     mechanism_id: B16_fx_passthrough
     output: d_import_price
 mechanism_path_hint:

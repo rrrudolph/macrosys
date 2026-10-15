@@ -1,4 +1,4 @@
-"""Evaluation layer: frozen forecast ledger, experiment log, scores, and baselines (spec §10)."""
+"""Evaluation layer: frozen forecast ledger, experiment log, scores, baselines, and walk-forward (spec §10)."""
 
 from macrosys.eval.baselines import (
     BacktestResult,
@@ -33,8 +33,34 @@ from macrosys.eval.scoring import (
     sign_accuracy,
 )
 
+# Walk-forward imports the weekly decision, which imports ``skeleton.run`` for the decision
+# clock. ``skeleton.run`` imports the ledger from this package. Loading walk-forward here would
+# cycle. The names stay public; they are imported on first use.
+_WALKFORWARD = frozenset(
+    {
+        "Approval",
+        "BookScore",
+        "RefuseApprover",
+        "WalkForwardReport",
+        "WalkForwardResult",
+        "run",
+    }
+)
+
+
+def __getattr__(name: str) -> object:
+    """Load walk-forward names on first use so the ledger import does not cycle (spec §10.2)."""
+    if name in _WALKFORWARD:
+        from macrosys.eval import walkforward
+
+        return getattr(walkforward, name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
 __all__ = [
+    "Approval",
     "BacktestResult",
+    "BookScore",
     "ExperimentIntegrityError",
     "ExperimentLog",
     "ExperimentRecord",
@@ -42,8 +68,11 @@ __all__ = [
     "LedgerEntry",
     "LedgerIntegrityError",
     "Outcome",
+    "RefuseApprover",
     "ResearchCounts",
     "ResearchGateResult",
+    "WalkForwardReport",
+    "WalkForwardResult",
     "backtest",
     "brier",
     "deflated_sharpe_ratio",
@@ -57,6 +86,7 @@ __all__ = [
     "rank_correlation",
     "reliability_table",
     "research_to_paper",
+    "run",
     "sign_accuracy",
     "sixty_forty",
     "tsmom_12m",

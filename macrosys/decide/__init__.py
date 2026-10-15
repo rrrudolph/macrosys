@@ -1,5 +1,6 @@
 """Decision layer: shocks, theses, gates, sizing, and portfolio construction (spec §7, §11)."""
 
+from macrosys.decide.approve import Approval, Approver, StoreApprover
 from macrosys.decide.gates import (
     Decision,
     GateResult,
@@ -51,6 +52,8 @@ from macrosys.decide.thesis import (
 )
 
 __all__ = [
+    "Approval",
+    "Approver",
     "INVESTMENT_STAGES",
     "POLICY_STAGES",
     "SUBTYPES",
@@ -73,6 +76,7 @@ __all__ = [
     "ReconciliationReport",
     "Shock",
     "SizedPosition",
+    "StoreApprover",
     "Thesis",
     "ThesisStatus",
     "client_order_id",

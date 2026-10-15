@@ -26,7 +26,7 @@ expected_structure:
     variable: policy_rate
     sign: 1
     horizon_q: [0, 4]
-    dominant_competing: B10_phillips
+    dominant_competing: B18_global_financial_cycle
 observed_structure:
   - entity:
       type: institution
@@ -34,9 +34,9 @@ observed_structure:
     variable: policy_rate
     sign: 1
     horizon_q: [0, 4]
-    dominant_competing: B10_phillips
+    dominant_competing: B18_global_financial_cycle
     source_url: "https://www.federalreserve.gov/newsevents/pressreleases/monetary20220316a.htm"
-    source_note: "FOMC statement 16 March 2022: the Committee raised the funds-rate target, the start of the hiking cycle. Sign of the policy rate over the following quarters is positive."
+    source_note: "FOMC statement 16 March 2022: the Committee raised the funds-rate target, the start of the hiking cycle. Sign of the policy rate over the following quarters is positive. The policy-path card lists no competitor. The monetary-transmission step lists the global financial cycle (spec §3.3 B11). The Phillips relation is an input to the reaction, not a listed competitor."
     mechanism_id: C09_policy_path
     output: policy_rate
   - entity:
@@ -65,8 +65,6 @@ replay:
       risk_off: {value: 0.0, unit: share}
   C09_policy_path:
     shock_input: futures_rate
-    shock_value: 1.0
-    shock_unit: pct
 fixture_observations: fixtures/fed_2022.csv
 notes: >
   The shock size is a case_fixture sign-carrier for replay, not a measured magnitude.

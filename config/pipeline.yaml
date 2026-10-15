@@ -83,8 +83,14 @@ series:
       - FRED:PCOPPUSDM
       - FRED:PALUMUSDM
       - FRED:IPG3313S
-      - FRED:CRDQKRAPABIS
       - FRED:EXPINF10YR
+  - source_id: FRED
+    # BIS credit to the non-financial sector is quarterly and reaches FRED about five and a half
+    # months after quarter end (the 2025-Q4 print arrived 2026-06-14 in this store), so a quarter
+    # plus that lag plus slack is the freshness bar. At 120 days it blocked every week.
+    max_lag_days: 300
+    series_ids:
+      - FRED:CRDQKRAPABIS
   - source_id: ECB
     max_lag_days: 5
     series_ids:

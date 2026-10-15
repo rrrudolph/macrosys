@@ -309,6 +309,8 @@ A propagation path is an ordered list of mechanism instances bound to entities. 
 
 **Shock taxonomy** [J] (used for routing and for held-out testing in §10.2): demand (investment, consumption, government, external), supply (capacity loss/gain, input disruption, productivity), price (commodity, FX, rates), financial (funding, credit, collateral, flows), policy (monetary, fiscal, trade, regulatory), institutional (sanctions, contract changes). Each class has a default set of first-step mechanisms.
 
+**Where shocks come from** (*added 2026-10-15, owner decision*). A shock is filed by hand (`config/open_shocks.yaml`) or raised from stored data by a trigger rule (`config/triggers.yaml`, `macrosys/triggers`). A rule names one series, a signal (drawdown from a trailing high, change or percent change over a calendar window, or level), a threshold, and the shock fields the signal cannot supply; its thresholds are design parameters [J], not estimates, and it does not size anything. Rules are evaluated point-in-time: a crossing is fresh on the day its print reached the store, fires once, and does not refile until the condition has been false for a rearm period. The same scan replayed weekly over history produces a dated list of shocks without look-ahead, which is the input the walk-forward evaluation (§10.2) lacked when every shock was hand-filed. A triggered shock whose type has no library route fails the mechanism gate (§11.3) and is a backlog line, not an error.
+
 **Realization ladder.** Every shock carries a stage, because an announcement is not spending and spending is not capacity. Investment shocks: `announced → committed (financed) → contracted (binding orders) → under construction → delivered/installed → utilized`. Policy shocks: `proposed → enacted → implemented → enforced → observed effect`. Mechanisms read the stage: B01 derived demand is driven by contracted and later stages; B05 capacity pipelines count only financed projects; expectations (§7.3) may price earlier stages. Stage transitions are observations with their own timestamps and are logged as such.
 
 ### 4.2 Relationships
@@ -596,7 +598,7 @@ Each ETF record carries: holdings concentration (top-10 weight, effective N), st
 
 ### 7.5 Implementation cost
 
-Round-trip cost estimate = 2 × half-spread + expected impact (negligible at this size) + expense ratio × holding period + roll cost for futures-based products + any hedging cost (C01). A thesis must clear the cost estimate by a margin set in the mandate (§11.1). Short exposure is obtained through relative-value pairs or by underweighting versus a baseline, not by borrowing shares, in v0.
+Round-trip cost estimate = 2 × half-spread + expected impact (negligible at this size) + expense ratio × holding period + roll cost for futures-based products + any hedging cost (C01). A thesis must clear the cost estimate by a margin set in the mandate (§11.1). Short exposure is obtained through relative-value pairs or by underweighting versus a baseline, not by borrowing shares, in v0. *Amended 2026-10-15 (owner decision):* outright shorts of universe ETFs are permitted when the mandate's `shorting.allowed` is true. The round-trip cost then adds the broker's stock-loan fee × holding period (`shorting.borrow_cost_bp_annual`); that fee is a provider fact, so a null leaves the short uncostable and the gap gate refuses it rather than inventing a number. Leveraged and inverse products stay excluded (§7.4). With `leverage.allowed` false, gross exposure (longs plus shorts) is held at or under NAV by the portfolio constructor.
 
 ### 7.6 Horizon matching
 
@@ -985,18 +987,20 @@ The specific numeric thresholds are the owner's decision, set once and recorded 
 
 Universe (40–60 US-listed ETFs across global equity regions and sectors, Treasuries by maturity, TIPS, IG/HY/EM credit, broad and single commodities, gold, USD and major-currency funds, hedged/unhedged pairs — the exact list is configuration, not design); base currency USD; no leverage, no short borrowing, no leveraged/inverse products in v0; horizon 1–12 months per thesis; annualized portfolio volatility target (owner sets; §15); maximum drawdown that halts new risk; per-position, per-factor, per-country, per-currency limits; scenario-loss budget per §6.5; minimum expected gap after costs; weekly decision day and time; daily monitoring checks; who can override and how it is logged.
 
+*Amended 2026-10-15 (owner decisions, recorded in `config/mandate.yaml`):* (a) `shorting.allowed: true` with `borrow_cost_bp_annual` for the stock-loan fee (§7.5); leverage stays off, so gross exposure is capped at NAV. (b) A **resting book** (`baseline`): the allocation held when no thesis passes. Method `inverse_vol` weights one fund per asset class by the inverse of its trailing realized volatility over `window_days`, renormalized to one and clipped at the position limit. A thesis is a tilt on this book, funded by trimming it pro rata. `baseline: null` is the pre-amendment behaviour (cash). The book is computed from closes visible at the decision instant; when it cannot be (stale or missing prices) the week is blocked as class B and the current book is kept.
+
 ### 11.2 Cadence
 
 - **Daily (automated, no trading):** ingest releases, update world state deltas, recompute risk and invalidation checks, write a monitoring note; trigger an off-cycle review only if an invalidation fires or a class-A operational event occurs.
-- **Weekly (decision):** refresh the full world state; run propagations for open shocks; compute gaps; red-team; construct the target portfolio; produce tickets; human approval in v0.
+- **Weekly (decision):** refresh the full world state; scan the trigger rules and file what fires next to the open shocks (§4.1, added 2026-10-15); run propagations for all of them; compute gaps; red-team; state the resting book; construct the target portfolio; produce tickets; human approval in v0.
 
 ### 11.3 Opportunity selection and the no-trade default
 
-A thesis becomes a trade only if all four gates pass; otherwise the output is "no trade," with the failing gate recorded.
+A thesis becomes a trade only if all four gates pass; otherwise the output is "no trade," with the failing gate recorded. *Amended 2026-10-15:* "no trade" means hold the mandate's resting book (§11.1), not cash; the weekly note states that book every week.
 
-1. **Mechanism gate:** propagation run valid (units, identities, competing effects closed), no `blocking` missing evidence.
+1. **Mechanism gate:** propagation run valid (units, identities, competing effects closed), no `blocking` missing evidence. A shock type with no library route fails here.
 2. **Gap gate:** the expected-minus-priced range excludes zero and clears the cost estimate by the mandated margin. When the thesis is a release response, the gate also fails if the estimated front-end slope's interval contains zero, or if the front end has already moved by the conservative edge of that slope times the standardized surprise (`parameters/event_response.yaml`, §10.1 item 11). That slope is a market response per standard deviation of surprise. It is the pricing use of B23, not B23's Bordalo overreaction ratio, which stays `TODO_estimate` until consensus revisions exist (§3.3, §9.8).
-3. **Expression gate:** an instrument whose exposure vector matches the entity exposure intended (concentration and structure acceptable); horizon fits.
+3. **Expression gate:** an instrument whose exposure vector matches the entity exposure intended (concentration and structure acceptable); horizon fits; an outright short only when the mandate allows it (§7.5).
 4. **Risk gate:** post-trade portfolio within all limits and scenario budget; correlation regime not flagged "deteriorating."
 
 Missing evidence that blocks a decision is written in plain terms (e.g., "no observable for off-exchange refined inventory; the price mechanism cannot be gated"). The backlog (§13) consumes these lines.
@@ -1162,6 +1166,8 @@ These are genuinely yours; the document proceeds under the stated default where 
 4. **Broker choice at go-live** — IBKR Pro is the default assumption because of API access and data costs; Alpaca is the alternative with free data but a narrower product set (not verified beyond its data page today).
 5. **Whether to publish forecast-ledger hashes** externally for commitment, and where.
 6. **LLM vendor mix** — default is the Anthropic tiering in §8.3; swapping is a configuration change.
+
+*Decided 2026-10-15:* (7) the resting book is an inverse-volatility allocation across one fund per asset class (`config/mandate.yaml` `baseline`); (8) outright shorts of universe ETFs are allowed, without leverage, once the broker's borrow rate is entered (`shorting.borrow_cost_bp_annual` is still null); (9) shocks are also raised from data by trigger rules (`config/triggers.yaml`) and replayed over history for walk-forward evaluation. Open: the borrow rate itself, and library routes for the `financial` and `policy` shock types the triggers raise.
 
 ---
 

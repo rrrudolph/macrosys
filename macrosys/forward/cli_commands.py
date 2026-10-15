@@ -3,7 +3,7 @@
 The CLI package owns ``macrosys.cli``. Call ``register_cli(subparsers)`` from there. This command
 does not place an order. The owner runs:
 
-    macrosys forward week --config config/pipeline.yaml --as-of YYYY-MM-DD --shocks config/open_shocks.yaml --mandate config/mandate.yaml --ledger data/forward/ledger.jsonl --week-log data/forward/weeks.jsonl --out data/forward/<date>
+    macrosys forward week --config config/pipeline.yaml --as-of YYYY-MM-DD --shocks config/open_shocks.yaml --triggers config/triggers.yaml --mandate config/mandate.yaml --ledger data/forward/ledger.jsonl --week-log data/forward/weeks.jsonl --out data/forward/<date>
     macrosys forward status --week-log data/forward/weeks.jsonl
 """
 
@@ -14,6 +14,8 @@ import sys
 from datetime import date
 from pathlib import Path
 
+from macrosys.decide.approve import StoreApprover
+from macrosys.decide.mandate import Mandate
 from macrosys.exec.runbook import RunbookBlockedError
 from macrosys.forward.week import DuplicateWeekError, forward_week, week_status_text
 from macrosys.pipeline.jobs import load_config
@@ -28,7 +30,25 @@ def register_cli(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]
     week.add_argument("--config", type=Path, required=True)
     week.add_argument("--as-of", required=True, dest="as_of", help="YYYY-MM-DD")
     week.add_argument("--shocks", type=Path, required=True)
+    week.add_argument(
+        "--triggers",
+        type=Path,
+        default=None,
+        help="trigger rules YAML; shocks they raise at as-of are decided next to the filed ones",
+    )
     week.add_argument("--mandate", type=Path, required=True)
+    week.add_argument(
+        "--universe",
+        type=Path,
+        default=None,
+        help="instrument master for the approver; defaults to the mandate's universe_file",
+    )
+    week.add_argument(
+        "--no-approver",
+        action="store_true",
+        dest="no_approver",
+        help="leave the exposure check pending (forecast only, no position can be approved)",
+    )
     week.add_argument("--ledger", type=Path, required=True)
     week.add_argument("--week-log", type=Path, required=True, dest="week_log")
     week.add_argument("--out", type=Path, required=True)
@@ -53,6 +73,8 @@ def _cmd_week(args: argparse.Namespace) -> int:
         return 2
     config = load_config(args.config)
     runbook = args.runbook if args.runbook is not None else Path("docs/runbook.md")
+    universe = args.universe if args.universe is not None else _universe_from_mandate(args.mandate)
+    approver = None if args.no_approver else StoreApprover(config, universe)
     try:
         result = forward_week(
             config.db_path,
@@ -65,6 +87,8 @@ def _cmd_week(args: argparse.Namespace) -> int:
             out_dir=args.out,
             runbook_path=runbook,
             acknowledge_runbook_change=bool(args.acknowledge_runbook_change),
+            triggers_path=args.triggers,
+            approver=approver,
         )
     except DuplicateWeekError as exc:
         print(str(exc), file=sys.stderr)
@@ -73,13 +97,24 @@ def _cmd_week(args: argparse.Namespace) -> int:
         print(str(exc), file=sys.stderr)
         return 1
     allowed = "yes" if result.paper_allowed else "no"
-    print(f"{result.status} theses={result.n_theses} paper_allowed={allowed}")
+    print(
+        f"{result.status} shocks={result.n_shocks} triggered={len(result.triggered)} "
+        f"theses={result.n_theses} paper_allowed={allowed}"
+    )
     print(result.report_path)
     if result.status == "error":
         return 1
     if result.status == "blocked":
         return 2
     return 0
+
+
+def _universe_from_mandate(mandate_path: Path) -> Path:
+    """The mandate's ``universe_file``, resolved against the repo root when relative."""
+    universe = Path(Mandate.load(mandate_path).universe_file)
+    if universe.is_absolute() or universe.is_file():
+        return universe
+    return Path(__file__).resolve().parents[2] / universe
 
 
 def _cmd_status(args: argparse.Namespace) -> int:

@@ -26,7 +26,7 @@ expected_structure:
     variable: price
     sign: 1
     horizon_q: [0, 4]
-    dominant_competing: B11_monetary_transmission
+    dominant_competing: B06_demand_elasticity
 observed_structure:
   - entity:
       type: economy
@@ -34,9 +34,9 @@ observed_structure:
     variable: price
     sign: 1
     horizon_q: [0, 4]
-    dominant_competing: B11_monetary_transmission
+    dominant_competing: B06_demand_elasticity
     source_url: "https://www.ecb.europa.eu/pub/economic-bulletin/focus/2022/html/ecb.ebbox202204_01~68ef3c3dc6.en.html"
-    source_note: "ECB Economic Bulletin box, April 2022: European energy prices jumped and passed into inflation. Sign of energy prices and near-term inflation is positive. No euro figure is stored."
+    source_note: "ECB Economic Bulletin box, April 2022: European energy prices jumped and passed into inflation. Sign of energy prices and near-term inflation is positive. No euro figure is stored. The bottleneck card lists demand destruction (B06) as the competing offset (spec §3.3 B03). Monetary transmission is not on that card."
     mechanism_id: B03_bottleneck_pricing
     output: d_price
   - entity:
@@ -45,7 +45,7 @@ observed_structure:
     variable: price
     sign: 1
     horizon_q: [0, 4]
-    dominant_competing: B11_monetary_transmission
+    dominant_competing: B06_demand_elasticity
     source_url: "https://www.iea.org/reports/gas-market-report-q3-2022"
     source_note: "IEA Gas Market Report Q3 2022: European gas supply tightened after Russian flows were cut. The price sign is positive."
     mechanism_id: B03_bottleneck_pricing

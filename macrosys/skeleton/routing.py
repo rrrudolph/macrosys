@@ -1,11 +1,17 @@
-"""Default first-step paths, keyed by shock type (spec §4.1, §13 S0.2).
+"""Default first-step paths, keyed by shock type and subtype (spec §4.1, §13 S0.2).
 
-Only this module consults ``shock.type``. The three demo shocks differ by the ``Shock`` record
-and by the binding this table returns. Path construction does not special-case a shock id.
+Only this module consults ``shock.type`` and ``shock.subtype``. The demo shocks differ by the
+``Shock`` record and by the binding this table returns. Path construction does not special-case
+a shock id.
 
-B03's elasticities are still ``TODO_estimate`` in the library. The overrides below are the
-example scenario already written in ``B03_bottleneck_pricing.yaml``, relabelled ``stub:S0.1``.
-They are not estimates. B16 is left without overrides so it refuses to run (spec §3.1). [J]
+B03's elasticities are still ``TODO_estimate`` in the library. The overrides on the demand and
+supply routes are the example scenario already written in ``B03_bottleneck_pricing.yaml``,
+relabelled ``stub:S0.1``. They are not estimates. B16 is left without overrides so it refuses
+to run (spec §3.1). [J]
+
+Triggered shocks select a pair. ``price`` / ``fx`` is origin-aware: a USD currency origin is the
+broad-dollar route, and any other currency keeps the EM pass-through route. Demand and supply
+subtypes with no dedicated pair keep the skeleton route for that type.
 """
 
 from __future__ import annotations
@@ -100,7 +106,7 @@ class StepBinding:
 
 @dataclass(frozen=True)
 class Route:
-    """The default path for one shock type (spec §4.1)."""
+    """The default path for one shock type and subtype (spec §4.1)."""
 
     target_input: str
     steps: tuple[StepBinding, ...]
@@ -235,21 +241,196 @@ def _supply() -> Route:
     )
 
 
-# Shock-type key → default path. Spec §4.1: each class has a default set of first-step mechanisms.
-_ROUTES: dict[str, Route] = {
-    "demand": _demand(),
-    "price": _price(),
-    "supply": _supply(),
+_USA = {"entity_type": "economy", "entity_id": "USA"}
+_SPY = {"entity_type": "instrument", "entity_id": "SPY"}
+
+
+def _broad_dollar(shock: Shock) -> bool:
+    """True when a price/fx shock is the broad dollar, not a non-USD currency (spec §5.2, §12.4)."""
+    return shock.origin.entity_type == "currency" and shock.origin.entity_id == "USD"
+
+
+def _collateral() -> Route:
+    """Equity drawdown as a collateral shock: B13 borrowing capacity (spec §3.3 B13, §4.5).
+
+    The size is a percent drawdown and feeds ``d_asset_price``. The accelerator's elasticity is
+    still ``TODO_estimate`` (the local projection kept the wrong sign), and ``leverage`` is not a
+    world-state variable, so the propagator refuses before it can read leverage. Consumption,
+    credit, activity, the policy reaction, and equity duration are not later steps: no card
+    consumes ``d_borrowing``, and wiring that percent into another percent input would be an
+    unestimated pass-through of one. SPY is the broad-equity expression of the wealth shock.
+    """
+    return Route(
+        target_input="d_asset_price",
+        steps=(
+            StepBinding(
+                mechanism_id="B13_financial_accelerator",
+                bindings=dict(_USA),
+            ),
+        ),
+        converters=(),
+        effect_output="d_borrowing",
+        effect_unit="pct",
+        effect_variable="borrowing",
+        effect_entity=EntityKey(entity_type="economy", entity_id="USA"),
+        instrument="SPY",
+        structure_notes="broad equity expresses the wealth shock; borrowing capacity is the B13 output",
+    )
+
+
+def _credit() -> Route:
+    """High-yield OAS widening fed to the bank-credit channel (spec §3.3 B12).
+
+    The shock is a change in percentage points and B12's only input, lending-standards
+    tightening, is the same unit, so the size feeds ``standards``. The elasticity on the card
+    is the installed SLOOS loan-growth range, not an OAS elasticity: treating one point of
+    high-yield OAS as one point of SLOOS is a composition judgment, not a second estimate.
+    C06 cannot take the change — it decomposes a spread level and needs an expected loss and
+    a liquidity premium that are not in world state. Activity and the policy reaction are not
+    successors; B09 would require calling credit growth an output change, and B11 takes a
+    policy-rate change. HYG is the high-yield expression of the credit effect.
+    """
+    return Route(
+        target_input="standards",
+        steps=(
+            StepBinding(
+                mechanism_id="B12_bank_credit",
+                bindings=dict(_USA),
+            ),
+        ),
+        converters=(),
+        effect_output="d_credit",
+        effect_unit="pct",
+        effect_variable="credit",
+        effect_entity=EntityKey(entity_type="economy", entity_id="USA"),
+        instrument="HYG",
+        structure_notes="high-yield credit; the coefficient is the SLOOS elasticity applied to an OAS change",
+    )
+
+
+def _flows() -> Route:
+    """VIX stress along the funding-squeeze sketch (spec §12.4, §3.3 B21, B27, C08).
+
+    The filed size is a VIX level in index units. B21 reads a positioning percentile (share),
+    B27 reads funding stress (basis points), and C08 reads two variances (share). None of those
+    ports is an index, and §3.4 rule 1 does not allow a converter without a sourced coefficient:
+    a VIX point is not a share or a basis point. The path still names B21 then B27 and wires
+    B21's asymmetry (ratio) into B27's funding stress (bp), so validation fails that break and
+    the week never multiplies the index. C08 is not a step; it also needs an expected realized
+    variance that world state does not carry. HYG is the spread expression §12.4 compares with
+    the dollar.
+    """
+    return Route(
+        target_input="positioning_percentile",
+        steps=(
+            StepBinding(mechanism_id="B21_positioning", bindings=dict(_SPY)),
+            StepBinding(
+                mechanism_id="B27_funding_squeeze",
+                bindings=dict(_USA),
+                consumes=(Wire(input="funding_stress", from_step=0, output="asymmetry"),),
+            ),
+        ),
+        converters=(),
+        effect_output="d_spread",
+        effect_unit="bp",
+        effect_variable="spread",
+        effect_entity=EntityKey(entity_type="economy", entity_id="USA"),
+        instrument="HYG",
+        structure_notes="unit break stops the path; high-yield is the spread expression, not a sized position",
+    )
+
+
+def _rates() -> Route:
+    """A front-end yield change priced as equity duration (spec §3.3 C05, C09, B11).
+
+    The shock is a change in the two-year yield, in percentage points, which is C05's discount-rate
+    input. C09 cannot take it: the policy path reads a futures level in percent, and its risk
+    premium is ``TODO_estimate``. B11 also takes a policy-rate change in percentage points, but
+    its output is a demand percent, and C05's discount input is not that percent, so the two
+    cannot follow each other without an unestimated converter. This path is the equity-price
+    branch. Duration on the card is ``TODO_estimate``. SPY is the equity the duration prices;
+    no card prices Treasury duration, so IEF is not the effect.
+    """
+    return Route(
+        target_input="d_discount",
+        steps=(
+            StepBinding(mechanism_id="C05_equity_duration", bindings=dict(_SPY)),
+        ),
+        converters=(),
+        effect_output="d_price",
+        effect_unit="pct",
+        effect_variable="price",
+        effect_entity=EntityKey(entity_type="instrument", entity_id="SPY"),
+        instrument="SPY",
+        structure_notes="equity duration; Treasury duration (IEF, TLT) is not a mechanism output",
+    )
+
+
+def _dollar() -> Route:
+    """Broad-dollar appreciation as a global-financial-cycle shock (spec §12.4, §3.3 B18, §5.2).
+
+    The size is a percent change in the broad dollar and feeds ``d_usd``. Cross-border credit is
+    the effect; the elasticity is ``TODO_estimate`` (the local projection kept the wrong sign).
+    B16 stays the route for a non-USD currency depreciation (§12.3): its input is that currency's
+    move against the dollar, not the credit change B18 would emit, and dominant-currency
+    pass-through is the wrong first step for a dollar surge. EMB is the dollar-EM credit
+    expression of the credit effect.
+    """
+    return Route(
+        target_input="d_usd",
+        steps=(
+            StepBinding(mechanism_id="B18_global_financial_cycle", bindings=dict(_USA)),
+        ),
+        converters=(),
+        effect_output="d_credit",
+        effect_unit="pct",
+        effect_variable="credit",
+        effect_entity=EntityKey(entity_type="instrument", entity_id="EMB"),
+        instrument="EMB",
+        structure_notes="dollar EM debt expresses the cross-border credit effect; not a sized position",
+    )
+
+
+# (type, subtype) → path. price/fx for a non-USD currency is the EM pass-through route;
+# route_for swaps in the dollar route when the origin is currency USD.
+_DEMAND = _demand()
+_EM_FX = _price()
+_SUPPLY = _supply()
+
+_BY_PAIR: dict[tuple[str, str], Route] = {
+    ("demand", "investment"): _DEMAND,
+    ("supply", "input_disruption"): _SUPPLY,
+    ("financial", "collateral"): _collateral(),
+    ("financial", "credit"): _credit(),
+    ("financial", "flows"): _flows(),
+    ("price", "rates"): _rates(),
+    ("price", "fx"): _EM_FX,
+}
+
+# Subtypes with no pair of their own. Price is not here: commodity is not an FX path.
+_TYPE_FALLBACK: dict[str, Route] = {
+    "demand": _DEMAND,
+    "supply": _SUPPLY,
 }
 
 
 def route_for(shock: Shock) -> Route:
-    """Return the skeleton path bound to ``shock.type`` (spec §4.1, §13 S0.2).
+    """Return the path for ``(shock.type, shock.subtype)`` (spec §4.1, §13 S0.2).
 
-    Unknown types raise ``KeyError``. The lookup is the only place a shock type selects a path.
+    ``price`` / ``fx`` with origin currency USD uses the broad-dollar route; any other currency
+    keeps the EM pass-through route. A demand or supply subtype with no dedicated pair uses
+    that type's skeleton route. Any other unknown combination raises ``KeyError``.
     """
-    try:
-        return _ROUTES[shock.type]
-    except KeyError:
-        known = ", ".join(sorted(_ROUTES))
-        raise KeyError(f"no skeleton route for shock type {shock.type!r} (known: {known})") from None
+    if shock.type == "price" and shock.subtype == "fx" and _broad_dollar(shock):
+        return _dollar()
+    found = _BY_PAIR.get((shock.type, shock.subtype))
+    if found is not None:
+        return found
+    fallback = _TYPE_FALLBACK.get(shock.type)
+    if fallback is not None:
+        return fallback
+    known = ", ".join(f"{family}/{subtype}" for family, subtype in sorted(_BY_PAIR))
+    raise KeyError(
+        f"no skeleton route for shock {shock.type}/{shock.subtype} "
+        f"(known pairs: {known}; demand and supply use the type route)"
+    ) from None

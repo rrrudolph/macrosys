@@ -185,13 +185,21 @@ class PortfolioConstructor:
     """Build the week's tickets (spec §11.3 no-trade default, §11.4 sizes, §11.5 hedges, §11.7 ids).
 
     ``sizes`` maps ``thesis_id`` to a fraction of NAV (a float or any object with a ``weight``
-    attribute). Only theses in ``approved`` or ``live`` are expressed. Contributions are absolute
-    target weights and sum across theses that name the same instrument. A pair puts ``+weight`` on
-    the first leg and ``-hedge_ratio * weight`` on the second (``hedge_ratio`` defaults to 1).
+    attribute). Only theses in ``approved`` or ``live`` are expressed. Contributions sum across
+    theses naming the same instrument. A ``long`` thesis contributes ``+weight``; a ``short`` or
+    ``underweight`` thesis contributes ``-weight``. A pair puts ``+weight`` on the first leg and
+    ``-hedge_ratio * weight`` on the second (``hedge_ratio`` defaults to 1).
+
+    Without ``baseline`` a contribution is the instrument's absolute target weight, and instruments
+    no thesis names are left at their current weight. With ``baseline`` — the resting book (spec
+    §11.3, amended 2026-10-15) — every instrument's target starts at its baseline weight (zero when
+    absent) and a contribution is a tilt added to it, so a week with no passing thesis trades toward
+    the baseline and a thesis is the active bet on top of it.
 
     With shorting disallowed, targets are floored at 0. A pair whose hedge would be negative and
     whose hedge leg is already flat is skipped entirely, so the long leg is not put on unhedged.
-    Instruments no thesis names are left at their current weight.
+    With shorting allowed, targets may be negative; when the mandate also disallows leverage, gross
+    exposure (the sum of absolute weights) is held at or under 100% of NAV by scaling the tilts back.
 
     ``quantity`` on each ticket is the unsigned change in notional, ``abs(target - current) * nav``,
     rounded to cents. Changes smaller than ``min_notional`` are skipped.
@@ -225,6 +233,7 @@ class PortfolioConstructor:
         current: Mapping[str, float],
         mandate: Mandate,
         nav: float,
+        baseline: Mapping[str, float] | None = None,
     ) -> list[OrderTicket]:
         """Return tickets sorted by instrument, side, and client order id. Same inputs, same list."""
         if nav <= 0:
@@ -232,11 +241,18 @@ class PortfolioConstructor:
         self._require_wired_limits(mandate)
         allow_short = mandate.shorting.allowed
         cap = None if mandate.risk.position_limit_pct is None else mandate.risk.position_limit_pct / 100.0
+        checks = self._checks(mandate)
 
-        desired, contributors = _target_weights(theses, sizes, current, allow_short=allow_short)
-        names = sorted(set(current) | set(desired))
+        if baseline is not None and any(weight < 0.0 for weight in baseline.values()):
+            raise ValueError("baseline weights are long-only shares of NAV")
+        tilts, contributors = _target_weights(theses, sizes, current, allow_short=allow_short)
+        names = sorted(set(current) | set(tilts) | set(baseline or {}))
         cur = {name: float(current.get(name, 0.0)) for name in names}
-        target = {name: float(desired.get(name, cur[name])) for name in names}
+        if baseline is None:
+            target = {name: float(tilts.get(name, cur[name])) for name in names}
+        else:
+            rest = {name: float(baseline.get(name, 0.0)) for name in names}
+            target = _fund_tilts(rest, {name: float(tilts.get(name, 0.0)) for name in names}, mandate)
         if not allow_short:
             target = {name: max(0.0, weight) for name, weight in target.items()}
         if cap is not None:
@@ -247,12 +263,12 @@ class PortfolioConstructor:
                 elif cur[name] < -cap:
                     target[name] = max(target[name], -cap)
 
-        final = _enforce_callables(cur, target, self._checks())
+        final = _enforce_callables(cur, target, checks)
         if cap is not None:
             final = {name: _clip(weight, cap) for name, weight in final.items()}
         if not allow_short:
             final = {name: max(0.0, weight) for name, weight in final.items()}
-        if not _passes(final, self._checks()):
+        if not _passes(final, checks):
             raise ValueError("limit checks reject every scaled book, including a flat portfolio")
 
         tickets: list[OrderTicket] = []
@@ -280,8 +296,13 @@ class PortfolioConstructor:
         tickets.sort(key=lambda ticket: (ticket.instrument_id, ticket.side, ticket.client_order_id))
         return tickets
 
-    def _checks(self) -> list[WeightCheck]:
-        return [check for check in (self.position_ok, self.factor_ok, self.country_ok, self.currency_ok) if check]
+    def _checks(self, mandate: Mandate) -> list[WeightCheck]:
+        checks = [
+            check for check in (self.position_ok, self.factor_ok, self.country_ok, self.currency_ok) if check
+        ]
+        if not mandate.leverage.allowed:
+            checks.append(_gross_within_nav)
+        return checks
 
     def _require_wired_limits(self, mandate: Mandate) -> None:
         missing: list[str] = []
@@ -316,6 +337,30 @@ def _cents(amount: float) -> float:
 
 def _clip(weight: float, cap: float) -> float:
     return min(max(weight, -cap), cap)
+
+
+def _gross_within_nav(weights: Mapping[str, float]) -> bool:
+    """No leverage: longs plus shorts may not exceed NAV (spec §11.1, amended 2026-10-15)."""
+    return sum(abs(weight) for weight in weights.values()) <= 1.0 + 1e-9
+
+
+def _fund_tilts(rest: dict[str, float], tilts: dict[str, float], mandate: Mandate) -> dict[str, float]:
+    """Baseline plus tilts; without leverage the baseline is trimmed pro rata to make room.
+
+    A fully invested resting book has no cash to fund a long tilt and no margin for a short, so the
+    tilt is paid for by scaling the baseline down by the largest factor in [0, 1] that keeps gross
+    exposure at or under NAV. Tilts are kept whole here; if the tilts alone exceed NAV the callable
+    checks in ``propose`` scale them. With leverage allowed the two are simply added.
+    """
+
+    def book(scale: float) -> dict[str, float]:
+        return {name: scale * rest[name] + tilts[name] for name in rest}
+
+    if mandate.leverage.allowed or _gross_within_nav(book(1.0)):
+        return book(1.0)
+    if not _gross_within_nav(book(0.0)):
+        return book(0.0)
+    return book(_largest_scale(book, [_gross_within_nav]))
 
 
 def _as_weight(sizes: Mapping[str, object], thesis_id: str) -> float:
@@ -354,7 +399,7 @@ def _target_weights(
             _add(desired, contributors, hedge_leg, hedge_weight, thesis.thesis_id)
             continue
         assert expression.instrument is not None
-        sign = -1.0 if expression.direction == "underweight" else 1.0
+        sign = -1.0 if expression.direction in ("short", "underweight") else 1.0
         if sign < 0 and not allow_short and float(current.get(expression.instrument, 0.0)) <= 0:
             continue
         _add(desired, contributors, expression.instrument, sign * weight, thesis.thesis_id)

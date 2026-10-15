@@ -31,7 +31,9 @@ state_dependence: []
 assumptions:
 - delivered cost is the sum in the spec; freight is convex in utilization and the
   elasticity is estimated locally
-competing: []
+competing:
+  # spec §3.3 B25: "Competing: demand softness, alternative routes/modes, war-risk insurance pricing."
+  - B06_demand_elasticity
 evidence:
 - Freightos FBX
 - Drewry WCI

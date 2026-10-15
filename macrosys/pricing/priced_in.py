@@ -1,10 +1,13 @@
 """What the market already prices, for one entity and variable (spec §7.3, §9.8).
 
 Resolution order: a direct market quantity when one is mapped (policy rate via C09,
-inflation via C04, a commodity price via the C07 curve, equity growth via C05);
-otherwise the nearest instrument's implied growth with a wider range and low
-confidence; otherwise ``NoPricedInError`` naming the missing series or mapping.
-The horizon has to sit on the path. Nothing is extrapolated.
+inflation via C04, a commodity price via the C07 curve, a credit spread via the C06
+level, equity growth via C05, including an instrument price when that instrument has
+an earnings-yield or trailing-dividend block); otherwise the nearest instrument's
+implied growth with a wider range and low confidence; otherwise a declared gap in
+``series_map.yaml``; otherwise ``NoPricedInError`` naming the missing series or mapping.
+A path horizon has to sit on the path. A spread horizon is a window length. Nothing
+is extrapolated.
 """
 
 from __future__ import annotations
@@ -22,13 +25,16 @@ from macrosys.pricing._map import (
     commodity_for_entity,
     inflation_for_entity,
     instrument_block,
+    named_gap,
     nearest_instrument,
     policy_for_entity,
+    spread_for_entity,
     variable_kind,
 )
 from macrosys.pricing._params import band
 from macrosys.pricing.errors import CurveError, NoPricedInError
 from macrosys.pricing.implied import ImpliedPaths
+from macrosys.pricing.spreads import quarter_window_days
 from macrosys.pricing.types import PathWithRange
 
 _MONTH = re.compile(r"(\d{4}-\d{2})")
@@ -72,10 +78,13 @@ def priced_in(
     path between those endpoints, in percentage points. Inflation is the C04
     breakeven at the end of the window (the priced inflation rate, not a change
     from the latest CPI), in percent. A commodity price is the percent change
-    along the futures curve. Equity growth is the C05 reverse-Gordon rate, in
-    percent. An industry uses the mapped nearest instrument's growth, widened by
-    the declared scale in ``params.yaml``, with confidence ``low``. Anything else
-    raises ``NoPricedInError`` naming the missing mapping or series.
+    along the futures curve. A credit spread is a zero point change in basis points,
+    with a percentile band of the spread's own history over the window. Equity growth,
+    and an instrument price that has an earnings-yield or trailing-dividend block, is
+    the C05 reverse-Gordon rate in percent. An industry uses the mapped nearest
+    instrument's growth, widened by the declared scale in ``params.yaml``, with
+    confidence ``low``. A declared gap names the series or model that would close it.
+    Anything else raises ``NoPricedInError`` naming the missing mapping or series.
     """
     start, end = _window(horizon_q)
     kind = variable_kind(variable)
@@ -89,10 +98,18 @@ def priced_in(
             return _inflation(entity, end, implied, as_of, inflation)
         if kind == "price" and commodity is not None:
             return _commodity(entity, start, end, implied, as_of, commodity)
+        if kind == "spread" and spread_for_entity(entity.entity_id) is not None:
+            return _spread(entity, start, end, implied, as_of)
+        instrument_price = entity.entity_type == "instrument" and kind == "price"
+        if instrument_price and instrument_block(entity.entity_id) is not None:
+            return _instrument_growth(entity, variable, implied, as_of)
         if kind == "growth" and entity.entity_type == "instrument":
-            return _instrument_growth(entity, implied, as_of)
+            return _instrument_growth(entity, variable, implied, as_of)
     except CurveError as exc:
         raise _gap(entity, variable, str(exc)) from exc
+    text = named_gap(entity.entity_type, entity.entity_id, variable)
+    if text:
+        raise _gap(entity, variable, text)
     if entity.entity_type == "industry":
         return _industry(entity, variable, implied, as_of)
     raise _gap(
@@ -175,10 +192,73 @@ def _commodity(
     )
 
 
-def _instrument_growth(entity: EntityKey, implied: ImpliedPaths, as_of: date) -> PricedIn:
+def _spread(entity: EntityKey, start: float, end: float, implied: ImpliedPaths, as_of: date) -> PricedIn:
+    block = spread_for_entity(entity.entity_id) or {}
+    change = implied.spread_change(entity.entity_id, as_of, (start, end))
+    series_id = str(block.get("series") or "")
+    low_p = float(block["low_percentile"])
+    high_p = float(block["high_percentile"])
+    days = quarter_window_days(start, end)
+    note = " ".join(str(block.get("note") or "").split())
+    return PricedIn(
+        implied_change=change,
+        sources=["C06", series_id],
+        method_notes=(
+            f"C06. {series_id} is the mapped option-adjusted spread, in {block.get('level_unit')}; "
+            "a difference of one percent is 100 bp. The print is the market credit spread. "
+            "The point implied change is zero basis points: the level is what is priced, and this "
+            "reading does not forecast a return to a historical mean or extend the sample's drift. "
+            f"The range is the {low_p:g}th–{high_p:g}th percentile of overlapping {days}-day changes "
+            f"(round of the quarter window times 365.25/4), with a match tolerance of "
+            f"{int(block['match_tolerance_days'])} days, using only prints whose publication "
+            "time and reference period are on or before the as-of date. Overlapping windows describe "
+            "this sample; the band is not a standard error. When that percentile band does not contain "
+            "zero it is extended until it does, so the zero point stays inside the range. "
+            f"At least {int(block['min_changes'])} changes are required. {note}"
+        ),
+        confidence="medium",
+    )
+
+
+def _instrument_growth(entity: EntityKey, variable: str, implied: ImpliedPaths, as_of: date) -> PricedIn:
     growth = implied.implied_growth(entity.entity_id, as_of)
     block = instrument_block(entity.entity_id) or {}
+    trailing = "trailing_dividend" in (growth.provenance or "")
     sources = ["C05", entity.entity_id]
+    if trailing:
+        trail = block.get("trailing_dividend") or {}
+        for key in ("price_id", "action_id"):
+            series_id = str(trail.get(key) or "")
+            if series_id and series_id not in sources:
+                sources.append(series_id)
+        earnings_id = block.get("earnings_yield")
+        absent = (
+            f" {earnings_id} is not in the snapshot, so the input is the trailing cash yield."
+            if earnings_id
+            else ""
+        )
+        price_clause = (
+            f" Variable {variable!r} is answered with this growth rate because that is the ranged "
+            "implied-growth read C05 defines."
+            if variable == "price"
+            else ""
+        )
+        return PricedIn(
+            implied_change=growth,
+            sources=sources,
+            method_notes=(
+                "C05 reverse Gordon on the trailing cash-dividend yield, used as the forward dividend "
+                "yield. Growth equals required return minus that yield: the yield is passed to "
+                "implied_growth_from_multiple with payout 1, so the payout factor does not scale the "
+                "yield a second time. Payout 1 is that identity, not an estimate that earnings are fully "
+                "paid out. Cash dividends in the mapped lookback are summed, earlier cash is divided by "
+                "later split ratios, and the sum is divided by the latest record close. The required "
+                "return is the TODO_estimate band, so the range is that band minus the yield and the "
+                "point is empty. This is a perpetuity growth rate in percent. The thesis window is not "
+                f"applied.{absent}{price_clause} FRED:SP500 is an index level, not an earnings yield."
+            ),
+            confidence="low",
+        )
     ey = block.get("earnings_yield")
     if ey:
         sources.append(str(ey))
@@ -188,7 +268,7 @@ def _instrument_growth(entity: EntityKey, implied: ImpliedPaths, as_of: date) ->
         method_notes=(
             "C05 reverse Gordon: perpetuity growth equals required return minus payout times the "
             "forward earnings yield. Required return is the TODO_estimate band. This is not a "
-            "finite-horizon DCF."
+            "finite-horizon DCF. The thesis window is not applied; the quantity is the perpetuity rate."
         ),
         confidence="medium" if "TODO_estimate" in (growth.provenance or "") else "high",
     )

@@ -14,8 +14,10 @@ import argparse
 from collections.abc import Sequence
 from pathlib import Path
 
+import duckdb
+
 from macrosys.cases.replay_params import load_replay_parameters, missing_replay_parameters
-from macrosys.cases.runner import CaseResult, CaseSuite
+from macrosys.cases.runner import CaseResult, CaseRunner, CaseSuite
 from macrosys.cases.schema import default_cases_dir, load_cases
 from macrosys.decide.mandate import Mandate
 from macrosys.eval.promotion import ResearchCounts, research_to_paper
@@ -31,6 +33,12 @@ def register_cli(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]
     score.add_argument("--mechanisms", type=Path, default=None, help="mechanism library directory")
     score.add_argument("--held-out", action="append", default=None, help="held-out group; repeatable")
     score.add_argument("--mandate", type=Path, default=None, help="mandate yaml; default config/mandate.yaml if present")
+    score.add_argument(
+        "--db",
+        type=Path,
+        default=None,
+        help="read-only store for snapshot inputs; default data/store/macrosys.duckdb when that file exists",
+    )
     score.set_defaults(func=_cmd_score)
 
 
@@ -45,7 +53,12 @@ def _cmd_score(args: argparse.Namespace) -> int:
     if missing:
         print("replay fixtures missing for: " + ", ".join(missing))
         return 1
-    report = CaseSuite().run(load_cases(case_dir), library, held_out)
+    store = _open_store(getattr(args, "db", None))
+    try:
+        report = CaseSuite(CaseRunner(store=store)).run(load_cases(case_dir), library, held_out)
+    finally:
+        if store is not None:
+            store.close()
     results = report.results
     points = sum(item.n_scored for item in results)
     correct = sum(item.n_sign_correct for item in results)
@@ -135,3 +148,17 @@ def _pct(numerator: int, denominator: int) -> str:
 
 def _default_mechanisms() -> Path:
     return Path(__file__).resolve().parents[2] / "mechanisms"
+
+
+def _open_store(path: Path | None) -> duckdb.DuckDBPyConnection | None:
+    """Open the observation store read-only for cutoff snapshots (spec §9.2).
+
+    An explicit path is opened as given. The default path is used only when that file exists,
+    so a checkout without the live store still replays on the case fixtures.
+    """
+    if path is not None:
+        return duckdb.connect(str(path), read_only=True)
+    candidate = Path("data/store/macrosys.duckdb")
+    if not candidate.is_file():
+        return None
+    return duckdb.connect(str(candidate), read_only=True)

@@ -1,0 +1,38 @@
+# Half-spreads when price_bar has no bid or ask (spec §7.5). [J] Read into the approver; not a fit.
+#
+# A zero half-spread would treat a round trip as free. The iShares EWJ page on 2026-10-14
+# showed a 30-day median bid/ask of 0.01 percent (1 bp full, 0.5 bp half). The liquid tier
+# is 2 bp half, above that print, so a wide day is not costed at the median. Standard is
+# 5 bp half. Thin is 15 bp half, for futures-based funds whose spreads are wider than a
+# physical equity ETF and were not measured here.
+#
+# Liquid names are ones whose issuer page, read 2026-10-15, showed net assets above about
+# $10bn (SPY, ACWI, EFA, EEM, EWJ, GLD, TLT, IEF, LQD, HYG, TIP, SHY). Thin names are the
+# futures-based listings. Anything else, including a ticker added later, uses `standard`.
+default_tier: standard
+half_spread_bp:
+  liquid: 2.0
+  standard: 5.0
+  thin: 15.0
+tiers:
+  liquid:
+    - ACWI
+    - SPY
+    - EFA
+    - EEM
+    - EWJ
+    - GLD
+    - TLT
+    - IEF
+    - LQD
+    - HYG
+    - TIP
+    - SHY
+  thin:
+    - DBC
+    - USO
+    - UNG
+    - CPER
+    - DBB
+    - DBA
+    - UUP

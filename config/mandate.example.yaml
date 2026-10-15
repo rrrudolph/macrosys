@@ -7,8 +7,11 @@ decision:
   tz: America/Chicago
 horizon_months: {min: 1, max: 12}
 leverage: {allowed: false}
-shorting: {allowed: false}          # short views via pairs/underweights only in v0 (spec §7.5)
+shorting:                           # outright shorts need the broker's borrow rate (spec §7.5, amended 2026-10-15)
+  allowed: false
+  borrow_cost_bp_annual: null
 excluded_structures: [leveraged, inverse, vix_linked]
+baseline: null                      # null is cash; see config/mandate.yaml for an inverse-vol resting book
 risk:
   vol_target_annual_pct: null       # owner decision (§15)
   max_drawdown_halt_pct: null

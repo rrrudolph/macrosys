@@ -95,17 +95,31 @@ class StructurePoint(BaseModel):
 
 
 class FixtureLevel(BaseModel):
-    """A sign-carrier input for one mechanism on a case replay (spec §10.1). Not a published reading."""
+    """A companion input for one mechanism on a case replay (spec §10.1, §9.2).
+
+    ``value`` is the fallback when no store is open. ``series_id`` names a series to read with
+    ``snapshot(as_of)`` at the case cutoff. ``scale`` converts that reading into ``unit``
+    (percent to share is ``0.01``). It is not an estimated magnitude.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
     value: float
     unit: str
+    series_id: str | None = None
+    scale: float = 1.0
 
     @field_validator("unit")
     @classmethod
     def _unit(cls, value: str) -> str:
         assert_unit(value)
+        return value
+
+    @field_validator("scale")
+    @classmethod
+    def _scale(cls, value: float) -> float:
+        if value == 0.0:
+            raise ValueError("scale must be a non-zero unit conversion")
         return value
 
 

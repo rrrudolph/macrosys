@@ -82,6 +82,27 @@ def instrument_block(instrument_id: str) -> dict | None:
     return item if isinstance(item, dict) else None
 
 
+def spread_for_entity(entity_id: str) -> dict | None:
+    """Credit-spread block for an entity id, or None (spec §3.3 C06)."""
+    return _by_entity("credit_spread", entity_id)
+
+
+def named_gap(entity_type: str, entity_id: str, variable: str) -> str | None:
+    """Declared gap text for one entity and variable, or None (spec §7.3, §9.8)."""
+    for item in series_map().get("named_gaps") or []:
+        if not isinstance(item, dict):
+            continue
+        if item.get("entity_type") != entity_type or item.get("entity_id") != entity_id:
+            continue
+        if item.get("variable") != variable:
+            continue
+        missing = item.get("missing")
+        if not missing:
+            return None
+        return " ".join(str(missing).split())
+    return None
+
+
 def nearest_instrument(entity_id: str) -> dict | None:
     """Declared nearest listed instrument for an entity with no direct market quantity."""
     item = (series_map().get("nearest_instrument") or {}).get(entity_id)

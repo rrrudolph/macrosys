@@ -21,7 +21,9 @@ horizon:
 state_dependence: []
 assumptions:
 - prices move in days to weeks; the real economy follows later through B12 and B13
-competing: []
+competing:
+  # spec §3.3 B27: "central-bank facilities respond (A07)"; "Competing: policy backstops (swap lines, facilities); cash buffers."
+  - A07_central_bank_balance_sheet
 evidence:
 - SOFR-IORB
 - CP-OIS

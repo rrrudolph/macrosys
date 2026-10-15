@@ -26,7 +26,7 @@ expected_structure:
     variable: demand
     sign: -1
     horizon_q: [0, 2]
-    dominant_competing: B24_supply_chain
+    dominant_competing: B04_inventory_cycle
 observed_structure:
   - entity:
       type: economy
@@ -34,9 +34,9 @@ observed_structure:
     variable: demand
     sign: -1
     horizon_q: [0, 2]
-    dominant_competing: B24_supply_chain
+    dominant_competing: B04_inventory_cycle
     source_url: "https://www.bea.gov/news/2020/gross-domestic-product-2nd-quarter-2020-advance-estimate"
-    source_note: "BEA: real GDP contracted in 2020Q2. The case stores the negative sign, not the published percent."
+    source_note: "BEA: real GDP contracted in 2020Q2. The case stores the negative sign, not the published percent. The supply-chain card lists inventory buffers (B04) as the competing offset (spec §3.3 B24)."
     mechanism_id: B24_supply_chain
     output: output_loss
     polarity: opposite
@@ -46,9 +46,9 @@ observed_structure:
     variable: demand
     sign: -1
     horizon_q: [0, 2]
-    dominant_competing: B24_supply_chain
+    dominant_competing: B04_inventory_cycle
     source_url: "https://www.federalreserve.gov/monetarypolicy/fomcminutes20200429.htm"
-    source_note: "FOMC minutes 28-29 April 2020: the drop combined a collapse in spending with supply constraints. Demand is the shock type here; supply is the competing channel."
+    source_note: "FOMC minutes 28-29 April 2020: the drop combined a collapse in spending with supply constraints. The supply-chain card lists inventory buffers (B04) as the competing offset (spec §3.3 B24). The mechanism itself is not its own competitor."
     mechanism_id: B24_supply_chain
     output: output_loss
     polarity: opposite

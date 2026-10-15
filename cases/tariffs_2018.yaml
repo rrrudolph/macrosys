@@ -26,7 +26,7 @@ expected_structure:
     variable: import_price
     sign: 1
     horizon_q: [0, 4]
-    dominant_competing: B08_pass_through
+    dominant_competing: B05_capacity_pipeline
 observed_structure:
   - entity:
       type: economy
@@ -34,9 +34,9 @@ observed_structure:
     variable: import_price
     sign: 1
     horizon_q: [0, 4]
-    dominant_competing: B08_pass_through
+    dominant_competing: B05_capacity_pipeline
     source_url: "https://www.aeaweb.org/articles?id=10.1257/jep.33.4.187"
-    source_note: "Amiti, Redding, and Weinstein (JEP 2019): the 2018 tariffs raised US import prices, with incidence largely on US buyers. Sign of import prices is positive. No tariff rate is stored."
+    source_note: "Amiti, Redding, and Weinstein (JEP 2019): the 2018 tariffs raised US import prices, with incidence largely on US buyers. Sign of import prices is positive. No tariff rate is stored. The pass-through card's listed offset is entry over the capacity horizon (spec §3.3 B08), which did not undo that incidence inside this window."
     mechanism_id: B08_pass_through
     output: passed_on
   - entity:
@@ -45,7 +45,7 @@ observed_structure:
     variable: import_price
     sign: 1
     horizon_q: [0, 4]
-    dominant_competing: B08_pass_through
+    dominant_competing: B05_capacity_pipeline
     source_url: "https://ustr.gov/issue-areas/enforcement/section-301-investigations/tariff-actions"
     source_note: "USTR Section 301 tariff actions: the July 2018 list was an enacted trade measure. The price sign is taken from the JEP paper, not from this page."
     mechanism_id: B08_pass_through

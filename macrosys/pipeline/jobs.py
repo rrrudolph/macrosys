@@ -86,6 +86,18 @@ class PipelineConfig(BaseModel):
     prices: list[PriceGroup] = Field(default_factory=list)
     required: list[RequiredSeries] = Field(default_factory=list)
 
+    def price_instrument_id(self, ticker: str) -> str:
+        """Store id of a configured record-tier price, ``<source_id>:<ticker>`` (spec §9.6).
+
+        The Tiingo producer writes ``TIINGO:SPY`` for the configured ticker ``SPY``; this is that
+        convention read back [J]. A ticker no price group lists raises ``KeyError`` so a baseline or
+        trigger cannot silently read an instrument the pipeline never ingests.
+        """
+        for group in self.prices:
+            if ticker in group.instrument_ids:
+                return f"{group.source_id}:{ticker}"
+        raise KeyError(f"{ticker} is not in any price group of the pipeline config")
+
 
 class JobReport(BaseModel):
     """What one daily or weekly run wrote (spec §9.4)."""

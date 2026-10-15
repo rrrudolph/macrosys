@@ -131,7 +131,11 @@ class CompetingEffect(BaseModel):
 
 
 class Expression(BaseModel):
-    """How the thesis is held (spec §7.4–§7.6). Exactly one of ``instrument`` or ``pair``."""
+    """How the thesis is held (spec §7.4–§7.6). Exactly one of ``instrument`` or ``pair``.
+
+    ``direction='short'`` on a single instrument is an outright short. Whether the mandate permits it
+    is the expression gate's question (``macrosys.decide.gates.expression_gate``), not this record's.
+    """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
 
@@ -150,9 +154,12 @@ class Expression(BaseModel):
             raise ValueError("expression needs an instrument or a pair, and not both")
         if self.pair is not None and self.pair[0] == self.pair[1]:
             raise ValueError("pair legs must be different instruments")
-        if self.direction == "short" and self.pair is None:
-            raise ValueError("a short view is expressed as a pair or an underweight (spec §7.5)")
         return self
+
+    @property
+    def is_outright_short(self) -> bool:
+        """True for a single-instrument ``short``; a pair's short leg is a hedge, not a borrow."""
+        return self.direction == "short" and self.instrument is not None
 
 
 class SizingInputs(BaseModel):

@@ -82,6 +82,71 @@ def test_unwired_factor_limit_refuses_to_trade() -> None:
         PortfolioConstructor("run-1").propose([thesis], {thesis.thesis_id: 0.05}, {}, mandate, nav=100_000.0)
 
 
+def _shorting(mandate, allowed: bool, leverage: bool = False):
+    return mandate.model_copy(
+        update={
+            "shorting": mandate.shorting.model_copy(update={"allowed": allowed}),
+            "leverage": mandate.leverage.model_copy(update={"allowed": leverage}),
+        }
+    )
+
+
+def test_no_thesis_trades_toward_the_baseline() -> None:
+    mandate = load_example_mandate()
+    baseline = {"SPY": 0.6, "IEF": 0.4}
+    tickets = PortfolioConstructor("run-1").propose([], {}, {"CPER": 0.10}, mandate, nav=100_000.0, baseline=baseline)
+    by_name = {ticket.instrument_id: ticket for ticket in tickets}
+    assert by_name["CPER"].side == "sell" and by_name["CPER"].quantity == pytest.approx(10_000.0)
+    assert by_name["SPY"].side == "buy" and by_name["SPY"].quantity == pytest.approx(60_000.0)
+    assert by_name["IEF"].side == "buy" and by_name["IEF"].quantity == pytest.approx(40_000.0)
+    assert all(ticket.thesis_ids == [] for ticket in tickets)
+
+
+def test_thesis_is_a_tilt_on_the_baseline_funded_by_trimming_it() -> None:
+    mandate = load_example_mandate()
+    thesis = _approved()
+    baseline = {"SPY": 0.6, "IEF": 0.4}
+    tickets = PortfolioConstructor("run-1").propose(
+        [thesis], {thesis.thesis_id: 0.10}, {}, mandate, nav=100_000.0, baseline=baseline
+    )
+    by_name = {ticket.instrument_id: ticket.quantity / 100_000.0 for ticket in tickets}
+    # Gross stays at 100%: the 10% copper tilt is paid for by scaling the baseline to 90%.
+    assert by_name["CPER"] == pytest.approx(0.10)
+    assert by_name["SPY"] == pytest.approx(0.54)
+    assert by_name["IEF"] == pytest.approx(0.36)
+    assert sum(by_name.values()) == pytest.approx(1.0)
+
+
+def test_outright_short_needs_the_mandate_and_respects_gross_without_leverage() -> None:
+    short = _approved(
+        expression={
+            "instrument": "XLK",
+            "direction": "short",
+            "exposure_vector_check": "passed",
+            "structure_notes": "outright short of the tech sector fund",
+            "cost_estimate_bp": 12.0,
+        }
+    )
+    sizes = {short.thesis_id: 0.10}
+    forbidden = _shorting(load_example_mandate(), allowed=False)
+    assert PortfolioConstructor("run-1").propose([short], sizes, {}, forbidden, nav=100_000.0) == []
+
+    allowed = _shorting(load_example_mandate(), allowed=True)
+    tickets = PortfolioConstructor("run-1").propose([short], sizes, {}, allowed, nav=100_000.0)
+    assert [(ticket.instrument_id, ticket.side, ticket.quantity) for ticket in tickets] == [("XLK", "sell", 10_000.0)]
+
+    baseline = {"SPY": 0.6, "IEF": 0.4}
+    tilted = PortfolioConstructor("run-1").propose([short], sizes, {}, allowed, nav=100_000.0, baseline=baseline)
+    weights = {t.instrument_id: (t.quantity if t.side == "buy" else -t.quantity) / 100_000.0 for t in tilted}
+    assert weights["XLK"] == pytest.approx(-0.10)
+    assert sum(abs(weight) for weight in weights.values()) == pytest.approx(1.0)
+
+    levered = _shorting(load_example_mandate(), allowed=True, leverage=True)
+    gross = PortfolioConstructor("run-1").propose([short], sizes, {}, levered, nav=100_000.0, baseline=baseline)
+    weights = {t.instrument_id: (t.quantity if t.side == "buy" else -t.quantity) / 100_000.0 for t in gross}
+    assert sum(abs(weight) for weight in weights.values()) == pytest.approx(1.10)
+
+
 def test_sells_down_toward_a_smaller_target() -> None:
     mandate = load_example_mandate()
     thesis = _approved()

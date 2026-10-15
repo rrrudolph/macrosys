@@ -7,7 +7,7 @@ every owner decision that is still null so the paper phase cannot start on a bla
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Self
+from typing import Literal, Self
 
 import yaml
 from pydantic import BaseModel, ConfigDict, model_validator
@@ -59,6 +59,47 @@ class HorizonMonths(_Strict):
 
 class Permission(_Strict):
     allowed: bool
+
+
+class ShortingPermission(Permission):
+    """Outright shorts (spec §7.5, amended 2026-10-15).
+
+    ``borrow_cost_bp_annual`` is the broker's stock-loan rate on the short notional. It is a
+    provider fact, not an estimate: ``null`` means a short cannot be costed, and
+    ``short_borrow_cost_bp_annual`` refuses instead of inventing a number (spec §0 no fabricated
+    numbers).
+    """
+
+    borrow_cost_bp_annual: float | None = None
+
+    @model_validator(mode="after")
+    def _non_negative(self) -> Self:
+        if self.borrow_cost_bp_annual is not None and self.borrow_cost_bp_annual < 0:
+            raise ValueError("borrow_cost_bp_annual cannot be negative")
+        return self
+
+
+class BaselineConfig(_Strict):
+    """The resting book held when no thesis passes (spec §11.3, amended 2026-10-15).
+
+    ``inverse_vol`` weights each listed instrument by the inverse of its trailing realized
+    volatility over ``window_days`` trading days, renormalized to sum to one, then held under the
+    mandate's position limit. Tickers are the universe's; the list is the owner's choice.
+    """
+
+    method: Literal["inverse_vol"]
+    window_days: int
+    instruments: list[str]
+
+    @model_validator(mode="after")
+    def _well_formed(self) -> Self:
+        if self.window_days < 2:
+            raise ValueError("baseline.window_days must be at least 2")
+        if not self.instruments:
+            raise ValueError("baseline.instruments cannot be empty")
+        if len(set(self.instruments)) != len(self.instruments):
+            raise ValueError("baseline.instruments has a duplicate ticker")
+        return self
 
 
 class RiskLimits(_Strict):
@@ -141,12 +182,26 @@ class Mandate(_Strict):
     decision: DecisionClock
     horizon_months: HorizonMonths
     leverage: Permission
-    shorting: Permission
+    shorting: ShortingPermission
     excluded_structures: list[str]
+    # ``None`` is cash: with no thesis the book is flat (spec §11.3 before the 2026-10-15 amendment).
+    baseline: BaselineConfig | None = None
     risk: RiskLimits
     gap_gate: GapGateConfig
     sizing: SizingConfig
     promotion_gates: PromotionGates
+
+    def short_borrow_cost_bp_annual(self) -> float:
+        """Annual borrow cost for an outright short, in basis points (spec §7.5, amended 2026-10-15).
+
+        Raises ``MandateIncompleteError`` when shorting is not allowed or the rate is null, so a short
+        thesis cannot be costed on a number nobody entered.
+        """
+        if not self.shorting.allowed:
+            raise MandateIncompleteError(["shorting.allowed"])
+        if self.shorting.borrow_cost_bp_annual is None:
+            raise MandateIncompleteError(["shorting.borrow_cost_bp_annual"])
+        return float(self.shorting.borrow_cost_bp_annual)
 
     @classmethod
     def load(cls, path: str | Path) -> Mandate:

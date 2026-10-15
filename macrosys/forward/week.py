@@ -1,27 +1,35 @@
 """Prospective weekly decision (spec §11.2, §10.2 item 7, §10.3, §11.3).
 
-``forward_week`` refreshes world state from ``snapshot(as_of)``, runs each filed shock on the
-library path, applies the four gates, and appends any thesis to the frozen ledger. The default
-action is no-trade. Coverage that blocks is class B: the decision is skipped and the book is
-kept. The research sign bar is applied from the mandate; this function does not place an order.
+``decide_week`` is the decision itself: shocks in, theses and gate results out, nothing written.
+``forward_week`` refreshes world state from ``snapshot(as_of)``, calls ``decide_week``, and only
+then appends theses to the frozen ledger and writes the report and the week log. The walk-forward
+evaluator calls ``decide_week`` and does not freeze. The default action is no-trade. Coverage that
+blocks is class B: the decision is skipped and the book is kept. The research sign bar is applied
+from the mandate; this function does not place an order.
+
+Amended 2026-10-15 (owner decisions): the week states the mandate's resting book, the baseline held
+when no thesis passes, and files the shocks that ``config/triggers.yaml`` raises from stored data
+next to the owner's hand-filed ones. A shock whose type has no library route fails the mechanism
+gate and is recorded as such; it is not an error.
 """
 
 from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Collection, Mapping, Sequence
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import duckdb
 import yaml
 from pydantic import BaseModel, ConfigDict, Field
 
-from macrosys.cases.runner import CaseSuite, SuiteReport
-from macrosys.cases.schema import default_cases_dir, load_cases
 from macrosys.core.quantity import Quantity
 from macrosys.core.time import Horizon
+from macrosys.decide.approve import Approval, Approver
+from macrosys.decide.baseline import BaselineUnavailableError, RestingBook, resting_book
 from macrosys.decide.gates import Decision, decide
 from macrosys.decide.mandate import Mandate
 from macrosys.decide.shock import Shock
@@ -67,7 +75,12 @@ from macrosys.store.manifest import build_manifest, write_manifest
 from macrosys.store.observations import ObservationStore
 from macrosys.store.schema import create_schema
 from macrosys.store.state import WorldStateStore
+from macrosys.triggers.rules import load_triggers
+from macrosys.triggers.scan import Fired, StoreReader, scan
 from macrosys.world.refresh import refresh_world_state
+
+if TYPE_CHECKING:
+    from macrosys.cases.runner import SuiteReport
 
 # Dry-run pin. Not a git sha: the replay tuple is the store snapshot, the library hash, and this
 # ticket (spec §4.4, §10.3, X5.2).
@@ -96,10 +109,19 @@ class ShockNote(BaseModel):
     reason: str
     thesis_id: str | None = None
     error: bool = False
+    triggered: bool = False
+    # From the approver (spec §11.3 expression and risk gates, §11.4 size). ``weight`` is the
+    # unsigned fraction of NAV the approver would hold; ``None`` when no approver ran.
+    weight: float | None = None
+    approval_reasons: list[str] = Field(default_factory=list)
 
 
 class WeekResult(BaseModel):
-    """What one forward week wrote (spec §11.2, §10.2 item 7)."""
+    """What one forward week wrote (spec §11.2, §10.2 item 7).
+
+    ``baseline`` is the resting book's weights at ``as_of`` (``None`` for a cash mandate or a
+    blocked week). ``triggered`` lists the data-filed shock ids this week raised.
+    """
 
     model_config = ConfigDict(frozen=True)
 
@@ -112,6 +134,8 @@ class WeekResult(BaseModel):
     reasons: list[str]
     manifest_digest: str | None = None
     decisions: list[ShockNote] = Field(default_factory=list)
+    baseline: dict[str, float] | None = None
+    triggered: list[str] = Field(default_factory=list)
     report_path: Path
     ledger_path: Path
 
@@ -129,16 +153,26 @@ def forward_week(
     runbook_path: str | Path = "docs/runbook.md",
     acknowledge_runbook_change: bool = False,
     research: ResearchGateResult | None = None,
+    triggers_path: str | Path | None = None,
+    approver: Approver | None = None,
 ) -> WeekResult:
     """Refresh, gate, and freeze one prospective week (spec §11.2, §10.2 item 7, §10.3, §11.3).
+
+    ``approver`` (``macrosys.decide.approve.StoreApprover`` on the CLI) supplies the exposure
+    check, cost, scenario loss, regime flag, and size from the store; without it the expression
+    check stays pending and no position can be approved. The book passed to the approver is
+    empty: this clock has no order manager wired, so every thesis is sized against a flat book.
 
     ``as_of`` is a calendar date, taken as the end of that UTC day, or an aware datetime. The
     runbook hash is checked before any thesis is frozen (spec §11.7). Required series are the
     pipeline config's ``required`` list plus each series group's ids at that group's
     ``max_lag_days``. A blocking coverage report is class B: the week is recorded, nothing is
-    propagated, and no thesis is appended. With no filed shock the action is no-trade. Each
-    shock runs on the library path with stub coefficients dropped. A missing parameter or a unit
-    break is blocking missing evidence and still freezes a no-trade thesis. The expression check
+    propagated, and no thesis is appended. A mandate baseline that cannot be computed from the
+    closes visible at ``as_of`` blocks the same way. ``triggers_path`` names the data-filed shock
+    rules; the shocks they raise at ``as_of`` are decided next to the filed ones. With no shock the
+    action is no-trade and the book is the baseline. Each shock runs on the library path with stub
+    coefficients dropped; a type with no route fails the mechanism gate. A missing parameter or a
+    unit break is blocking missing evidence and still freezes a no-trade thesis. The expression check
     stays pending, so this clock records the forecast and does not approve a position. When the
     research sign bar is not met, the action is no-trade even if every gate passed. No order is
     written. A second call for the same UTC calendar date raises ``DuplicateWeekError`` and does
@@ -150,7 +184,7 @@ def forward_week(
     _assert_new_week(log_path, day)
 
     mandate = Mandate.load(_readable(mandate_path))
-    research_result = research if research is not None else _research_from_cases(mandate)
+    research_result = research if research is not None else _research_from_cases(mandate, db_path)
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     ensure_runbook(
@@ -167,9 +201,16 @@ def forward_week(
         create_schema(conn)
         required = _required_pairs(config)
         coverage = coverage_report(conn, as_of_dt, required)
-        if coverage.blocking:
+        book: RestingBook | None = None
+        book_error: BaselineUnavailableError | None = None
+        if not coverage.blocking:
+            try:
+                book = resting_book(conn, as_of_dt, mandate, config.price_instrument_id)
+            except BaselineUnavailableError as exc:
+                book_error = exc
+        if coverage.blocking or book_error is not None:
             digest = _write_store_manifest(conn, config, out)
-            prepared = _blocked(coverage, research_result, digest)
+            prepared = _blocked(coverage, research_result, digest, book_error)
         else:
             refresh_world_state(conn, as_of_dt)
             prepared = _decide_shocks(
@@ -180,6 +221,9 @@ def forward_week(
                 mandate,
                 research_result,
                 out,
+                book,
+                triggers_path,
+                approver,
             )
     finally:
         conn.close()
@@ -197,12 +241,14 @@ def forward_week(
         reasons=reasons,
         manifest_digest=prepared.manifest_digest,
         decisions=prepared.notes,
+        baseline=None if prepared.baseline is None else dict(prepared.baseline.weights),
+        triggered=[item.shock.id for item in prepared.fired],
         report_path=out / "report.md",
         ledger_path=ledger_file,
     )
     # The report is rewritten on a retry. The week log is the commit: a crash after the
     # ledger write and before this append can be run again without a second thesis.
-    _write_report(result, coverage, research_result)
+    _write_report(result, coverage, research_result, prepared)
     _append_week(log_path, result, day)
     return result
 
@@ -287,15 +333,25 @@ class _Prepared(BaseModel):
     notes: list[ShockNote]
     theses: list[Thesis]
     manifest_digest: str | None
+    baseline: RestingBook | None = None
+    baseline_error: str | None = None
+    fired: list[Fired] = Field(default_factory=list)
 
 
-def _blocked(coverage: CoverageReport, research: ResearchGateResult, digest: str) -> _Prepared:
-    bad = [f"{row.series_id} is {row.status}" for row in coverage.rows if row.status != "ok"]
-    detail = "; ".join(bad) if bad else "a required series is not fresh"
-    reasons = [
-        f"coverage blocked the week ({detail}); the decision is skipped and the book is kept",
-        *_research_reasons(research),
-    ]
+def _blocked(
+    coverage: CoverageReport,
+    research: ResearchGateResult,
+    digest: str,
+    book_error: BaselineUnavailableError | None = None,
+) -> _Prepared:
+    reasons: list[str] = []
+    if coverage.blocking:
+        bad = [f"{row.series_id} is {row.status}" for row in coverage.rows if row.status != "ok"]
+        detail = "; ".join(bad) if bad else "a required series is not fresh"
+        reasons.append(f"coverage blocked the week ({detail}); the decision is skipped and the book is kept")
+    if book_error is not None:
+        reasons.append(f"the resting book cannot be stated ({book_error}); the decision is skipped and the book is kept")
+    reasons.extend(_research_reasons(research))
     return _Prepared(
         status="blocked",
         reasons=reasons,
@@ -303,6 +359,125 @@ def _blocked(coverage: CoverageReport, research: ResearchGateResult, digest: str
         notes=[],
         theses=[],
         manifest_digest=digest,
+        baseline_error=None if book_error is None else str(book_error),
+    )
+
+
+class WeekDecision(BaseModel):
+    """Theses and gate results for one week, before any ledger or report write (spec §11.2, §11.3)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    status: WeekStatus
+    reasons: list[str]
+    n_shocks: int
+    notes: list[ShockNote]
+    theses: list[Thesis]
+
+
+def decide_week(
+    conn: duckdb.DuckDBPyConnection,
+    as_of: datetime,
+    shocks: Sequence[Shock],
+    *,
+    mandate: Mandate,
+    research: ResearchGateResult,
+    book: RestingBook | None,
+    triggered_ids: Collection[str] | None = None,
+    exposure_check: Literal["pending", "passed"] = "pending",
+    library: Library | None = None,
+    approver: Approver | None = None,
+    current: Mapping[str, float] | None = None,
+) -> WeekDecision:
+    """Gate ``shocks`` at ``as_of`` and return the theses. Writes nothing (spec §11.2, §11.3, §10.2).
+
+    World state and priced-in paths are read at ``as_of`` (``published_at`` / state rows at or
+    before that instant). No ledger line, week log, report, or manifest is written. ``research``
+    is applied after the four gates, and a bar that is not met forces no-trade: that bar is the
+    paper-promotion rule (spec §10.3), so a walk-forward passes a met result and does not treat
+    it as an input. ``exposure_check`` defaults to ``pending``, the paper clock refusing to
+    approve a position; ``passed`` is only for an evaluation that is not asking that question.
+    With an ``approver`` (spec §7.4, §7.5, §11.4; ``macrosys.decide.approve``) the exposure
+    check, cost, scenario loss, and regime flag come from the store at ``as_of`` and are written
+    onto the thesis before the gates run; ``current`` is the signed book already on, by ticker.
+    The expression gate still fails a failed check, a horizon outside the mandate, or a short
+    the mandate does not allow. A shock whose ``information_cutoff`` is after ``as_of`` raises
+    ``ValueError``. ``library`` defaults to the bundled mechanism directory.
+    """
+    if exposure_check not in ("pending", "passed"):
+        raise ValueError("exposure_check must be 'pending' or 'passed'")
+    held = dict(current or {})
+    for shock in shocks:
+        if shock.information_cutoff > as_of:
+            raise ValueError(
+                f"shock {shock.id} information_cutoff is after as_of "
+                f"({shock.information_cutoff.isoformat()} > {as_of.isoformat()})"
+            )
+    triggered = set(triggered_ids or ())
+    loaded = library if library is not None else load_library(_mechanisms_dir())
+    state = WorldStateStore(conn).view(as_of)
+    notes: list[ShockNote] = []
+    theses: list[Thesis] = []
+    reasons: list[str] = []
+    if not shocks:
+        reasons.append("no open shock filed and no trigger fired")
+    for shock in shocks:
+        is_triggered = shock.id in triggered
+        try:
+            route = route_for(shock)
+        except KeyError as exc:
+            # Spec §11.3: a propagation that cannot run fails the mechanism gate. The shock stays on
+            # record and the missing route is a backlog line, not a broken week.
+            message = f"no library route for shock type {shock.type!r}; {exc.args[0]}"
+            notes.append(
+                ShockNote(
+                    shock_id=shock.id,
+                    action="no_trade",
+                    failing_gate="mechanism",
+                    reason=message,
+                    triggered=is_triggered,
+                )
+            )
+            reasons.append(f"{shock.id}: {message}")
+            continue
+        thesis, decision, approval = _one_shock(
+            conn,
+            as_of,
+            shock,
+            route,
+            loaded,
+            mandate,
+            research,
+            state,
+            book,
+            exposure_check,
+            approver,
+            held,
+        )
+        theses.append(thesis)
+        notes.append(
+            ShockNote(
+                shock_id=shock.id,
+                action=decision.action,
+                failing_gate=decision.failing_gate,
+                reason=decision.reason,
+                thesis_id=thesis.thesis_id,
+                triggered=is_triggered,
+                weight=None if approval is None else approval.weight,
+                approval_reasons=[] if approval is None else list(approval.reasons),
+            )
+        )
+    if any(note.error for note in notes):
+        status: WeekStatus = "error"
+    else:
+        status = "ok"
+    reasons.extend(_research_reasons(research))
+    return WeekDecision(
+        status=status,
+        reasons=reasons,
+        n_shocks=len(shocks),
+        notes=notes,
+        theses=theses,
     )
 
 
@@ -314,54 +489,65 @@ def _decide_shocks(
     mandate: Mandate,
     research: ResearchGateResult,
     out: Path,
+    book: RestingBook | None,
+    triggers_path: str | Path | None,
+    approver: Approver | None = None,
 ) -> _Prepared:
-    state = WorldStateStore(conn).view(as_of)
-    shocks = load_open_shocks(shocks_path)
-    for shock in shocks:
+    filed = load_open_shocks(shocks_path)
+    for shock in filed:
         if shock.information_cutoff > as_of:
             raise ValueError(
                 f"shock {shock.id} information_cutoff is after as_of "
                 f"({shock.information_cutoff.isoformat()} > {as_of.isoformat()})"
             )
-    library = load_library(_mechanisms_dir())
-    notes: list[ShockNote] = []
-    theses: list[Thesis] = []
-    reasons: list[str] = []
-    if not shocks:
-        reasons.append("no open shock filed")
-    for shock in shocks:
-        try:
-            route = route_for(shock)
-        except KeyError as exc:
-            message = str(exc)
-            notes.append(ShockNote(shock_id=shock.id, reason=message, error=True))
-            reasons.append(f"{shock.id}: {message}")
-            continue
-        thesis, decision = _one_shock(conn, as_of, shock, route, library, mandate, research, state)
-        theses.append(thesis)
-        notes.append(
-            ShockNote(
-                shock_id=shock.id,
-                action=decision.action,
-                failing_gate=decision.failing_gate,
-                reason=decision.reason,
-                thesis_id=thesis.thesis_id,
-            )
-        )
-    if any(note.error for note in notes):
-        status: WeekStatus = "error"
-    else:
-        status = "ok"
-    reasons.extend(_research_reasons(research))
+    fired = _scan_triggers(conn, as_of, config, triggers_path)
+    shocks = _merge_shocks(filed, fired)
+    decision = decide_week(
+        conn,
+        as_of,
+        shocks,
+        mandate=mandate,
+        research=research,
+        book=book,
+        triggered_ids={item.shock.id for item in fired},
+        approver=approver,
+    )
     digest = _write_store_manifest(conn, config, out)
     return _Prepared(
-        status=status,
-        reasons=reasons,
-        n_shocks=len(shocks),
-        notes=notes,
-        theses=theses,
+        status=decision.status,
+        reasons=list(decision.reasons),
+        n_shocks=decision.n_shocks,
+        notes=list(decision.notes),
+        theses=list(decision.theses),
         manifest_digest=digest,
+        baseline=book,
+        fired=fired,
     )
+
+
+def _scan_triggers(
+    conn: duckdb.DuckDBPyConnection,
+    as_of: datetime,
+    config: PipelineConfig,
+    triggers_path: str | Path | None,
+) -> list[Fired]:
+    """Run the trigger rules at ``as_of`` against the store, or nothing when no file is named."""
+    if triggers_path is None:
+        return []
+    rules = load_triggers(_readable(triggers_path))
+    return scan(StoreReader(conn, config.price_instrument_id), rules, as_of)
+
+
+def _merge_shocks(filed: list[Shock], fired: list[Fired]) -> list[Shock]:
+    """Hand-filed shocks first, then triggered ones; a shared id is a configuration error."""
+    seen: set[str] = set()
+    merged: list[Shock] = []
+    for shock in [*filed, *(item.shock for item in fired)]:
+        if shock.id in seen:
+            raise ValueError(f"shock id {shock.id} appears twice (filed and triggered, or filed twice)")
+        seen.add(shock.id)
+        merged.append(shock)
+    return merged
 
 
 def _one_shock(
@@ -373,7 +559,11 @@ def _one_shock(
     mandate: Mandate,
     research: ResearchGateResult,
     state: object,
-) -> tuple[Thesis, Decision]:
+    book: RestingBook | None,
+    exposure_check: Literal["pending", "passed"] = "pending",
+    approver: Approver | None = None,
+    current: Mapping[str, float] | None = None,
+) -> tuple[Thesis, Decision, Approval | None]:
     path = _library_path(route, library)
     missing: str | None = None
     unit_error: UnitContinuityError | None = None
@@ -417,9 +607,40 @@ def _one_shock(
         param_version,
         market,
         priced_error,
+        book,
+        exposure_check,
     )
-    decision = _apply_research(_decision(thesis, mandate, horizon, propagation is not None), research)
-    return thesis, decision
+    approval: Approval | None = None
+    if approver is not None:
+        approval = approver.approve(thesis, conn, as_of, mandate, dict(current or {}))
+        thesis = _with_approval(thesis, approval)
+    decision = _apply_research(
+        _decision(thesis, mandate, horizon, propagation is not None, approval), research
+    )
+    return thesis, decision, approval
+
+
+def _with_approval(thesis: Thesis, approval: Approval) -> Thesis:
+    """Write the approver's expression and risk facts onto the thesis record (spec §7.7).
+
+    The gates read ``expression.exposure_vector_check`` and ``expression.cost_estimate_bp`` from
+    the thesis, so the approval has to be on the record before ``decide`` runs. An infinite cost
+    (an uncostable futures roll or borrow) is kept as infinity so the gap gate fails it.
+    """
+    expression = thesis.expression.model_copy(
+        update={
+            "exposure_vector_check": "passed" if approval.exposure_match else "failed",
+            "cost_estimate_bp": approval.cost_estimate_bp,
+            "structure_notes": " ".join(approval.reasons) or thesis.expression.structure_notes,
+        }
+    )
+    sizing = thesis.sizing_inputs.model_copy(
+        update={
+            "vol_annual": approval.vol_annual if approval.vol_annual > 0 else thesis.sizing_inputs.vol_annual,
+            "scenario_pnl": {"worst": -abs(approval.scenario_loss)},
+        }
+    )
+    return thesis.model_copy(update={"expression": expression, "sizing_inputs": sizing})
 
 
 def _library_path(route: Route, library: Library) -> PropagationPath:
@@ -472,14 +693,39 @@ def _qty(value: float, unit: str) -> Quantity:
     return Quantity(value=value, unit=unit, provenance=PROVENANCE)
 
 
-def _research_from_cases(mandate: Mandate) -> ResearchGateResult:
+def _expression_notes(instrument: str, exposure_check: Literal["pending", "passed"]) -> str:
+    if exposure_check == "pending":
+        return (
+            f"Forward week records the forecast only. {instrument} is not an approved "
+            "position; the exposure vector check has not been run."
+        )
+    return (
+        f"Walk-forward evaluation records the exposure check as passed for {instrument}. "
+        "The paper clock leaves this check pending so it does not approve a position; "
+        "that stub is not an evaluation input (spec §10.2, §11.3)."
+    )
+
+
+def _research_from_cases(mandate: Mandate, db_path: str | Path) -> ResearchGateResult:
     """Score the case library and apply the mandate's research-to-paper bar (spec §10.3).
 
     Held-out group is ``supply``, the same default as the cases CLI. Counts are evidential
-    outcomes only; ``research_to_paper`` decides whether the bar is met.
+    outcomes only; ``research_to_paper`` decides whether the bar is met. When the store exists it
+    is opened read-only so case inputs come from ``snapshot(cutoff)`` exactly as ``cases score``
+    reads them; the connection is closed before the week opens the store for writing.
     """
+    from macrosys.cases.runner import CaseRunner, CaseSuite
+    from macrosys.cases.schema import default_cases_dir, load_cases
+
     library = load_library(_mechanisms_dir())
-    report = CaseSuite().run(load_cases(default_cases_dir()), library, set(_HELD_OUT))
+    store_file = Path(db_path)
+    store = duckdb.connect(str(store_file), read_only=True) if store_file.is_file() else None
+    try:
+        suite = CaseSuite(CaseRunner(store=store))
+        report = suite.run(load_cases(default_cases_dir()), library, set(_HELD_OUT))
+    finally:
+        if store is not None:
+            store.close()
     gate = mandate.promotion_gates.research_to_paper
     return research_to_paper(
         min_cases_scored=gate.min_cases_scored,
@@ -584,6 +830,7 @@ def _record_day(record: dict[str, object]) -> date:
 def _append_week(path: Path, result: WeekResult, day: date) -> None:
     payload = {
         "as_of": day.isoformat(),
+        "baseline": result.baseline,
         "manifest_digest": result.manifest_digest,
         "n_shocks": result.n_shocks,
         "n_theses": result.n_theses,
@@ -591,6 +838,7 @@ def _append_week(path: Path, result: WeekResult, day: date) -> None:
         "reasons": result.reasons,
         "research_evaluable": result.research_evaluable,
         "status": result.status,
+        "triggered": result.triggered,
     }
     path.parent.mkdir(parents=True, exist_ok=True)
     line = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False)
@@ -600,23 +848,50 @@ def _append_week(path: Path, result: WeekResult, day: date) -> None:
         handle.write(prefix + line + "\n")
 
 
-def _write_report(result: WeekResult, coverage: CoverageReport, research: ResearchGateResult) -> None:
-    result.report_path.write_text(_render_report(result, coverage, research), encoding="utf-8")
+def _write_report(
+    result: WeekResult,
+    coverage: CoverageReport,
+    research: ResearchGateResult,
+    prepared: _Prepared,
+) -> None:
+    result.report_path.write_text(_render_report(result, coverage, research, prepared), encoding="utf-8")
 
 
-def _render_report(result: WeekResult, coverage: CoverageReport, research: ResearchGateResult) -> str:
-    """Plain-sentence week note: as_of, coverage, each decision, paper, and the ledger path."""
+def _render_report(
+    result: WeekResult,
+    coverage: CoverageReport,
+    research: ResearchGateResult,
+    prepared: _Prepared,
+) -> str:
+    """Plain-sentence week note: as_of, coverage, the resting book, triggers, each decision, paper,
+    and the ledger path."""
     lines = [
         f"This is the forward week as of {result.as_of.date().isoformat()} ({result.as_of.isoformat()}).",
         "",
         *_coverage_sentences(coverage),
-        "",
     ]
+    if prepared.baseline_error is not None:
+        lines.append(
+            f"The resting book cannot be stated: {prepared.baseline_error}. "
+            "The decision is skipped and the book is kept."
+        )
+    lines.append("")
+    if result.status != "blocked":
+        if prepared.baseline is None:
+            lines.append("The mandate has no resting book: with no passing thesis the book is cash.")
+        else:
+            lines.append(prepared.baseline.sentence() + " It is held when no thesis passes.")
+        lines.append("")
+    for item in prepared.fired:
+        lines.append(item.sentence())
+    if prepared.fired:
+        lines.append("")
     if result.n_shocks == 0 and result.status != "blocked":
-        lines.append("No open shock is filed, so the recorded action is no-trade.")
+        lines.append("No open shock is filed and no trigger fired, so the recorded action is no-trade.")
     for note in result.decisions:
+        source = "Triggered shock" if note.triggered else "Shock"
         if note.error:
-            lines.append(f"Shock {note.shock_id} was not frozen. {note.reason}")
+            lines.append(f"{source} {note.shock_id} was not frozen. {note.reason}")
             continue
         if note.action == "no_trade" and note.failing_gate is None:
             gate = "The four gates passed, and the research bar kept this from a trade."
@@ -624,7 +899,11 @@ def _render_report(result: WeekResult, coverage: CoverageReport, research: Resea
             gate = "No gate failed."
         else:
             gate = f"The failing gate is {note.failing_gate}."
-        lines.append(f"Shock {note.shock_id} decision is {note.action}. {gate} {note.reason}")
+        lines.append(f"{source} {note.shock_id} decision is {note.action}. {gate} {note.reason}")
+        if note.weight is not None:
+            size = f"The approver's size is {note.weight * 100:.1f}% of NAV."
+            detail = " ".join(note.approval_reasons)
+            lines.append(f"{size} {detail}".rstrip())
     lines.append("")
     if result.paper_allowed:
         lines.append("Paper is allowed.")
@@ -684,6 +963,8 @@ def _thesis(
     param_version: str,
     market: MarketPricedIn | None,
     priced_error: NoPricedInError | None,
+    book: RestingBook | None,
+    exposure_check: Literal["pending", "passed"] = "pending",
 ) -> Thesis:
     expected = _effect(route, propagation)
     priced, gap, priced_missing = _thesis_priced(expected, market, priced_error)
@@ -759,13 +1040,11 @@ def _thesis(
         expression=Expression(
             instrument=route.instrument,
             direction="long",
-            # [J] Pending on purpose. This clock records the forecast and does not approve a position,
-            # so the expression gate fails on its own terms.
-            exposure_vector_check="pending",
-            structure_notes=(
-                f"Forward week records the forecast only. {route.instrument} is not an approved "
-                "position; the exposure vector check has not been run."
-            ),
+            # [J] Pending on purpose when this is the paper clock: the week records the forecast and
+            # does not approve a position, so the expression gate fails on its own terms. Evaluation
+            # passes "passed" because that stub is not an input to a historical score (spec §10.2).
+            exposure_vector_check=exposure_check,
+            structure_notes=_expression_notes(route.instrument, exposure_check),
             cost_estimate_bp=0.0,
         ),
         sizing_inputs={
@@ -797,7 +1076,7 @@ def _thesis(
         ],
         forecast_precision=ForecastPrecision(range_width_pct=width, interval_level=0.8),
         expected_return=ExpectedReturn(net_of_costs_range=gap, horizon_m=months),
-        no_trade_alternative="Hold the current book. This week does not size a position (spec §11.3).",
+        no_trade_alternative=_no_trade_alternative(book),
         versions=Versions(
             library=library.version,
             parameters=param_version,
@@ -810,8 +1089,25 @@ def _thesis(
     )
 
 
-def _decision(thesis: Thesis, mandate: Mandate, horizon: Horizon, run_finished: bool) -> Decision:
-    """Run the four gates. This week adds no position (spec §11.2, §11.3)."""
+def _no_trade_alternative(book: RestingBook | None) -> str:
+    if book is None:
+        return "Hold the current book. This week does not size a position (spec §11.3)."
+    return f"Hold the resting book. {book.sentence()} This week does not size a position (spec §11.3)."
+
+
+def _decision(
+    thesis: Thesis,
+    mandate: Mandate,
+    horizon: Horizon,
+    run_finished: bool,
+    approval: Approval | None = None,
+) -> Decision:
+    """Run the four gates (spec §11.2, §11.3).
+
+    Without an approval the expression and risk facts are the paper clock's placeholders (match
+    assumed, book assumed inside limits, regime stable) and the pending exposure check fails the
+    expression gate on its own. With one, those facts are the approver's.
+    """
     configured = mandate.gap_gate.min_expected_gap_after_costs_bp
     min_gap_bp = 0.0 if configured is None else float(configured)
     months = thesis.expected_return.horizon_m
@@ -820,10 +1116,11 @@ def _decision(thesis: Thesis, mandate: Mandate, horizon: Horizon, run_finished: 
         run_valid=run_finished,
         identity_residuals_ok=run_finished,
         min_gap_bp=min_gap_bp,
-        exposure_match=True,
+        exposure_match=True if approval is None else approval.exposure_match,
         horizon_ok=_horizon_ok(horizon, months, mandate),
-        post_trade_ok=True,
-        regime_flag="stable",
+        post_trade_ok=True if approval is None else approval.post_trade_ok,
+        regime_flag="stable" if approval is None else approval.regime_flag,
+        shorting_allowed=mandate.shorting.allowed,
     )
 
 

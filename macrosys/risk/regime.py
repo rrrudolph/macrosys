@@ -301,6 +301,55 @@ def dcc(returns: np.ndarray | pd.DataFrame, *, max_iter: int = 80) -> DCCResult:
     )
 
 
+def equity_regime_flag(
+    equity_returns: np.ndarray | pd.Series,
+    factor_returns: pd.DataFrame | None = None,
+) -> str:
+    """Coarse regime flag for the risk gate (spec §6.3, §6.6, §11.3).
+
+    ``deteriorating`` when a multi-factor panel is available and the latest 63-day
+    absorption ratio (the first principal component's variance share) is strictly
+    above the 90th percentile of the preceding 252 readings. That is the §6.6 rule
+    that defers new theses. One series cannot deteriorate: its absorption ratio is 1
+    by construction, so it is never strictly above its own history.
+
+    Otherwise the equity factor's two-state variance model is the calm/stress flag.
+    ``stressed`` means the filtered probability of the high-variance state is at
+    least one half; ``stable`` means it is not. ``unknown`` means the equity series
+    has fewer than the 30 observations that model requires. The risk gate fails only
+    on ``deteriorating``; ``stressed`` is reported and does not by itself veto.
+    """
+    if _absorption_deteriorating(factor_returns):
+        return "deteriorating"
+    series = np.asarray(equity_returns, dtype=np.float64).ravel()
+    series = series[np.isfinite(series)]
+    if series.shape[0] < 30:
+        return "unknown"
+    probabilities, _params = two_state_variance_regime(series, max_iter=30, tol=1e-3)
+    if float(probabilities.filtered[-1]) >= 0.5:
+        return "stressed"
+    return "stable"
+
+
+def _absorption_deteriorating(factor_returns: pd.DataFrame | None) -> bool:
+    """True when the latest 63-day absorption ratio exceeds its trailing 1-year 90th percentile."""
+    if factor_returns is None or factor_returns.shape[1] < 2:
+        return False
+    values = factor_returns.dropna(how="any")
+    # 63-day windows plus 252 prior readings of that window.
+    if len(values) < 63 + 252:
+        return False
+    ratio = absorption_ratio(values, n_components=1, window=63)
+    finite = ratio.dropna() if isinstance(ratio, pd.Series) else pd.Series(np.asarray(ratio, dtype=float)).dropna()
+    if len(finite) < 252 + 1:
+        return False
+    last = float(finite.iloc[-1])
+    history = finite.iloc[-253:-1].to_numpy(dtype=np.float64)
+    if not np.isfinite(last) or not np.isfinite(history).all():
+        return False
+    return bool(last > float(np.quantile(history, 0.90)))
+
+
 # --- correlation primitives -----------------------------------------------------------------------
 
 

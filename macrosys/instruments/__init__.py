@@ -34,6 +34,7 @@ from macrosys.instruments.holdings import (
     normalize_country,
 )
 from macrosys.instruments.master import (
+    DeclaredExposure,
     Instrument,
     MandateExclusionError,
     MandateExclusions,
@@ -46,6 +47,7 @@ __all__ = [
     "PREMIUM_DISCOUNT_FLAG",
     "AlignedReturns",
     "CorporateAction",
+    "DeclaredExposure",
     "ExposureVector",
     "FxConversionRule",
     "HoldingRow",

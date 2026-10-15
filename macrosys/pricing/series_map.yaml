@@ -7,6 +7,7 @@ variables:
   inflation: [inflation, cpi, breakeven]
   price: [price, futures_price]
   growth: [growth, earnings_growth, implied_growth]
+  spread: [spread]
 
 # USD nominal curve. GSW zeros are preferred when any SVENY print is in the snapshot.
 # Treasury par tenors match macrosys.sources.treasury (TREASURY:PAR:1M … 30Y).
@@ -103,6 +104,25 @@ commodities:
       FRED:PCOPPUSDM is the IMF/FRED global copper price, USD per metric ton.
       CME:HG:YYYY-MM is the COMEX copper futures settlement, not in a connector.
 
+# Credit spread as the market quantity (C06). The point change is zero [J]:
+# the OAS level is what is priced, with no mean-reversion forecast. The range
+# is the percentile band of overlapping changes over the thesis window.
+# low_percentile, high_percentile, min_changes, and match_tolerance_days are
+# declared method choices, not fitted premia.
+credit_spread:
+  USA:
+    entity_ids: [USA]
+    series: FRED:BAMLH0A0HYM2
+    level_unit: pct
+    low_percentile: 10
+    high_percentile: 90
+    min_changes: 20
+    match_tolerance_days: 7
+    note: >
+      ICE BofA US High Yield Index option-adjusted spread, percent. The route
+      expression is HYG. FRED:BAMLC0A0CM is the investment-grade OAS and is not
+      this mapping. One percent of OAS is 100 bp.
+
 instruments:
   CPER:
     earnings_yield: PRICING:CPER:EARNINGS_YIELD
@@ -111,6 +131,71 @@ instruments:
       Earnings yield in pct and payout in share. Neither is produced by Tiingo
       or the other connectors (spec §9.8). The resolver reads them if a loader
       has written them.
+  SPY:
+    earnings_yield: PRICING:SPY:EARNINGS_YIELD
+    payout: PRICING:SPY:PAYOUT
+    trailing_dividend:
+      price_id: TIINGO:SPY
+      action_id: TIINGO:SPY
+      lookback_days: 365
+      min_payments: 4
+      close_max_age_days: 10
+      ccy: USD
+    note: >
+      Preferred input is a forward earnings yield in pct, or a PE ratio, at
+      PRICING:SPY:EARNINGS_YIELD. No connector writes it. FRED:SP500 is the
+      index level and is not an earnings yield; corporate profits divided by
+      the index need the divisor (TODO_estimate) and are not used. Until the
+      earnings yield is stored, the Gordon input is the trailing cash-dividend
+      yield of TIINGO:SPY.
+
+# Pairs with no market quantity. The text is the part after "missing:" in
+# NoPricedInError. A translation that needs a coefficient stays here while
+# that coefficient is TODO_estimate.
+named_gaps:
+  - entity_type: economy
+    entity_id: USA
+    variable: credit
+    missing: >
+      no market price of US bank credit growth in pct (B12). The nearest market
+      read is the ICE BofA option-adjusted spread (C06): FRED:BAMLH0A0HYM2
+      (US high yield, percent; the HYG expression) and FRED:BAMLC0A0CM
+      (US investment grade, percent). Translating an OAS change in bp into a
+      bank-credit-growth change in pct needs a sourced coefficient; none is
+      stored (TODO_estimate). Gilchrist and Zakrajsek 2012 links the excess
+      bond premium to activity, not an OAS-to-loan-growth elasticity. B12's
+      elasticity maps SLOOS net tightening in pp (FRED:DRTSCILM) to H.8 loan
+      growth (FRED:BUSLOANS), which is not this translation. Closes when an
+      OAS-to-credit coefficient is estimated and stored, or when a point-in-time
+      consensus path for US bank credit growth is mapped. FRED:BUSLOANS is the
+      realized stock, not a market-implied change.
+  - entity_type: economy
+    entity_id: USA
+    variable: borrowing
+    missing: >
+      no market price of US borrowing capacity in pct (B13). The nearest market
+      quantity is the collateral price (TIINGO:SPY record closes, or FRED:SP500).
+      Translating a price percent into a borrowing-capacity percent needs B13's
+      elasticity (source TODO_estimate) and a leverage share.
+      config/local_estimates.yaml sketches that elasticity on FRED:BCNSDODNS,
+      FRED:SPASTT01USM661N, and FRED:NCBCMDPMVCE, and the card does not install
+      it, so those series are not multiplied here. Closes when that elasticity
+      is estimated and stored and a point-in-time leverage series is mapped.
+  - entity_type: instrument
+    entity_id: EMB
+    variable: credit
+    missing: >
+      no USD emerging-market sovereign spread is stored for EMB. EMB tracks the
+      J.P. Morgan EMBI Global Core, and the market quantity is that index's
+      stripped spread in basis points (C06), not cross-border credit growth in
+      percent (B18). The pipeline's ICE BofA OAS series are FRED:BAMLH0A0HYM2
+      and FRED:BAMLC0A0CM only. FRED:BAMLEMCBPIOAS is the ICE BofA Emerging
+      Markets Corporate Plus OAS and excludes sovereign and supranational debt,
+      so it is not a substitute and it is not in the store. No FRED series id
+      for an ICE BofA USD EM sovereign OAS was confirmed, and the JPM EMBI
+      stripped spread is not a free FRED series (spec §9.8). Closes when a USD
+      EM sovereign OAS is loaded. A spread change in bp is not B18's credit
+      percent without a coefficient (TODO_estimate).
 
 # Spec §7.3: an industry with no direct implied quantity uses the nearest
 # instrument's implied growth, with a wider range and lower confidence.

@@ -20,6 +20,36 @@ def _decide(thesis, **overrides: object):
     return decide(thesis, **args)  # type: ignore[arg-type]
 
 
+def test_outright_short_passes_the_expression_gate_only_when_the_mandate_allows() -> None:
+    thesis = make_thesis(
+        expression={
+            "instrument": "XLK",
+            "direction": "short",
+            "exposure_vector_check": "passed",
+            "structure_notes": "outright short",
+            "cost_estimate_bp": 12.0,
+        }
+    )
+    assert thesis.expression.is_outright_short
+    denied = _decide(thesis)
+    assert denied.action == "no_trade"
+    assert denied.failing_gate == "expression"
+    assert "outright short" in denied.reason
+    allowed = _decide(thesis, shorting_allowed=True)
+    assert allowed.action == "trade"
+    pair = make_thesis(
+        expression={
+            "pair": ["XLU", "XLK"],
+            "direction": "short",
+            "exposure_vector_check": "passed",
+            "structure_notes": "utilities against tech",
+            "cost_estimate_bp": 12.0,
+        }
+    )
+    assert not pair.expression.is_outright_short
+    assert _decide(pair).action == "trade"
+
+
 def test_gap_straddling_zero_is_no_trade() -> None:
     thesis = make_thesis(gap={"unit": "bp", "low": -15.0, "high": 40.0})
     decision = _decide(thesis)

@@ -24,9 +24,11 @@ horizon:
   decay: null
 state_dependence: []
 assumptions:
-- capture is the share of a cost change the stage keeps; entry over B05 horizons erodes
-  it and is not a separate id
-competing: []
+- capture is the share of a cost change the stage keeps; entry over the B05 horizon
+  erodes it
+competing:
+  # spec §3.3 B08: "Competing: entry (erodes capture over B05 horizons), regulation."
+  - B05_capacity_pipeline
 evidence:
 - margins by stage
 - PPI versus CPI gaps

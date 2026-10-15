@@ -1,0 +1,8 @@
+ex_date,amount,type
+2025-03-02,100,cash_div
+2025-06-02,0.5,cash_div
+2025-09-02,0.5,cash_div
+2025-12-02,0.5,cash_div
+2025-12-20,50,capital_gain
+2026-03-02,0.5,cash_div
+2026-03-03,10,cash_div

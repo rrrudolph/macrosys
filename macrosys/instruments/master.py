@@ -17,7 +17,8 @@ import httpx
 import yaml
 from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 
-from macrosys.instruments.holdings import normalize_ccy
+from macrosys.core.contracts import AssetClass
+from macrosys.instruments.holdings import normalize_ccy, normalize_country
 
 InstrumentType = Literal["ETF", "index", "future", "bond", "fx_pair"]
 Structure = Literal["physical", "futures", "synthetic", "hedged"]
@@ -102,6 +103,48 @@ _VIX_RE = re.compile(r"vix", re.IGNORECASE)
 _LEV_RE = re.compile(r"leverag|inverse|ultra|[23]x", re.IGNORECASE)
 
 
+class DeclaredExposure(BaseModel):
+    """Issuer-stated objective exposure used when no N-PORT snapshot is in the store (spec §7.4, A09).
+
+    Each label is a provider fact about what the fund is built to hold, not a guessed holdings
+    weight. A label that is present is weight 1 of that bucket. Leave a field off when the issuer
+    page does not support it; the expression check then fails closed instead of inventing a share.
+    ``expense_ratio`` stays on ``Instrument``. ``duration_bucket`` is a maturity label such as
+    ``1_3y`` from the fund's name, not a measured duration.
+    """
+
+    model_config = ConfigDict(frozen=True, extra="forbid")
+
+    asset_class: AssetClass | None = None
+    country: str | None = None
+    sector: str | None = None
+    commodity: str | None = None
+    currency: str | None = None
+    duration_bucket: str | None = None
+
+    @field_validator("country", mode="before")
+    @classmethod
+    def _country(cls, value: object) -> str | None:
+        if value is None or (isinstance(value, str) and not value.strip()):
+            return None
+        return normalize_country(str(value))
+
+    @field_validator("currency", mode="before")
+    @classmethod
+    def _currency(cls, value: object) -> str | None:
+        if value is None or (isinstance(value, str) and not value.strip()):
+            return None
+        return normalize_ccy(str(value))
+
+    @field_validator("sector", "commodity", "duration_bucket", mode="before")
+    @classmethod
+    def _label(cls, value: object) -> str | None:
+        if value is None:
+            return None
+        text = str(value).strip().casefold()
+        return text or None
+
+
 class MandateExclusionError(ValueError):
     """Raised when an instrument is leveraged, inverse, or VIX-linked (spec §7.4, §11.1)."""
 
@@ -152,6 +195,7 @@ class Instrument(BaseModel):
     unhedged listing via ``hedged_pair_of`` and is a different instrument (spec §5.4).
     ``underlying`` is the commodity or contract a futures-based fund tracks; country exposure for
     that fund is empty (A09). ``expense_ratio`` is an annual NAV share, not a percent.
+    ``exposure`` is the issuer objective used only when the store has no holdings snapshot.
     """
 
     model_config = ConfigDict(frozen=True, extra="forbid")
@@ -170,6 +214,7 @@ class Instrument(BaseModel):
     listing_tz: str | None = None
     role: str | None = None
     underlying: str | None = None
+    exposure: DeclaredExposure | None = None
 
     @field_validator("base_ccy", mode="before")
     @classmethod
@@ -195,8 +240,9 @@ def load_universe(path: str | Path) -> list[Instrument]:
     """Load instruments from the universe YAML format in ``config/universe.example.yaml`` (spec §9.1, §11.1).
 
     Each row needs ``ticker`` and ``structure``. ``instrument_id`` defaults to the ticker, ``type``
-    to ETF, and ``base_ccy`` to USD. Rows are screened with ``MandateExclusions`` before they become
-    instruments. A hedged row's ``hedged_pair_of`` must name another ticker in the same file.
+    to ETF, and ``base_ccy`` to USD. An ``exposure`` mapping becomes ``DeclaredExposure``. Rows are
+    screened with ``MandateExclusions`` before they become instruments. A hedged row's
+    ``hedged_pair_of`` must name another ticker in the same file.
     """
     file_path = Path(path)
     loaded = yaml.safe_load(file_path.read_text(encoding="utf-8"))
@@ -217,6 +263,8 @@ def load_universe(path: str | Path) -> list[Instrument]:
         pair = row.get("hedged_pair_of")
         if pair is not None and str(pair) not in tickers:
             raise ValueError(f"{ticker}: hedged_pair_of {pair} is not in the universe file")
+        raw_exposure = row.get("exposure")
+        exposure = None if raw_exposure is None else DeclaredExposure.model_validate(raw_exposure)
         instruments.append(
             Instrument(
                 instrument_id=str(row.get("instrument_id") or ticker),
@@ -233,6 +281,7 @@ def load_universe(path: str | Path) -> list[Instrument]:
                 listing_tz=row.get("listing_tz"),
                 role=row.get("role"),
                 underlying=row.get("underlying"),
+                exposure=exposure,
             )
         )
     return instruments

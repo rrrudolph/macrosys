@@ -45,9 +45,9 @@ observed_structure:
     variable: house_price
     sign: 1
     horizon_q: [0, 6]
-    dominant_competing: B13_financial_accelerator
+    dominant_competing: B04_inventory_cycle
     source_url: "https://www.fhfa.gov/data/hpi"
-    source_note: "FHFA house price index: US house prices rose over 2020-22. Sign is positive. The later 2022 rate rise is the competing monetary channel, not a stored magnitude."
+    source_note: "FHFA house price index: US house prices rose over 2020-22. Sign is positive. The bottleneck card lists inventory release as the competing relief (spec §3.3 B03). The financial accelerator is not on that card. The 2022 rate rise is after the cutoff and is not an input."
     mechanism_id: B03_bottleneck_pricing
     output: d_price
 mechanism_path_hint:
@@ -64,7 +64,8 @@ replay:
   B03_bottleneck_pricing:
     shock_input: d_demand
     inputs:
-      u: {value: 0.85, unit: share}
+      # TCU is stored in percent. scale 0.01 converts it to the share the formula compares with u_kink.
+      u: {value: 0.85, unit: share, series_id: FRED:TCU, scale: 0.01}
 fixture_observations: fixtures/us_housing_2020.csv
 notes: >
   The shock size is a case_fixture sign-carrier for replay, not a measured magnitude.

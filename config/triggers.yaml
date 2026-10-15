@@ -1,0 +1,86 @@
+# Data-filed shocks (spec §4.1, §11.2; owner decision 2026-10-15).
+#
+# Each rule reads one stored series as it was visible at the decision instant, computes a signal, and
+# files a Shock when the signal crosses its threshold. The forward week runs these next to the
+# hand-filed shocks in config/open_shocks.yaml; `macrosys triggers replay` runs them over history.
+#
+# Thresholds and windows are design parameters [J]. They say when a move is large enough to be worth
+# a propagation run; they are not estimates of anything and they do not size a position. Lookbacks
+# are calendar days. A rule fires once per crossing: the condition must have been false for
+# `rearm_days` before it turned true, and the crossing must be at most `fresh_days` old at the scan.
+fresh_days: 7
+rearm_days: 20
+stale_days: 7
+rules:
+  # A tech-sector drawdown is a collateral and wealth shock (B13) before it is anything else. The
+  # route that reads it is backlog: until one exists the shock is filed and the mechanism gate fails.
+  - id: us_tech_drawdown
+    series: {kind: price, instrument: XLK}
+    signal: {kind: drawdown, lookback_days: 126}
+    threshold: {op: "<=", value: -10.0, unit: pct}
+    shock:
+      type: financial
+      subtype: collateral
+      origin: {entity_type: instrument, entity_id: XLK}
+      stage: observed
+    note: "US technology sector fund at least 10% below its six-month high."
+
+  - id: us_equity_drawdown
+    series: {kind: price, instrument: SPY}
+    signal: {kind: drawdown, lookback_days: 126}
+    threshold: {op: "<=", value: -10.0, unit: pct}
+    shock:
+      type: financial
+      subtype: collateral
+      origin: {entity_type: instrument, entity_id: SPY}
+      stage: observed
+    note: "US large-cap index fund at least 10% below its six-month high."
+
+  # Credit: a one-point widening in high-yield spreads inside a month (B12, B27 evidence).
+  - id: us_hy_spread_widening
+    series: {kind: observation, series_id: FRED:BAMLH0A0HYM2}
+    signal: {kind: change, lookback_days: 28}
+    threshold: {op: ">=", value: 1.0, unit: pp}
+    shock:
+      type: financial
+      subtype: credit
+      origin: {entity_type: economy, entity_id: USA}
+      stage: observed
+    note: "ICE BofA US high-yield OAS up at least 100 bp over four weeks."
+
+  # Rates: the two-year yield falling half a point inside a month is the market repricing the policy
+  # path (C09). The shock is the price move; what it implies is the propagation's job.
+  - id: us_front_end_rally
+    series: {kind: observation, series_id: FRED:DGS2}
+    signal: {kind: change, lookback_days: 28}
+    threshold: {op: "<=", value: -0.5, unit: pp}
+    shock:
+      type: price
+      subtype: rates
+      origin: {entity_type: economy, entity_id: USA}
+      stage: observed
+    note: "US two-year Treasury yield down at least 50 bp over four weeks."
+
+  # Volatility regime (B21, B27 evidence; §6.4 stress flag).
+  - id: us_equity_vol_spike
+    series: {kind: observation, series_id: FRED:VIXCLS}
+    signal: {kind: level}
+    threshold: {op: ">=", value: 30.0, unit: index}
+    shock:
+      type: financial
+      subtype: flows
+      origin: {entity_type: economy, entity_id: USA}
+      stage: observed
+    note: "VIX close at or above 30."
+
+  # Dollar: a broad-index move of three percent in a month is a global-financial-cycle shock (B18).
+  - id: usd_broad_surge
+    series: {kind: observation, series_id: FRED:DTWEXBGS}
+    signal: {kind: pct_change, lookback_days: 28}
+    threshold: {op: ">=", value: 3.0, unit: pct}
+    shock:
+      type: price
+      subtype: fx
+      origin: {entity_type: currency, entity_id: USD}
+      stage: observed
+    note: "Fed broad dollar index up at least 3% over four weeks."

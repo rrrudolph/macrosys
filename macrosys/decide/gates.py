@@ -105,13 +105,26 @@ def gap_gate(thesis: Thesis, min_gap_bp: float, response_block: str | None = Non
     )
 
 
-def expression_gate(thesis: Thesis, exposure_match: bool, horizon_ok: bool) -> GateResult:
+def expression_gate(
+    thesis: Thesis,
+    exposure_match: bool,
+    horizon_ok: bool,
+    shorting_allowed: bool = False,
+) -> GateResult:
     """Pass when the instrument expresses the entity and the horizon fits (spec §11.3, §7.6).
 
     ``exposure_match`` is the caller's A09 check (holdings concentration and structure). ``horizon_ok``
     is true when the thesis horizon sits inside both the propagation window and the mandate's 1–12 month
-    band. The gate also fails when the thesis itself records ``exposure_vector_check`` as ``failed``.
+    band. The gate also fails when the thesis itself records ``exposure_vector_check`` as ``failed``,
+    and when the expression is an outright short the mandate does not allow (spec §7.5, amended
+    2026-10-15); the default is the pre-amendment long-only reading.
     """
+    if thesis.expression.is_outright_short and not shorting_allowed:
+        return GateResult(
+            passed=False,
+            gate="expression",
+            reason="outright short is not allowed by the mandate; express it as a pair or an underweight",
+        )
     if thesis.expression.exposure_vector_check == "failed" or not exposure_match:
         return GateResult(passed=False, gate="expression", reason="exposure vector does not match the entity")
     if not horizon_ok:
@@ -149,6 +162,7 @@ def decide(
     post_trade_ok: bool,
     regime_flag: str,
     response_block: str | None = None,
+    shorting_allowed: bool = False,
 ) -> Decision:
     """Run the four gates in spec order. Trade only if every gate passes; otherwise no-trade.
 
@@ -156,11 +170,12 @@ def decide(
     Later failures are still listed on ``gates`` so the review note can show all of them.
     ``response_block`` is optional and only set for a release whose front-end slope was estimated
     (spec §10.1 item 11). It fails the gap gate when the caller supplies a reason.
+    ``shorting_allowed`` is the mandate's ``shorting.allowed`` for the expression gate.
     """
     results = [
         mechanism_gate(thesis, run_valid, identity_residuals_ok),
         gap_gate(thesis, min_gap_bp, response_block=response_block),
-        expression_gate(thesis, exposure_match, horizon_ok),
+        expression_gate(thesis, exposure_match, horizon_ok, shorting_allowed=shorting_allowed),
         risk_gate(post_trade_ok, regime_flag),
     ]
     failed = [result for result in results if not result.passed]
