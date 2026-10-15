@@ -1,4 +1,4 @@
-generated_at: '2026-10-15T02:25:23.226509+00:00'
+generated_at: '2026-10-15T03:00:19.501638+00:00'
 method: OLS of the market change on the standardized statistical surprise with an
   intercept; HC1 standard errors; 95% interval is beta +- 1.96 se. Sign tests count
   events with |surprise| >= threshold sd. Out-of-sample accuracy uses the slope sign
@@ -1099,6 +1099,489 @@ entries:
     sign_accuracy: 0.6364
     beta: null
     t_stat: null
+- name: FRED:PAYEMS->FRED:DGS2@1d
+  release: FRED:PAYEMS
+  market: FRED:DGS2
+  horizon_days: 1
+  beta:
+    value: 2.629123
+    low: 1.799528
+    high: 3.458719
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:PAYEMS->FRED:DGS2@1d per 1sd surprise; n=605; 1976-06-04..2026-10-02;
+      forecaster=ar1:60; HC1
+  t_stat: 6.212
+  r_squared: 0.09
+  n: 605
+  n_effective: 605.0
+  predicted_sign: 1
+  sign_accuracy: 0.6695
+  n_signed: 348
+  p_value: 0.0
+  oos_sign_accuracy: 0.6695
+  oos_n: 348
+  beta_fold_range: 2.600666
+  mechanisms:
+  - C09_policy_path
+  - B09_okun
+  reference: GurkaynakSackSwanson2005
+  window: 1976-06-04..2026-10-02
+  regimes: []
+- name: FRED:PAYEMS->FRED:DGS2@5d
+  release: FRED:PAYEMS
+  market: FRED:DGS2
+  horizon_days: 5
+  beta:
+    value: 3.351203
+    low: 1.963957
+    high: 4.738449
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:PAYEMS->FRED:DGS2@5d per 1sd surprise; n=605; 1976-06-04..2026-10-02;
+      forecaster=ar1:60; HC1
+  t_stat: 4.735
+  r_squared: 0.0509
+  n: 605
+  n_effective: 605.0
+  predicted_sign: 1
+  sign_accuracy: 0.6376
+  n_signed: 367
+  p_value: 0.0
+  oos_sign_accuracy: 0.6376
+  oos_n: 367
+  beta_fold_range: 3.672443
+  mechanisms:
+  - C09_policy_path
+  - B09_okun
+  reference: GurkaynakSackSwanson2005
+  window: 1976-06-04..2026-10-02
+  regimes: []
+- name: FRED:PAYEMS->FRED:DGS2@20d
+  release: FRED:PAYEMS
+  market: FRED:DGS2
+  horizon_days: 20
+  beta:
+    value: 5.839378
+    low: 2.96052
+    high: 8.718236
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:PAYEMS->FRED:DGS2@20d per 1sd surprise; n=604; 1976-06-04..2026-09-04;
+      forecaster=ar1:60; HC1
+  t_stat: 3.976
+  r_squared: 0.0305
+  n: 604
+  n_effective: 604.0
+  predicted_sign: 1
+  sign_accuracy: 0.5968
+  n_signed: 372
+  p_value: 0.0002
+  oos_sign_accuracy: 0.5968
+  oos_n: 372
+  beta_fold_range: 6.075262
+  mechanisms:
+  - C09_policy_path
+  - B09_okun
+  reference: GurkaynakSackSwanson2005
+  window: 1976-06-04..2026-09-04
+  regimes: []
+- name: FRED:PAYEMS->FRED:DGS10@1d
+  release: FRED:PAYEMS
+  market: FRED:DGS10
+  horizon_days: 1
+  beta:
+    value: 1.538072
+    low: 1.018007
+    high: 2.058138
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:PAYEMS->FRED:DGS10@1d per 1sd surprise; n=778; 1962-01-09..2026-10-02;
+      forecaster=ar1:60; HC1
+  t_stat: 5.797
+  r_squared: 0.0516
+  n: 778
+  n_effective: 778.0
+  predicted_sign: 1
+  sign_accuracy: 0.6247
+  n_signed: 445
+  p_value: 0.0
+  oos_sign_accuracy: 0.6247
+  oos_n: 445
+  beta_fold_range: 1.11175
+  mechanisms:
+  - C09_policy_path
+  - B09_okun
+  reference: GurkaynakSackSwanson2005
+  window: 1962-01-09..2026-10-02
+  regimes: []
+- name: FRED:PAYEMS->FRED:DGS10@5d
+  release: FRED:PAYEMS
+  market: FRED:DGS10
+  horizon_days: 5
+  beta:
+    value: 1.790157
+    low: 0.9182
+    high: 2.662115
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:PAYEMS->FRED:DGS10@5d per 1sd surprise; n=778; 1962-01-09..2026-10-02;
+      forecaster=ar1:60; HC1
+  t_stat: 4.024
+  r_squared: 0.023
+  n: 778
+  n_effective: 778.0
+  predicted_sign: 1
+  sign_accuracy: 0.5586
+  n_signed: 469
+  p_value: 0.0126
+  oos_sign_accuracy: 0.5586
+  oos_n: 469
+  beta_fold_range: 1.679892
+  mechanisms:
+  - C09_policy_path
+  - B09_okun
+  reference: GurkaynakSackSwanson2005
+  window: 1962-01-09..2026-10-02
+  regimes: []
+- name: FRED:PAYEMS->FRED:DGS10@20d
+  release: FRED:PAYEMS
+  market: FRED:DGS10
+  horizon_days: 20
+  beta:
+    value: 2.248468
+    low: 0.452752
+    high: 4.044183
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:PAYEMS->FRED:DGS10@20d per 1sd surprise; n=777; 1962-01-09..2026-09-04;
+      forecaster=ar1:60; HC1
+  t_stat: 2.454
+  r_squared: 0.0083
+  n: 777
+  n_effective: 777.0
+  predicted_sign: 1
+  sign_accuracy: 0.5407
+  n_signed: 479
+  p_value: 0.0824
+  oos_sign_accuracy: 0.5407
+  oos_n: 479
+  beta_fold_range: 2.471013
+  mechanisms:
+  - C09_policy_path
+  - B09_okun
+  reference: GurkaynakSackSwanson2005
+  window: 1962-01-09..2026-09-04
+  regimes: []
+- name: FRED:PAYEMS->FRED:DTWEXBGS@1d
+  release: FRED:PAYEMS
+  market: FRED:DTWEXBGS
+  horizon_days: 1
+  beta:
+    value: 0.023739
+    low: -0.015038
+    high: 0.062515
+    unit: pct
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:PAYEMS->FRED:DTWEXBGS@1d per 1sd surprise; n=250; 2006-01-06..2026-10-02;
+      forecaster=ar1:60; HC1
+  t_stat: 1.2
+  r_squared: 0.0082
+  n: 250
+  n_effective: 250.0
+  predicted_sign: 1
+  sign_accuracy: 0.5689
+  n_signed: 167
+  p_value: 0.0884
+  oos_sign_accuracy: 0.5689
+  oos_n: 167
+  beta_fold_range: 0.064944
+  mechanisms:
+  - C09_policy_path
+  - C02_uip
+  reference: AndersenBollerslevDieboldVega2003
+  window: 2006-01-06..2026-10-02
+  regimes: []
+- name: FRED:PAYEMS->FRED:DTWEXBGS@5d
+  release: FRED:PAYEMS
+  market: FRED:DTWEXBGS
+  horizon_days: 5
+  beta:
+    value: 0.021468
+    low: -0.043448
+    high: 0.086384
+    unit: pct
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:PAYEMS->FRED:DTWEXBGS@5d per 1sd surprise; n=250; 2006-01-06..2026-10-02;
+      forecaster=ar1:60; HC1
+  t_stat: 0.648
+  r_squared: 0.0016
+  n: 250
+  n_effective: 250.0
+  predicted_sign: 1
+  sign_accuracy: 0.5269
+  n_signed: 167
+  p_value: 0.536
+  oos_sign_accuracy: 0.5269
+  oos_n: 167
+  beta_fold_range: 0.040064
+  mechanisms:
+  - C09_policy_path
+  - C02_uip
+  reference: AndersenBollerslevDieboldVega2003
+  window: 2006-01-06..2026-10-02
+  regimes: []
+- name: FRED:PAYEMS->FRED:DTWEXBGS@20d
+  release: FRED:PAYEMS
+  market: FRED:DTWEXBGS
+  horizon_days: 20
+  beta:
+    value: 0.04411
+    low: -0.102777
+    high: 0.190996
+    unit: pct
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:PAYEMS->FRED:DTWEXBGS@20d per 1sd surprise; n=249; 2006-01-06..2026-09-04;
+      forecaster=ar1:60; HC1
+  t_stat: 0.589
+  r_squared: 0.0019
+  n: 249
+  n_effective: 249.0
+  predicted_sign: 1
+  sign_accuracy: 0.5181
+  n_signed: 166
+  p_value: 0.6981
+  oos_sign_accuracy: 0.488
+  oos_n: 166
+  beta_fold_range: 0.162887
+  mechanisms:
+  - C09_policy_path
+  - C02_uip
+  reference: AndersenBollerslevDieboldVega2003
+  window: 2006-01-06..2026-09-04
+  regimes: []
+- name: FRED:PAYEMS->FRED:SP500@1d
+  release: FRED:PAYEMS
+  market: FRED:SP500
+  horizon_days: 1
+  beta:
+    value: 0.06842
+    low: -0.034792
+    high: 0.171631
+    unit: pct
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:PAYEMS->FRED:SP500@1d per 1sd surprise; n=120; 2016-11-04..2026-10-02;
+      forecaster=ar1:60; HC1
+  t_stat: 1.299
+  r_squared: 0.0122
+  n: 120
+  n_effective: 120.0
+  predicted_sign: null
+  sign_accuracy: 0.4944
+  n_signed: 89
+  p_value: 1.0
+  oos_sign_accuracy: 0.5281
+  oos_n: 89
+  beta_fold_range: 0.054054
+  mechanisms:
+  - B11_monetary_transmission
+  - C05_equity_duration
+  reference: BoydHuJagannathan2005
+  window: 2016-11-04..2026-10-02
+  regimes:
+  - regime: us_expansion
+    state: true
+    predicted_sign: -1
+    n: 107
+    n_signed: 77
+    sign_accuracy: 0.4805
+    beta: 0.036522
+    t_stat: 0.584
+  - regime: us_expansion
+    state: false
+    predicted_sign: 1
+    n: 13
+    n_signed: 12
+    sign_accuracy: 0.5833
+    beta: null
+    t_stat: null
+- name: FRED:PAYEMS->FRED:SP500@5d
+  release: FRED:PAYEMS
+  market: FRED:SP500
+  horizon_days: 5
+  beta:
+    value: -0.194012
+    low: -0.495564
+    high: 0.107539
+    unit: pct
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:PAYEMS->FRED:SP500@5d per 1sd surprise; n=120; 2016-11-04..2026-10-02;
+      forecaster=ar1:60; HC1
+  t_stat: -1.261
+  r_squared: 0.0167
+  n: 120
+  n_effective: 120.0
+  predicted_sign: null
+  sign_accuracy: 0.5281
+  n_signed: 89
+  p_value: 0.6718
+  oos_sign_accuracy: 0.4607
+  oos_n: 89
+  beta_fold_range: 0.123321
+  mechanisms:
+  - B11_monetary_transmission
+  - C05_equity_duration
+  reference: BoydHuJagannathan2005
+  window: 2016-11-04..2026-10-02
+  regimes:
+  - regime: us_expansion
+    state: true
+    predicted_sign: -1
+    n: 107
+    n_signed: 77
+    sign_accuracy: 0.4935
+    beta: -0.328661
+    t_stat: -1.562
+  - regime: us_expansion
+    state: false
+    predicted_sign: 1
+    n: 13
+    n_signed: 12
+    sign_accuracy: 0.75
+    beta: null
+    t_stat: null
+- name: FRED:PAYEMS->FRED:SP500@20d
+  release: FRED:PAYEMS
+  market: FRED:SP500
+  horizon_days: 20
+  beta:
+    value: -0.311012
+    low: -0.747202
+    high: 0.125179
+    unit: pct
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:PAYEMS->FRED:SP500@20d per 1sd surprise; n=119; 2016-11-04..2026-09-04;
+      forecaster=ar1:60; HC1
+  t_stat: -1.398
+  r_squared: 0.0178
+  n: 119
+  n_effective: 119.0
+  predicted_sign: null
+  sign_accuracy: 0.5227
+  n_signed: 88
+  p_value: 0.7493
+  oos_sign_accuracy: 0.5
+  oos_n: 88
+  beta_fold_range: 0.197588
+  mechanisms:
+  - B11_monetary_transmission
+  - C05_equity_duration
+  reference: BoydHuJagannathan2005
+  window: 2016-11-04..2026-09-04
+  regimes:
+  - regime: us_expansion
+    state: true
+    predicted_sign: -1
+    n: 106
+    n_signed: 76
+    sign_accuracy: 0.5132
+    beta: -0.632719
+    t_stat: -2.131
+  - regime: us_expansion
+    state: false
+    predicted_sign: 1
+    n: 13
+    n_signed: 12
+    sign_accuracy: 0.5833
+    beta: null
+    t_stat: null
+- name: FRED:PAYEMS->FRED:BAMLH0A0HYM2@1d
+  release: FRED:PAYEMS
+  market: FRED:BAMLH0A0HYM2
+  horizon_days: 1
+  beta:
+    value: -0.196227
+    low: -5.173237
+    high: 4.780782
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:PAYEMS->FRED:BAMLH0A0HYM2@1d per 1sd surprise; n=36;
+      2023-11-03..2026-10-02; forecaster=ar1:60; HC1
+  t_stat: -0.077
+  r_squared: 0.0002
+  n: 36
+  n_effective: 36.0
+  predicted_sign: -1
+  sign_accuracy: 0.5217
+  n_signed: 23
+  p_value: 1.0
+  oos_sign_accuracy: 0.3043
+  oos_n: 23
+  beta_fold_range: 5.343582
+  mechanisms:
+  - C06_credit_spread
+  - B13_financial_accelerator
+  reference: null
+  window: 2023-11-03..2026-10-02
+  regimes: []
+- name: FRED:PAYEMS->FRED:BAMLH0A0HYM2@5d
+  release: FRED:PAYEMS
+  market: FRED:BAMLH0A0HYM2
+  horizon_days: 5
+  beta:
+    value: -0.30131
+    low: -6.337849
+    high: 5.735229
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:PAYEMS->FRED:BAMLH0A0HYM2@5d per 1sd surprise; n=36;
+      2023-11-03..2026-10-02; forecaster=ar1:60; HC1
+  t_stat: -0.098
+  r_squared: 0.0003
+  n: 36
+  n_effective: 36.0
+  predicted_sign: -1
+  sign_accuracy: 0.5
+  n_signed: 20
+  p_value: 1.0
+  oos_sign_accuracy: 0.35
+  oos_n: 20
+  beta_fold_range: 9.837335
+  mechanisms:
+  - C06_credit_spread
+  - B13_financial_accelerator
+  reference: null
+  window: 2023-11-03..2026-10-02
+  regimes: []
+- name: FRED:PAYEMS->FRED:BAMLH0A0HYM2@20d
+  release: FRED:PAYEMS
+  market: FRED:BAMLH0A0HYM2
+  horizon_days: 20
+  beta:
+    value: 3.238816
+    low: -7.261969
+    high: 13.7396
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: event_study:FRED:PAYEMS->FRED:BAMLH0A0HYM2@20d per 1sd surprise; n=35;
+      2023-11-03..2026-09-04; forecaster=ar1:60; HC1
+  t_stat: 0.605
+  r_squared: 0.0089
+  n: 35
+  n_effective: 35.0
+  predicted_sign: -1
+  sign_accuracy: 0.5
+  n_signed: 22
+  p_value: 1.0
+  oos_sign_accuracy: 0.4091
+  oos_n: 22
+  beta_fold_range: 12.85952
+  mechanisms:
+  - C06_credit_spread
+  - B13_financial_accelerator
+  reference: null
+  window: 2023-11-03..2026-09-04
+  regimes: []
 - name: FRED:GDPC1->FRED:DGS10@1d
   release: FRED:GDPC1
   market: FRED:DGS10

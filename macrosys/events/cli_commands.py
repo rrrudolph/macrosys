@@ -2,7 +2,9 @@
 
 ``events build`` rebuilds the stored surprise events from the observation store.
 ``events study`` scores every configured release-to-market sign and, with ``--write-parameters``,
-writes the estimated response coefficients with provenance.
+writes the estimated response coefficients with provenance. ``events check`` compares an observed
+front-end move with the slope in that file. ``events assess`` reports the surprise and the move
+knowable at one timestamp, and the reason the gap gate must fail when the front end is already covered.
 """
 
 from __future__ import annotations
@@ -13,8 +15,11 @@ from pathlib import Path
 
 import duckdb
 
+from macrosys.core.quantity import Quantity
+from macrosys.events.assess import assess_release
 from macrosys.events.config import load_events_config
 from macrosys.events.estimate import write_parameters
+from macrosys.events.response import check_response, load_responses
 from macrosys.events.schema import ResponseStudy
 from macrosys.events.store import SurpriseStore
 from macrosys.events.study import run_study
@@ -22,7 +27,7 @@ from macrosys.events.surprise import build_surprises
 
 
 def register_cli(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
-    """Add ``events build`` and ``events study``."""
+    """Add ``events build``, ``events study``, ``events check``, and ``events assess``."""
     events = subparsers.add_parser("events", help="release event study (spec 10.1 item 11)")
     commands = events.add_subparsers(dest="events_cmd")
     build = commands.add_parser("build", help="rebuild stored surprise events from the observation store")
@@ -36,6 +41,34 @@ def register_cli(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]
     study.add_argument("--as-of", default=None, help="ISO timestamp bound on published_at; default all")
     study.add_argument("--write-parameters", type=Path, default=None, help="write parameters yaml to this path")
     study.set_defaults(func=_cmd_study)
+    check = commands.add_parser("check", help="compare an observed front-end move with the estimated slope")
+    check.add_argument("--release", required=True, help="release series id, e.g. FRED:CPIAUCSL")
+    check.add_argument("--market", required=True, help="market series id, e.g. FRED:DGS2")
+    check.add_argument("--horizon", type=int, required=True, help="horizon in trading days")
+    check.add_argument("--surprise", type=float, required=True, help="standardized surprise, in sd")
+    check.add_argument("--observed", type=float, required=True, help="front-end move already realized")
+    check.add_argument("--unit", required=True, help="unit of --observed")
+    check.add_argument(
+        "--parameters",
+        type=Path,
+        default=None,
+        help="event_response yaml; default parameters/event_response.yaml",
+    )
+    check.set_defaults(func=_cmd_check)
+    assess = commands.add_parser("assess", help="point-in-time surprise, front-end move, and gap-gate block")
+    assess.add_argument("--db", type=Path, required=True, help="DuckDB store path")
+    assess.add_argument("--release", required=True, help="release series id, e.g. FRED:CPIAUCSL")
+    assess.add_argument("--market", required=True, help="market series id, e.g. FRED:DGS2")
+    assess.add_argument("--horizon", type=int, required=True, help="horizon in trading days")
+    assess.add_argument("--as-of", required=True, help="ISO timestamp; nothing published later is used")
+    assess.add_argument("--config", type=Path, default=None, help="events yaml; default config/events.yaml")
+    assess.add_argument(
+        "--parameters",
+        type=Path,
+        default=None,
+        help="event_response yaml; default parameters/event_response.yaml",
+    )
+    assess.set_defaults(func=_cmd_assess)
 
 
 def _as_of(text: str | None) -> datetime | None:
@@ -58,6 +91,36 @@ def _cmd_build(args: argparse.Namespace) -> int:
             print(f"{release.series_id:<18} {release.label:<28} events {stored:4d}  standardized {with_sigma:4d}")
     finally:
         conn.close()
+    return 0
+
+
+def _cmd_check(args: argparse.Namespace) -> int:
+    book = load_responses(args.parameters)
+    observed = Quantity(value=args.observed, unit=args.unit, provenance="cli")
+    result = check_response(book, args.release, args.market, args.horizon, args.surprise, observed)
+    print(result.reason)
+    return 0
+
+
+def _cmd_assess(args: argparse.Namespace) -> int:
+    config = load_events_config(args.config)
+    as_of = _as_of(args.as_of)
+    if as_of is None:
+        raise ValueError("events assess requires --as-of")
+    conn = duckdb.connect(str(args.db), read_only=True)
+    try:
+        result = assess_release(
+            conn,
+            args.release,
+            args.market,
+            args.horizon,
+            as_of,
+            config=config,
+            parameters=args.parameters,
+        )
+    finally:
+        conn.close()
+    print(result.reason)
     return 0
 
 

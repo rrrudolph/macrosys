@@ -7,8 +7,10 @@ module marks that case ``xfail(strict=True)`` so the missing parameter stays vis
 
 from __future__ import annotations
 
+import tempfile
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime
+from pathlib import Path
 
 import duckdb
 
@@ -30,6 +32,7 @@ from macrosys.decide.thesis import (
     Thesis,
     Versions,
 )
+from macrosys.events.response import load_responses, response_block
 from macrosys.mechanisms.errors import MissingParameterError
 from macrosys.mechanisms.eval import evaluate
 from macrosys.mechanisms.library import Library
@@ -40,6 +43,27 @@ from macrosys.store.schema import create_schema
 from macrosys.store.state import WorldStateStore
 
 _FIXTURE = "case_fixture"
+# Synthetic slope. Provenance is "test": not a payrolls or CPI estimate (spec §10.1 item 8).
+_RELEASE = "fixture-release"
+_MARKET = "fixture-market"
+_HORIZON_DAYS = 1
+_RESPONSE_YAML = """\
+entries:
+- name: fixture-release->fixture-market@1d
+  release: fixture-release
+  market: fixture-market
+  horizon_days: 1
+  beta:
+    value: 1.0
+    low: 0.5
+    high: 2.0
+    unit: bp
+    per: 1 sd of standardized surprise
+    source: test
+  predicted_sign: 1
+  mechanisms:
+  - C09_policy_path
+"""
 
 
 @dataclass
@@ -437,6 +461,92 @@ def _priced_in(library: Library) -> CapabilityResult:
     )
 
 
+def _fixture_book():
+    """Load the synthetic response slope (spec §10.1 item 8, §11.3).
+
+    The yaml is built in memory and handed to ``load_responses`` through a temporary path.
+    That path is not ``parameters/event_response.yaml``. The slope's provenance is ``test``.
+    """
+    with tempfile.TemporaryDirectory() as directory:
+        path = Path(directory) / "event_response.yaml"
+        path.write_text(_RESPONSE_YAML, encoding="utf-8")
+        return load_responses(path)
+
+
+def _decide_on_response(reason: str | None):
+    """Run the four gates; a release reason fails the gap gate (spec §10.1 item 8, §11.3).
+
+    The thesis builder lives in the test tree, which is not part of the installed package, so it
+    is imported here rather than at module import.
+    """
+    from tests.decide.support import make_thesis
+
+    return decide(
+        make_thesis(),
+        run_valid=True,
+        identity_residuals_ok=True,
+        min_gap_bp=20.0,
+        exposure_match=True,
+        horizon_ok=True,
+        post_trade_ok=True,
+        regime_flag="stable",
+        response_block=reason,
+    )
+
+
+def _observed(value: float) -> Quantity:
+    return Quantity(value=value, unit="bp", provenance="test")
+
+
+def _release_matches_forecast(library: Library) -> CapabilityResult:
+    """A print that matches the forecast is not a tradable gap (spec §10.1 item 8, §11.3).
+
+    A standardized surprise of 0 is the level-versus-surprise fact in spec §7.3 and §9.8.
+    ``response_block`` returns a reason, and ``decide`` with that reason is no-trade on the gap gate.
+    """
+    del library
+    reason = response_block(_fixture_book(), _RELEASE, _MARKET, _HORIZON_DAYS, 0.0, _observed(0.0))
+    decision = _decide_on_response(reason)
+    return CapabilityResult(
+        name="release_matches_forecast",
+        details={
+            "reason": reason or "",
+            "action": decision.action,
+            "failing_gate": decision.failing_gate or "",
+        },
+    )
+
+
+def _release_already_priced(library: Library) -> CapabilityResult:
+    """A front end at the slope's conservative edge is already priced (spec §10.1 item 8, §11.3).
+
+    The fixture interval excludes zero. Once the observed move reaches that edge, ``decide`` is
+    no-trade. A smaller move leaves ``response_block`` empty, and a thesis that otherwise passes
+    the four gates is a trade. The slope is a test fixture, not an estimate of payrolls or CPI.
+    """
+    del library
+    book = _fixture_book()
+    coeff = book.get(_RELEASE, _MARKET, _HORIZON_DAYS)
+    if coeff is None:
+        raise AssertionError("fixture response is missing")
+    covered_reason = response_block(book, _RELEASE, _MARKET, _HORIZON_DAYS, 1.0, _observed(0.5))
+    covered = _decide_on_response(covered_reason)
+    open_reason = response_block(book, _RELEASE, _MARKET, _HORIZON_DAYS, 1.0, _observed(0.4))
+    opened = _decide_on_response(open_reason)
+    return CapabilityResult(
+        name="release_already_priced",
+        details={
+            "slope_excludes_zero": not coeff.beta.straddles_zero(),
+            "slope_provenance": coeff.beta.provenance,
+            "covered_action": covered.action,
+            "covered_gate": covered.failing_gate or "",
+            "covered_reason": covered_reason or "",
+            "open_unblocked": open_reason is None,
+            "open_action": opened.action,
+        },
+    )
+
+
 def _sign_of(value: float) -> int:
     if value > 0:
         return 1
@@ -524,6 +634,32 @@ def _check_priced(result: CapabilityResult) -> None:
         raise AssertionError("the decision should be no trade on the gap gate")
 
 
+def _check_matches(result: CapabilityResult) -> None:
+    """A zero surprise is no-trade on the gap gate (spec §10.1 item 8, §11.3)."""
+    if result.details.get("action") != "no_trade":
+        raise AssertionError("a zero surprise must not become a trade")
+    if result.details.get("failing_gate") != "gap":
+        raise AssertionError("a print that matches the forecast fails the gap gate")
+    reason = result.details.get("reason")
+    if not isinstance(reason, str) or "surprise is 0" not in reason:
+        raise AssertionError("response_block should name the zero surprise")
+
+
+def _check_already(result: CapabilityResult) -> None:
+    """The conservative edge is no-trade; a smaller move can still trade (spec §10.1 item 8, §11.3)."""
+    if result.details.get("slope_excludes_zero") is not True or result.details.get("slope_provenance") != "test":
+        raise AssertionError("the fixture slope must exclude zero and carry provenance test")
+    covered_reason = result.details.get("covered_reason")
+    if not isinstance(covered_reason, str) or "already moved" not in covered_reason:
+        raise AssertionError("the front end at the conservative edge should already be priced")
+    if result.details.get("covered_action") != "no_trade" or result.details.get("covered_gate") != "gap":
+        raise AssertionError("a front end at the conservative edge is no trade on the gap gate")
+    if result.details.get("open_unblocked") is not True:
+        raise AssertionError("a smaller front-end move should leave a residual")
+    if result.details.get("open_action") != "trade":
+        raise AssertionError("a residual front-end move should pass the four gates")
+
+
 _RUNNERS = {
     "abundant_supply": _abundant,
     "scarce_complement": _scarce,
@@ -534,6 +670,8 @@ _RUNNERS = {
     "inflation_hedge": _inflation,
     "future_dated_document": _future_dated,
     "priced_in_no_trade": _priced_in,
+    "release_matches_forecast": _release_matches_forecast,
+    "release_already_priced": _release_already_priced,
 }
 
 _CHECKS = {
@@ -546,4 +684,6 @@ _CHECKS = {
     "inflation_hedge": _check_inflation,
     "future_dated_document": _check_future,
     "priced_in_no_trade": _check_priced,
+    "release_matches_forecast": _check_matches,
+    "release_already_priced": _check_already,
 }

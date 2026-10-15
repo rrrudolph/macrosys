@@ -995,7 +995,7 @@ Universe (40–60 US-listed ETFs across global equity regions and sectors, Treas
 A thesis becomes a trade only if all four gates pass; otherwise the output is "no trade," with the failing gate recorded.
 
 1. **Mechanism gate:** propagation run valid (units, identities, competing effects closed), no `blocking` missing evidence.
-2. **Gap gate:** the expected-minus-priced range excludes zero and clears the cost estimate by the mandated margin.
+2. **Gap gate:** the expected-minus-priced range excludes zero and clears the cost estimate by the mandated margin. When the thesis is a release response, the gate also fails if the estimated front-end slope's interval contains zero, or if the front end has already moved by the conservative edge of that slope times the standardized surprise (`parameters/event_response.yaml`, §10.1 item 11). That slope is a market response per standard deviation of surprise. It is the pricing use of B23, not B23's Bordalo overreaction ratio, which stays `TODO_estimate` until consensus revisions exist (§3.3, §9.8).
 3. **Expression gate:** an instrument whose exposure vector matches the entity exposure intended (concentration and structure acceptable); horizon fits.
 4. **Risk gate:** post-trade portfolio within all limits and scenario budget; correlation regime not flagged "deteriorating."
 
@@ -1116,6 +1116,7 @@ Each ticket has an acceptance test. Phases are sequential in dependency, not in 
 - **P2.2** Gap calculator and thesis schema; approval rules (§7.7, §11.3). *Accept:* a thesis with a zero-straddling gap cannot be approved.
 - **P2.3** LLM roles 1–4 with typed outputs, retrieval over library and cases, anonymization for historical use. *Accept:* role-1 extraction F1 on a labeled set; role-2 proposals pass the validator at a measured rate; role-3 objections cite IDs.
 - **P2.4** Cross-country consensus calendar: actual, forecast, and previous, as the surprise input to B23 and the level-vs-surprise capability test (§10.1). *Blocked on terms (spec §9.5, §9.8).* Fair Economy's notices, read 2026-10-14, prohibit copying the calendar database and access other than their interface. A scripted GET of one day URL returned HTTP 403 that day. The posterity parser at `macrosys/sources/forexfactory.py` reads one rendered day page saved from a browser, allows one fetch per process, and is not registered. *Accept, once unblocked:* written consent or a replacement source; the consensus timestamp is strictly before the release; a fixture test stays the only automated check; nothing in the weekly job requests the site.
+- **P2.5** Event-response slope in the gap decision (§7.3, §10.1 item 11, §11.3), using the file E4.4 writes. The implied front-end revision is the HC1 slope times the standardized surprise. The gap gate fails when that interval contains zero, or when the observed front-end move has already covered the edge of the interval closer to zero. *Accept:* a slope whose interval contains zero cannot pass; a front end that has covered the conservative edge is no-trade; a smaller move leaves the gap gate's other tests; a unit mismatch raises.
 
 ### Phase 3 — Risk and portfolio
 - **R3.1** Aligned return store; factor model with shrinkage; DCC on factors; absorption ratio; regime flags. *Accept:* bootstrap intervals reported; stress correlation with and without Forbes–Rigobon adjustment.

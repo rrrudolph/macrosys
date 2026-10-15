@@ -1,4 +1,4 @@
-"""CLI subcommands for ingest, replay, coverage, and the daily/weekly jobs (spec §9.4).
+"""CLI subcommands for ingest, replay, coverage, the daily/weekly jobs, and the release monitor (spec §9.4, §11.2).
 
 The CLI package owns ``macrosys.cli``. Call ``register_cli(subparsers)`` from there. Each parser
 sets ``args.func``; dispatch with ``args.func(args)``, which returns a process exit code.
@@ -6,6 +6,7 @@ Scheduling stays outside this process (cron or Windows Task Scheduler), for exam
 
     macrosys daily --config config/pipeline.yaml
     macrosys weekly --config config/pipeline.yaml
+    macrosys pipeline releases --db data/store/macrosys.duckdb --as-of 2026-10-14T21:00:00+00:00
 """
 
 from __future__ import annotations
@@ -26,7 +27,7 @@ from macrosys.store.schema import create_schema
 
 
 def register_cli(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]) -> None:
-    """Add ``ingest``, ``replay``, ``coverage``, ``daily``, and ``weekly`` (spec §9.4)."""
+    """Add ``ingest``, ``replay``, ``coverage``, ``daily``, ``weekly``, and ``pipeline releases`` (spec §9.4, §11.2)."""
     ingest = subparsers.add_parser("ingest", help="fetch configured series or one source into the store")
     ingest.add_argument("--config", type=Path, required=True)
     ingest.add_argument("--source", help="limit ingest to this source_id")
@@ -49,6 +50,20 @@ def register_cli(subparsers: argparse._SubParsersAction[argparse.ArgumentParser]
     weekly = subparsers.add_parser("weekly", help="daily steps plus manifest; refresh hook is in-process")
     weekly.add_argument("--config", type=Path, required=True)
     weekly.set_defaults(func=_cmd_weekly)
+
+    pipeline = subparsers.add_parser("pipeline", help="monitoring commands that do not trade")
+    pipeline_commands = pipeline.add_subparsers(dest="pipeline_cmd")
+    releases = pipeline_commands.add_parser("releases", help="daily release-response note as of one timestamp")
+    releases.add_argument("--db", type=Path, required=True, help="DuckDB store path")
+    releases.add_argument("--as-of", required=True, dest="as_of", help="ISO timestamp; a naive value is read as UTC")
+    releases.add_argument("--config", type=Path, default=None, help="events yaml; default config/events.yaml")
+    releases.add_argument(
+        "--parameters",
+        type=Path,
+        default=None,
+        help="event_response yaml; default parameters/event_response.yaml",
+    )
+    releases.set_defaults(func=_cmd_releases)
 
 
 def _cmd_ingest(args: argparse.Namespace) -> int:
@@ -141,6 +156,30 @@ def _cmd_weekly(args: argparse.Namespace) -> int:
     report = weekly_job(load_config(args.config))
     _print_job(report.status, report.manifest_digest)
     return _exit(report.status)
+
+
+def _cmd_releases(args: argparse.Namespace) -> int:
+    from macrosys.events.config import load_events_config
+    from macrosys.events.estimate import default_parameters_path
+    from macrosys.pipeline.release_monitor import monitor_releases
+
+    config = load_events_config(args.config)
+    parameters = args.parameters if args.parameters is not None else default_parameters_path()
+    as_of = _aware(args.as_of)
+    conn = duckdb.connect(str(args.db), read_only=True)
+    try:
+        result = monitor_releases(conn, as_of, config, parameters)
+    finally:
+        conn.close()
+    print(result.note)
+    return 0
+
+
+def _aware(text: str) -> datetime:
+    parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=UTC)
+    return parsed
 
 
 def _print_job(status: str, digest: str) -> None:

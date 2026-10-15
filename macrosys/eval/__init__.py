@@ -1,4 +1,4 @@
-"""Evaluation layer: frozen forecast ledger, scores, and baselines (spec §10)."""
+"""Evaluation layer: frozen forecast ledger, experiment log, scores, and baselines (spec §10)."""
 
 from macrosys.eval.baselines import (
     BacktestResult,
@@ -7,6 +7,11 @@ from macrosys.eval.baselines import (
     inverse_vol,
     sixty_forty,
     tsmom_12m,
+)
+from macrosys.eval.experiment_log import (
+    ExperimentIntegrityError,
+    ExperimentLog,
+    ExperimentRecord,
 )
 from macrosys.eval.ledger import (
     ForecastLedger,
@@ -29,6 +34,9 @@ from macrosys.eval.scoring import (
 
 __all__ = [
     "BacktestResult",
+    "ExperimentIntegrityError",
+    "ExperimentLog",
+    "ExperimentRecord",
     "ForecastLedger",
     "LedgerEntry",
     "LedgerIntegrityError",

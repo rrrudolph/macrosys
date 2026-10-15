@@ -18,7 +18,13 @@ _XFAIL = {
     "funding_gross_vs_net": "parameter elasticity is TODO_estimate",
 }
 
-_PASSING = ("inflation_hedge", "future_dated_document", "priced_in_no_trade")
+_PASSING = (
+    "inflation_hedge",
+    "future_dated_document",
+    "priced_in_no_trade",
+    "release_matches_forecast",
+    "release_already_priced",
+)
 
 
 @pytest.mark.parametrize("name", _PASSING)

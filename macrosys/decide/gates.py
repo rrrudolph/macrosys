@@ -61,7 +61,7 @@ def mechanism_gate(thesis: Thesis, run_valid: bool, identity_residuals_ok: bool)
     return GateResult(passed=True, gate="mechanism", reason="propagation run valid and no blocking evidence")
 
 
-def gap_gate(thesis: Thesis, min_gap_bp: float) -> GateResult:
+def gap_gate(thesis: Thesis, min_gap_bp: float, response_block: str | None = None) -> GateResult:
     """Pass when the gap excludes zero and clears costs by the mandated margin (spec §11.3).
 
     The comparison is in basis points. Units compatible with ``bp`` (``bp``, ``pp``) convert through
@@ -72,9 +72,16 @@ def gap_gate(thesis: Thesis, min_gap_bp: float) -> GateResult:
     For a strictly positive gap the test uses the lower edge. For a strictly negative gap it uses the
     edge closer to zero (the absolute value of the upper edge), which is the conservative reading of
     "clears the cost". A range that straddles zero fails before the cost test.
+
+    ``response_block`` is the release-response check from ``macrosys.events.response``: a slope whose
+    interval contains zero, or a front end that has already moved by the slope's conservative edge.
+    A non-empty reason fails this gate before the thesis gap is read. ``None`` leaves those tests as
+    they are, which is every thesis that is not a release response.
     """
     if min_gap_bp < 0:
         raise ValueError("min_gap_bp cannot be negative")
+    if response_block:
+        return GateResult(passed=False, gate="gap", reason=response_block)
     if thesis.gap.straddles_zero():
         return GateResult(passed=False, gate="gap", reason="gap straddles zero")
     try:
@@ -141,15 +148,18 @@ def decide(
     horizon_ok: bool,
     post_trade_ok: bool,
     regime_flag: str,
+    response_block: str | None = None,
 ) -> Decision:
     """Run the four gates in spec order. Trade only if every gate passes; otherwise no-trade.
 
     The recorded failing gate is the first failure in the order mechanism, gap, expression, risk.
     Later failures are still listed on ``gates`` so the review note can show all of them.
+    ``response_block`` is optional and only set for a release whose front-end slope was estimated
+    (spec §10.1 item 11). It fails the gap gate when the caller supplies a reason.
     """
     results = [
         mechanism_gate(thesis, run_valid, identity_residuals_ok),
-        gap_gate(thesis, min_gap_bp),
+        gap_gate(thesis, min_gap_bp, response_block=response_block),
         expression_gate(thesis, exposure_match, horizon_ok),
         risk_gate(post_trade_ok, regime_flag),
     ]
