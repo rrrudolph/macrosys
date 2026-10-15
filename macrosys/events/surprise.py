@@ -7,15 +7,16 @@ it. The forecast is formed from earlier events' headline changes only, and the s
 uses earlier surprises only. Appending a later vintage to the store cannot change an earlier
 event; the tests hold that property.
 
-A consensus surprise would replace the statistical forecast here when a terms-clean consensus
-source exists (spec §9.8, P2.4). Until then every event names its ``forecaster``.
+The forecast is statistical by default. When a ``ConsensusLookup`` is passed, the pre-release survey
+median from the calendar extract replaces it (spec §7.3, §9.8, P2.4) and only first prints with an
+accepted consensus match become events; the two event sets are kept apart by ``forecaster``.
 """
 
 from __future__ import annotations
 
 import math
 from datetime import UTC, date, datetime, timedelta
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import duckdb
 import numpy as np
@@ -25,6 +26,9 @@ from macrosys.core.quantity import Quantity
 from macrosys.events.config import EventsConfig, ForecasterSpec, RegimeSpec, ReleaseSpec
 from macrosys.events.schema import SurpriseEvent
 from macrosys.store.schema import ensure_utc
+
+if TYPE_CHECKING:
+    from macrosys.events.consensus import ConsensusLookup
 
 _VINTAGES_SQL = """
 SELECT ref_period_start, ref_period_end, value, unit, published_at, vintage_id, quality_flag
@@ -119,6 +123,7 @@ def build_surprises(
     release: ReleaseSpec,
     config: EventsConfig,
     as_of: datetime | None = None,
+    consensus: ConsensusLookup | None = None,
 ) -> list[SurpriseEvent]:
     """Surprise events for one release series, in release order (spec §9.2, §10.1 item 11).
 
@@ -127,6 +132,10 @@ def build_surprises(
     was visible at the release instant, or when no earlier event exists to forecast from.
     ``surprise_sigma`` is ``None`` until ``min_history_events`` earlier surprises exist; its scale
     comes from the last ``sigma_window`` surprises under ``sigma_method``.
+
+    With ``consensus``, the forecast is the survey median the lookup accepts for the release date
+    (spec §9.8) and first prints without an accepted match are skipped; the lookup counts why. The
+    standardisation history is then consensus surprises only, so the two forecasters never mix.
     """
     frame = load_vintages(conn, release.series_id, as_of)
     if frame.empty:
@@ -158,10 +167,21 @@ def build_surprises(
     for released, period, actual, previous, quality in candidates:
         change = headline_change(actual, previous, release.transform)
         assert change.value is not None
-        forecast = forecast_change(changes, config.forecaster)
-        if forecast is None:
-            changes.append(change.value)
-            continue
+        if consensus is None:
+            forecast = forecast_change(changes, config.forecaster)
+            forecaster_name = config.forecaster.name
+            forecast_provenance = forecaster_name
+            if forecast is None:
+                changes.append(change.value)
+                continue
+        else:
+            match = consensus.match(release, released, previous, change)
+            if match is None:
+                continue
+            assert match.forecast_change.value is not None
+            forecast = match.forecast_change.value
+            forecaster_name = consensus.name
+            forecast_provenance = match.forecast_change.provenance or consensus.name
         surprise_value = change.value - forecast
         sigma: float | None = None
         if len(surprises) >= config.min_history_events:
@@ -178,10 +198,10 @@ def build_surprises(
                 actual=actual,
                 previous=previous,
                 actual_change=change,
-                forecast_change=Quantity(value=forecast, unit=change.unit, provenance=config.forecaster.name),
-                surprise=Quantity(value=surprise_value, unit=change.unit, provenance=f"surprise:{config.forecaster.name}"),
+                forecast_change=Quantity(value=forecast, unit=change.unit, provenance=forecast_provenance),
+                surprise=Quantity(value=surprise_value, unit=change.unit, provenance=f"surprise:{forecaster_name}"),
                 surprise_sigma=sigma,
-                forecaster=config.forecaster.name,
+                forecaster=forecaster_name,
                 n_history=len(surprises),
             )
         )

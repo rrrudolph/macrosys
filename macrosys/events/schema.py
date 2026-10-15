@@ -12,6 +12,42 @@ from macrosys.core.quantity import Quantity
 Sign = Literal[-1, 1]
 
 
+class ConsensusPrint(BaseModel):
+    """One calendar row: the pre-release survey median, the printed actual, and the printed previous (spec §9.8).
+
+    The numbers are bare because the legacy calendar extract dropped the printed suffix (``180K``,
+    ``0.4%``); the unit is restated per event in ``ConsensusMapping``. ``scheduled_at`` is the release
+    clock in UTC. The forecast has no publication time of its own; it is the value the calendar showed
+    for the release and is taken to have been fixed before the print. ``quality_flag`` is always
+    ``unofficial``: this is a research-tier input (spec §9.6), never a decision input.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    source: str
+    currency: str
+    event: str
+    scheduled_at: datetime
+    forecast: float | None
+    actual: float | None
+    previous: float | None
+    ingested_at: datetime
+    source_hash: str
+    quality_flag: Literal["unofficial"] = "unofficial"
+
+    @model_validator(mode="after")
+    def _checks(self) -> Self:
+        for name in ("scheduled_at", "ingested_at"):
+            stamp: datetime = getattr(self, name)
+            if stamp.tzinfo is None or stamp.utcoffset() is None:
+                raise ValueError(f"{name} must be timezone-aware")
+        if not self.event.startswith(self.currency + " "):
+            raise ValueError(f"event {self.event!r} does not start with its currency {self.currency!r}")
+        if self.forecast is None and self.actual is None and self.previous is None:
+            raise ValueError("a print needs at least one of forecast, actual, previous")
+        return self
+
+
 class SurpriseEvent(BaseModel):
     """One scheduled print: the as-reported change against a forecast made from earlier prints only.
 

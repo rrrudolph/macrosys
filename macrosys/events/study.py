@@ -20,6 +20,7 @@ from scipy.stats import binomtest
 from macrosys.core.quantity import Quantity
 from macrosys.eval.scoring import purged_walk_forward_splits
 from macrosys.events.config import EventsConfig, ResponseSpec, StateSign
+from macrosys.events.consensus import ConsensusLookup
 from macrosys.events.outcomes import market_outcomes
 from macrosys.events.schema import EventOutcome, RegimeSplit, ResponseStudy, SurpriseEvent
 from macrosys.events.surprise import build_surprises, regime_state
@@ -154,7 +155,7 @@ def study_pair(
             provenance=(
                 f"event_study:{spec.release}->{spec.market}@{horizon_days}d per 1sd surprise; "
                 f"n={n}; {paired[0][0].event_date.isoformat()}..{paired[-1][0].event_date.isoformat()}; "
-                f"forecaster={config.forecaster.name}; HC1"
+                f"forecaster={paired[0][0].forecaster}; HC1"
             ),
         )
     oos_accuracy, oos_n, beta_range = _walk_forward(
@@ -206,12 +207,18 @@ def study_pair(
     )
 
 
-def run_study(conn: duckdb.DuckDBPyConnection, config: EventsConfig, as_of: datetime | None = None) -> list[ResponseStudy]:
+def run_study(
+    conn: duckdb.DuckDBPyConnection,
+    config: EventsConfig,
+    as_of: datetime | None = None,
+    consensus: ConsensusLookup | None = None,
+) -> list[ResponseStudy]:
     """Build events, measure outcomes, and score every configured response at every horizon.
 
     ``as_of`` bounds every read (events, outcomes, regime states) by ``published_at``; ``None``
-    uses everything stored. Pairs with no joined events still return a row with ``n = 0`` so the
-    report shows what the store cannot yet test.
+    uses everything stored. With ``consensus`` the surprises are against the survey median (spec
+    §9.8) and releases without a consensus mapping produce no events. Pairs with no joined events
+    still return a row with ``n = 0`` so the report shows what the store cannot yet test.
     """
     events_by_release: dict[str, list[SurpriseEvent]] = {}
     outcomes_by_pair: dict[tuple[str, str], list[EventOutcome]] = {}
@@ -219,7 +226,7 @@ def run_study(conn: duckdb.DuckDBPyConnection, config: EventsConfig, as_of: date
     results: list[ResponseStudy] = []
     for spec in config.responses:
         if spec.release not in events_by_release:
-            events_by_release[spec.release] = build_surprises(conn, config.release(spec.release), config, as_of)
+            events_by_release[spec.release] = build_surprises(conn, config.release(spec.release), config, as_of, consensus)
         events = events_by_release[spec.release]
         key = (spec.release, spec.market)
         if key not in outcomes_by_pair:

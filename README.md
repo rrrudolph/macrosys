@@ -59,14 +59,17 @@ Built and tested (369 tests; 6 strict `xfail`s that name mechanism parameters st
 | X5.1 | SQLite OMS, paper broker, class-A halt on reconciliation break, kill switch, runbook hash check | `exec/`, `docs/runbook.md` |
 | S0.1–S0.2 | Walking skeleton: one command runs shock → propagation → priced-in → gates → no-trade → ledger → manifest → report, on three unrelated shocks | `skeleton/`, `docs/walkthrough.md` |
 | E4.4 | Release event study: ALFRED first prints → point-in-time surprises (AR(1) forecast, robust scale) → market responses at 1/5/20 days → predicted-sign tests with binomial and walk-forward checks, regime split, HC1 slopes written to `parameters/event_response.yaml`. Runs on the live store | `events/`, `config/events.yaml` |
+| P2.4 (partial) | Survey-consensus surprises: a locally held calendar extract (forecast/actual/previous; research tier, never fetched by this repo) is loaded into `calendar_print`, mapped to seven US releases with the dropped unit restated, matched by release date, and accepted only when the printed actual agrees with the store's as-reported change. `--forecaster consensus` runs the event study against it | `events/consensus.py`, `config/events.yaml` `consensus:` |
 | W1.6 (scoring) | Case replay labels each scored outcome evidential (sign from the recorded shock on library parameters) or formula-direction (author-fed input or replay fixture); the research gate reads evidential outcomes only | `cases/`, `cases/fixtures/replay_parameters.yaml` |
 
 Try it: `.\.venv\Scripts\python -m macrosys.cli skeleton demo --out .scratch\demo`.
 
 Event study on the ingested store: `python -m macrosys.cli events build --db data\store\macrosys.duckdb` then
 `python -m macrosys.cli events study --db data\store\macrosys.duckdb --write-parameters parameters\event_response.yaml`.
+With a local calendar extract (spec §9.8, P2.4): `python -m macrosys.cli events consensus-load --db data\store\macrosys.duckdb --sqlite <path to economic_data.db>`,
+then add `--forecaster consensus` to `build` and `study`.
 
 Not yet built: the structural `TODO_estimate` elasticities (the event study estimates market-response slopes, not
 IO elasticities), path-based case replay through the composition rules, the evaluation harness end-to-end on
-real snapshots, a consensus surprise source (blocked on terms, §9.8), and any live broker adapter. See
+real snapshots, a terms-clean consensus source that can be fetched (§9.8), and any live broker adapter. See
 `docs/spec.md` §13 for the backlog and §15 for the decisions only the owner can make (mandate limits, universe, gates).

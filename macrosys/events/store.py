@@ -1,8 +1,14 @@
-"""Persisted surprise events (spec §4.7 three timestamps, §10.1 item 11).
+"""Persisted event-study tables (spec §4.7 three timestamps, §10.1 item 11, §9.8).
 
-The table is a derived view of the observation store and is rebuilt per (series, forecaster).
-It exists so the weekly job and the thesis layer can read "the latest surprise on series X"
-through one query, and so a study run is reproducible from a stored event set.
+``release_surprise`` is a derived view of the observation store and is rebuilt per (series,
+forecaster). It exists so the weekly job and the thesis layer can read "the latest surprise on
+series X" through one query, and so a study run is reproducible from a stored event set.
+
+``calendar_print`` holds the survey-consensus calendar rows (forecast, actual, previous) loaded from
+a local file by ``events consensus-load``. Every row is ``quality_flag='unofficial'`` (research tier,
+spec §9.6): the values are bare numbers whose printed unit the source dropped, and the consensus has
+no publication time of its own — ``scheduled_at`` is the release clock, and the forecast is taken to
+have been fixed before it. Nothing in this table enters a decision path.
 """
 
 from __future__ import annotations
@@ -14,8 +20,25 @@ import pandas as pd
 import pyarrow as pa
 
 from macrosys.core.quantity import Quantity
-from macrosys.events.schema import SurpriseEvent
+from macrosys.events.schema import ConsensusPrint, SurpriseEvent
 from macrosys.store.schema import ensure_utc
+
+_CALENDAR_DDL = """
+CREATE TABLE IF NOT EXISTS calendar_print (
+    source TEXT NOT NULL,
+    currency TEXT NOT NULL,
+    event TEXT NOT NULL,
+    scheduled_at TIMESTAMPTZ NOT NULL,
+    forecast DOUBLE,
+    actual DOUBLE,
+    previous DOUBLE,
+    ingested_at TIMESTAMPTZ NOT NULL,
+    source_hash TEXT NOT NULL,
+    quality_flag TEXT NOT NULL,
+    PRIMARY KEY (source, event, scheduled_at),
+    CHECK (quality_flag = 'unofficial')
+)
+"""
 
 _DDL = """
 CREATE TABLE IF NOT EXISTS release_surprise (
@@ -41,9 +64,86 @@ CREATE TABLE IF NOT EXISTS release_surprise (
 
 
 def create_events_schema(conn: duckdb.DuckDBPyConnection) -> None:
-    """Create the ``release_surprise`` table if it does not exist."""
+    """Create the ``release_surprise`` and ``calendar_print`` tables if they do not exist."""
     ensure_utc(conn)
     conn.execute(_DDL)
+    conn.execute(_CALENDAR_DDL)
+
+
+def _has_table(conn: duckdb.DuckDBPyConnection, name: str) -> bool:
+    return name in {row[0] for row in conn.execute("SHOW TABLES").fetchall()}
+
+
+class ConsensusStore:
+    """Replace and read calendar prints for one source (spec §9.8). Reads work on a read-only connection."""
+
+    def __init__(self, conn: duckdb.DuckDBPyConnection) -> None:
+        self._conn = conn
+        ensure_utc(conn)
+
+    def replace(self, source: str, prints: list[ConsensusPrint]) -> int:
+        """Delete the stored rows for ``source`` and insert ``prints``. Returns the row count."""
+        create_events_schema(self._conn)
+        for item in prints:
+            if item.source != source:
+                raise ValueError("print does not belong to the source being replaced")
+        self._conn.execute("DELETE FROM calendar_print WHERE source = ?", [source])
+        if not prints:
+            return 0
+        table = pa.table(
+            {
+                "source": pa.array([p.source for p in prints], type=pa.string()),
+                "currency": pa.array([p.currency for p in prints], type=pa.string()),
+                "event": pa.array([p.event for p in prints], type=pa.string()),
+                "scheduled_at": pa.array([p.scheduled_at for p in prints], type=pa.timestamp("us", tz="UTC")),
+                "forecast": pa.array([p.forecast for p in prints], type=pa.float64()),
+                "actual": pa.array([p.actual for p in prints], type=pa.float64()),
+                "previous": pa.array([p.previous for p in prints], type=pa.float64()),
+                "ingested_at": pa.array([p.ingested_at for p in prints], type=pa.timestamp("us", tz="UTC")),
+                "source_hash": pa.array([p.source_hash for p in prints], type=pa.string()),
+                "quality_flag": pa.array([p.quality_flag for p in prints], type=pa.string()),
+            }
+        )
+        self._conn.register("calendar_incoming", table)
+        try:
+            self._conn.execute("INSERT INTO calendar_print SELECT * FROM calendar_incoming")
+        finally:
+            self._conn.unregister("calendar_incoming")
+        return len(prints)
+
+    def read(self, source: str, events: set[str] | None = None, as_of: datetime | None = None) -> list[ConsensusPrint]:
+        """Stored prints for ``source``, optionally only the named events and only those scheduled at or before ``as_of``."""
+        ensure_utc(self._conn)
+        if not _has_table(self._conn, "calendar_print"):
+            return []
+        sql = "SELECT * FROM calendar_print WHERE source = ? AND (? IS NULL OR scheduled_at <= ?)"
+        params: list[object] = [source, as_of, as_of]
+        if events is not None:
+            if not events:
+                return []
+            sql += " AND event IN (" + ", ".join("?" for _ in events) + ")"
+            params.extend(sorted(events))
+        frame = self._conn.execute(sql + " ORDER BY scheduled_at, event", params).df()
+        out: list[ConsensusPrint] = []
+        for _, row in frame.iterrows():
+            out.append(
+                ConsensusPrint(
+                    source=str(row["source"]),
+                    currency=str(row["currency"]),
+                    event=str(row["event"]),
+                    scheduled_at=pd.Timestamp(row["scheduled_at"]).tz_convert("UTC").to_pydatetime(),
+                    forecast=_float_or_none(row["forecast"]),
+                    actual=_float_or_none(row["actual"]),
+                    previous=_float_or_none(row["previous"]),
+                    ingested_at=pd.Timestamp(row["ingested_at"]).tz_convert("UTC").to_pydatetime(),
+                    source_hash=str(row["source_hash"]),
+                )
+            )
+        return out
+
+
+def _float_or_none(value: object) -> float | None:
+    return None if value is None or pd.isna(value) else float(value)
 
 
 class SurpriseStore:
@@ -95,7 +195,7 @@ class SurpriseStore:
     def read(self, series_id: str, forecaster: str) -> list[SurpriseEvent]:
         """Stored events for ``(series_id, forecaster)`` in release order; empty when the table does not exist."""
         ensure_utc(self._conn)
-        if "release_surprise" not in {row[0] for row in self._conn.execute("SHOW TABLES").fetchall()}:
+        if not _has_table(self._conn, "release_surprise"):
             return []
         frame = self._conn.execute(
             "SELECT * FROM release_surprise WHERE series_id = ? AND forecaster = ? ORDER BY published_at, ref_period_start",

@@ -20,6 +20,9 @@ data/store/
 !tests/**/*.parquet
 .env
 secrets/
+# Calendar extract and saved pages: local research input, not redistributed (spec §9.5, P2.4)
+scripts/economic_data.db
+scripts/saved_months/
 
 # Node (TradingView adapter)
 node_modules/

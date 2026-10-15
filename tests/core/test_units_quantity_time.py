@@ -30,11 +30,14 @@ def test_compatibility_rules():
     assert compatible("ccy_bn", "USD_bn")  # placeholder binds to any currency
     assert compatible("bp", "pp")
     assert not compatible("pct", "pp")
+    assert compatible("persons_k", "persons")
+    assert not compatible("persons_k", "count")  # a head count is its own dimension
 
 
 def test_convert_scales_only():
     assert convert(1.0, "USD_bn", "USD_mn") == pytest.approx(1000.0)
     assert convert(25.0, "bp", "pp") == pytest.approx(0.25)
+    assert convert(180.0, "persons_k", "persons") == pytest.approx(180_000.0)
     with pytest.raises(UnitError):
         convert(1.0, "USD", "EUR")
 
