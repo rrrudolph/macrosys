@@ -273,7 +273,7 @@ def _propagate(
             continue
         binding = case.replay.get(mechanism_id)
         target = binding.shock_input if binding is not None and binding.shock_input else spec.inputs[0].name
-        overrides = dict(fixtures.get(mechanism_id, {}))
+        overrides = todo_fixture_overrides(spec, fixtures.get(mechanism_id, {}))
         author_fed = binding is not None and binding.shock_value is not None
         path = _single_path(
             mechanism_id,
@@ -385,7 +385,9 @@ def _propagate_composed(
             competing=list(step.competing_accounted),
             peak_q=library.get(step.mechanism_id).horizon.peak,
             author_fed=author_fed.get(step.mechanism_id, False),
-            fixture_params=bool(fixtures.get(step.mechanism_id)),
+            fixture_params=bool(
+                todo_fixture_overrides(library.get(step.mechanism_id), fixtures.get(step.mechanism_id, {}))
+            ),
         )
         for step in run.steps
     ]
@@ -416,12 +418,12 @@ def _composed_path(
                 AcceptedCompeting(mechanism=name, observable="not on this case path", threshold=token)
             )
     steps = []
-    for mechanism_id in ids:
+    for mechanism_id, spec in zip(ids, specs, strict=True):
         binding = case.replay.get(mechanism_id)
         steps.append(
             MechanismInstance(
                 mechanism_id=mechanism_id,
-                parameter_overrides=dict(fixtures.get(mechanism_id, {})),
+                parameter_overrides=todo_fixture_overrides(spec, fixtures.get(mechanism_id, {})),
                 fixed_inputs=_fixed_inputs(binding),
                 bindings={
                     "entity_type": case.shock.origin.entity_type,
@@ -435,6 +437,16 @@ def _composed_path(
         accepted_competing=accepted,
         materiality_threshold=Quantity(value=0.0, unit="share", provenance=_CLOSURE),
     )
+
+
+def todo_fixture_overrides(spec: MechanismSpec, bound: dict[str, Quantity]) -> dict[str, Quantity]:
+    """Keep replay stand-ins only for parameters the library still marks ``TODO_estimate`` (spec §3.1, §10.1).
+
+    A coefficient that has been estimated from the store is a library parameter. The replay
+    fixture must not cover it, or the outcome would stay non-evidential after the estimate.
+    """
+    todo = {item.name for item in spec.parameters if item.source == "TODO_estimate"}
+    return {name: quantity for name, quantity in bound.items() if name in todo}
 
 
 def _author_fed_flags(case: Case, ids: list[str]) -> dict[str, bool]:

@@ -15,7 +15,9 @@ form: retained = capture * d_cost; passed_on = (1 - capture) * d_cost
 parameters:
 - name: capture
   unit: share
-  source: TODO_estimate
+  low: 0.6788
+  high: 0.7561
+  source: "local_projection:FRED:CPIAUCSL on FRED:PPIACO Q slope horizon 0; HC1; n=318; 1947-06-30..2026-09-30; one minus the slope of CPI inflation on all-commodities PPI inflation"
 horizon:
   impact: 1
   peak: 4

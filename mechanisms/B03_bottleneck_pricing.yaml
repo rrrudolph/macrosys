@@ -13,7 +13,11 @@ parameters:
   - {name: eps_s_tight, unit: ratio, source: TODO_estimate}
   - {name: eps_d, unit: ratio, source: TODO_estimate}
   - {name: u_kink, unit: share, value: 0.70, source: spec_3.4_rule5}
-  - {name: u_cap, unit: share, source: TODO_estimate}
+  - name: u_cap
+    unit: share
+    low: 0.8719
+    high: 0.8939
+    source: "local_projection:FRED:TCU on FRED:TCU M ceiling horizon 0; HC1; n=716; 1967-01-31..2026-08-31; 95th percentile to the sample maximum of total capacity utilization, divided by 100"
 horizon: {impact: 0, peak: 2, decay: 4}
 state_dependence: [capacity_utilization]
 assumptions:

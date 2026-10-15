@@ -70,6 +70,7 @@ def _parser() -> argparse.ArgumentParser:
         "macrosys.cases.cli_commands",
         "macrosys.events.cli_commands",
         "macrosys.forward.cli_commands",
+        "macrosys.estimate.cli_commands",
     ):
         try:
             register = __import__(module, fromlist=["register_cli"]).register_cli

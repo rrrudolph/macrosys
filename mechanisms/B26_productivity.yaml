@@ -15,7 +15,9 @@ form: d_ulc_pct = -d_tfp; d_price_pct = -pass_through * d_tfp
 parameters:
 - name: pass_through
   unit: share
-  source: TODO_estimate
+  low: 0.0631
+  high: 0.3164
+  source: "local_projection:FRED:CPIAUCSL on FRED:OPHNFB Q horizon 0; HC1; n=317; 1947-06-30..2026-06-30; quarterly CPI inflation on labor-productivity growth"
 horizon:
   impact: 4
   peak: 12

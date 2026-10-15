@@ -60,7 +60,7 @@ def map_ecb_unit(unit: str, unit_mult: int, *, flow: str) -> str:
     token = (unit or "").strip().upper()
     if token in {"", "PURE"}:
         label = "ratio"
-    elif token in {"PC", "PCT", "PERCENT"}:
+    elif token in {"PC", "PCT", "PERCENT", "PCPA"}:
         label = "pct"
     elif token in {"INDEX", "I15"} or token.startswith("IX"):
         label = "index"

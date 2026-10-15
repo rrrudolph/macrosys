@@ -15,7 +15,8 @@ Dimensions
 - ``volume_oil``: ``bbl``, ``kbbl``, ``mbbl``; ``flow_oil``: ``kbd`` (thousand barrels per day).
 - ``rate``: ``pct`` (percent), ``pp`` (percentage points), ``bp`` (basis points) — these are *not*
   interconvertible with each other except pp<->bp (both are differences); pct is a level or growth rate.
-- ``ratio``: ``share`` (0..1), ``ratio``; ``index``: ``index``; ``count``: ``count``.
+- ``ratio``: ``share`` (0..1), ``ratio``; ``price``: ``USD_per_t`` (dollars per metric tonne);
+  ``index``: ``index``; ``count``: ``count``.
 - ``persons``: ``persons``, ``persons_k`` (thousands; payroll employment is published this way).
 - ``time``: ``d``, ``w``, ``m``, ``q``, ``y``.
 """
@@ -70,8 +71,10 @@ _STATIC: dict[str, Unit] = {
     # ratios, indices, counts
     "share": Unit("share", "ratio", 1.0),
     "ratio": Unit("ratio", "ratio", 1.0),
+    "USD_per_t": Unit("USD_per_t", "price", 1.0),  # dollars per metric tonne
     "index": Unit("index", "index", 1.0),
     "count": Unit("count", "count", 1.0),
+    "count_k": Unit("count_k", "count", 1e3),
     # persons (own dimension so a head count is never added to a generic count)
     "persons": Unit("persons", "persons", 1.0),
     "persons_k": Unit("persons_k", "persons", 1e3),

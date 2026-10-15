@@ -1,0 +1,377 @@
+# Local projections for mechanism coefficients the store can identify (spec §8.4, Jordà 2005).
+# A job is installed on the mechanism card only when the HC1 interval excludes zero and the
+# slope keeps its sign in every re-estimation window. Anything else stays TODO_estimate.
+# `unavailable` is a coefficient this store cannot identify. The reason is the missing series
+# or the identification the card itself says we do not have.
+minimum_n: 60
+minimum_window: 24
+windows: 3
+jobs:
+  - mechanism: C05_equity_duration
+    parameter: duration
+    unit: y
+    y: FRED:SPASTT01USM661N
+    x: FRED:DGS10
+    frequency: M
+    y_op: pct_change
+    x_op: difference
+    horizon: 0
+    beta_sign: -1
+    map: negate
+    note: contemporaneous comovement of the OECD US share-price index and the 10-year yield, not a pure discount-rate shock
+  - mechanism: B11_monetary_transmission
+    parameter: multiplier
+    unit: ratio
+    y: FRED:GDPC1
+    x: FRED:FEDFUNDS
+    frequency: Q
+    y_op: pct_change
+    x_op: difference
+    horizon: 8
+    beta_sign: -1
+    map: negate
+    note: reduced form of real GDP on the funds rate eight quarters ahead, the card's peak; not a Ramey-identified shock
+  - mechanism: B27_funding_squeeze
+    parameter: elasticity
+    unit: ratio
+    y: FRED:BAA
+    y_minus: FRED:AAA
+    x: FRED:DFF
+    x_minus: FRED:TB3MS
+    frequency: M
+    y_op: difference
+    x_op: difference
+    horizon: 0
+    beta_sign: 1
+    map: identity
+    note: monthly change in the Moody's Baa-Aaa spread on the change in the effective funds rate minus the 3-month bill. High-yield OAS in this store starts in 2023, which is below the sample rule.
+  - mechanism: B10_phillips
+    parameter: slope_wage
+    unit: ratio
+    y: FRED:ECIWAG
+    x: FRED:UNRATE
+    frequency: Q
+    y_op: pct_change
+    x_op: difference
+    horizon: 0
+    beta_sign: -1
+    map: negate
+    note: quarterly wage growth on the change in the unemployment rate
+  - mechanism: B10_phillips
+    parameter: slope_core
+    unit: ratio
+    y: FRED:CPILFESL
+    x: FRED:UNRATE
+    x_minus: FRED:NROU
+    frequency: Q
+    y_op: pct_change
+    x_op: level
+    horizon: 0
+    beta_sign: -1
+    map: negate
+    note: quarterly core inflation on the unemployment gap, UNRATE minus the noncyclical rate, which is the formula's gap
+  - mechanism: B12_bank_credit
+    parameter: elasticity
+    unit: ratio
+    y: FRED:BUSLOANS
+    x: FRED:DRTSCILM
+    frequency: Q
+    y_op: pct_change
+    x_op: level
+    horizon: 0
+    beta_sign: -1
+    map: negate
+    note: quarterly loan growth on the SLOOS net percent of banks tightening
+  - mechanism: B14_housing
+    parameter: elasticity
+    unit: ratio
+    y: FRED:PRRESCONS
+    x: FRED:PERMIT
+    frequency: Q
+    y_op: pct_change
+    x_op: pct_change
+    horizon: 0
+    beta_sign: 1
+    map: identity
+    note: quarterly residential investment on housing permits
+  - mechanism: B16_fx_passthrough
+    parameter: pt_import
+    unit: share
+    y: FRED:IR
+    x: FRED:DTWEXBGS
+    frequency: Q
+    y_op: pct_change
+    x_op: pct_change
+    horizon: 0
+    beta_sign: -1
+    map: negate
+    note: import-price change on the broad dollar is the aggregate pass-through. The card multiplies pt_import by an invoicing share, so this number is not that parameter.
+    record_only: true
+  - mechanism: B26_productivity
+    parameter: pass_through
+    unit: share
+    y: FRED:CPIAUCSL
+    x: FRED:OPHNFB
+    frequency: Q
+    y_op: pct_change
+    x_op: pct_change
+    horizon: 0
+    beta_sign: -1
+    map: negate
+    note: quarterly CPI inflation on labor-productivity growth
+  - mechanism: C11_ppp
+    parameter: half_life
+    unit: y
+    y: FRED:DEXUSEU
+    x: FRED:DEXUSEU
+    foreign_price: FRED:CP0000EZ19M086NEST
+    home_price: FRED:CPIAUCSL
+    frequency: M
+    y_op: level
+    x_op: level
+    horizon: 0
+    beta_sign: 1
+    map: identity
+    kind: half_life
+    note: half-life in years of the log real dollar-per-euro rate, from the euro HICP and US CPI
+  - mechanism: B03_bottleneck_pricing
+    parameter: u_cap
+    unit: share
+    y: FRED:TCU
+    x: FRED:TCU
+    y_scale: 0.01
+    frequency: M
+    y_op: level
+    x_op: level
+    horizon: 0
+    beta_sign: 1
+    map: identity
+    kind: ceiling
+    ceiling_floor: 0.70
+    note: 95th percentile to the sample maximum of total capacity utilization, divided by 100
+  - mechanism: B03_bottleneck_pricing
+    parameter: eps_s_slack
+    unit: ratio
+    y: FRED:INDPRO
+    x: FRED:PPIACO
+    instrument: FRED:PAYEMS
+    state_series: FRED:TCU
+    state_below: 75
+    frequency: M
+    y_op: pct_change
+    x_op: pct_change
+    horizon: 0
+    beta_sign: 1
+    map: identity
+    note: industrial production on PPI, instrumented by payroll employment, when total utilization is below 75 percent. Months below the 70 percent kink are too few to estimate.
+  - mechanism: B03_bottleneck_pricing
+    parameter: eps_s_tight
+    unit: ratio
+    y: FRED:INDPRO
+    x: FRED:PPIACO
+    instrument: FRED:PAYEMS
+    state_series: FRED:TCU
+    state_above: 85
+    frequency: M
+    y_op: pct_change
+    x_op: pct_change
+    horizon: 0
+    beta_sign: 1
+    map: identity
+    note: the same supply regression, instrumented by payroll employment, when total utilization is above 85 percent
+  - mechanism: B03_bottleneck_pricing
+    parameter: eps_d
+    unit: ratio
+    y: EIA:petroleum/cons/psup:MGFUPUS2
+    x: FRED:APU000074714
+    instrument: FRED:WPU0561
+    frequency: M
+    y_op: pct_change
+    x_op: pct_change
+    horizon: 0
+    beta_sign: -1
+    map: negate
+    note: gasoline supplied on the retail price, instrumented by the crude PPI; stored as a positive demand elasticity
+  - mechanism: B05_capacity_pipeline
+    parameter: slippage
+    unit: share
+    y: FRED:COMPU1USA
+    x: FRED:PERMIT1
+    frequency: M
+    y_op: level
+    x_op: level
+    horizon: 0
+    beta_sign: 1
+    map: identity
+    kind: shortfall
+    lag: 12
+    note: share of single-family permits not completed twelve months later
+  - mechanism: B06_demand_elasticity
+    parameter: eps_sr
+    unit: ratio
+    y: EIA:petroleum/cons/psup:MGFUPUS2
+    x: FRED:APU000074714
+    instrument: FRED:WPU0561
+    frequency: M
+    y_op: pct_change
+    x_op: pct_change
+    horizon: 0
+    beta_sign: -1
+    map: identity
+    note: gasoline supplied on the retail price, instrumented by the crude PPI
+  - mechanism: B06_demand_elasticity
+    parameter: eps_lr
+    unit: ratio
+    y: EIA:petroleum/cons/psup:MGFUPUS2
+    x: FRED:APU000074714
+    instrument: FRED:WPU0561
+    frequency: M
+    y_op: pct_change
+    x_op: pct_change
+    horizon: 12
+    beta_sign: -1
+    map: identity
+    note: gasoline supplied twelve months ahead on the retail price, instrumented by the crude PPI
+  - mechanism: B07_substitution
+    parameter: sigma
+    unit: ratio
+    y: FRED:IPG3313S
+    x: FRED:PALUMUSDM
+    x_over: FRED:PCOPPUSDM
+    frequency: M
+    y_op: pct_change
+    x_op: pct_change
+    horizon: 0
+    beta_sign: -1
+    map: negate
+    note: aluminum production on the aluminum-to-copper price ratio
+  - mechanism: B08_pass_through
+    parameter: capture
+    unit: share
+    y: FRED:CPIAUCSL
+    x: FRED:PPIACO
+    frequency: Q
+    y_op: pct_change
+    x_op: pct_change
+    horizon: 0
+    beta_sign: 1
+    map: one_minus
+    note: one minus the slope of CPI inflation on all-commodities PPI inflation
+  - mechanism: B13_financial_accelerator
+    parameter: elasticity
+    unit: ratio
+    y: FRED:BCNSDODNS
+    x: FRED:SPASTT01USM661N
+    x_times: FRED:NCBCMDPMVCE
+    x_times_scale: 0.01
+    frequency: Q
+    y_op: pct_change
+    x_op: pct_change
+    horizon: 0
+    beta_sign: 1
+    map: identity
+    note: corporate-debt growth on share-price growth times the debt-to-equity ratio
+  - mechanism: B18_global_financial_cycle
+    parameter: elasticity
+    unit: ratio
+    y: FRED:CRDQKRAPABIS
+    x: FRED:DTWEXBGS
+    frequency: Q
+    y_op: pct_change
+    x_op: pct_change
+    horizon: 0
+    beta_sign: -1
+    map: negate
+    note: Korean private-credit growth on the broad dollar
+  - mechanism: B19_carry
+    parameter: carry_coeff
+    unit: ratio
+    y: FRED:DEXUSEU
+    y_add: ECB:FM.B.U2.EUR.4F.KR.DFR.LEV
+    y_add_minus: FRED:FEDFUNDS
+    y_add_scale: 0.25
+    x: ECB:FM.B.U2.EUR.4F.KR.DFR.LEV
+    x_minus: FRED:FEDFUNDS
+    frequency: Q
+    y_op: pct_change
+    x_op: level
+    horizon: 0
+    beta_sign: 1
+    map: identity
+    step: true
+    note: quarterly euro excess return on the euro deposit rate minus the funds rate. The deposit rate is carried forward across quarters it does not change.
+  - mechanism: B19_carry
+    parameter: crash_coeff
+    unit: ratio
+    y: FRED:DEXUSEU
+    y_add: ECB:FM.B.U2.EUR.4F.KR.DFR.LEV
+    y_add_minus: FRED:FEDFUNDS
+    y_add_scale: 0.25
+    x: ECB:FM.B.U2.EUR.4F.KR.DFR.LEV
+    x_minus: FRED:FEDFUNDS
+    x_times: FRED:VIXCLS
+    x_times_scale: 0.01
+    frequency: Q
+    y_op: pct_change
+    x_op: level
+    horizon: 0
+    beta_sign: -1
+    map: negate
+    step: true
+    note: the same excess return on the rate differential times VIX/100. The deposit rate is carried forward across quarters it does not change.
+  - mechanism: B20_momentum
+    parameter: continuation
+    unit: ratio
+    y: FRED:SPASTT01USM661N
+    x: FRED:SPASTT01USM661N
+    x_lookback: 4
+    control: FRED:SPASTT01USM661N
+    control_lookback: 20
+    frequency: Q
+    y_op: pct_change
+    x_op: pct_change
+    horizon: 1
+    beta_sign: 1
+    map: identity
+    note: next-quarter share-price return on the prior four-quarter return, controlling for the prior twenty-quarter return
+  - mechanism: B20_momentum
+    parameter: reversal
+    unit: ratio
+    y: FRED:SPASTT01USM661N
+    x: FRED:SPASTT01USM661N
+    x_lookback: 20
+    control: FRED:SPASTT01USM661N
+    control_lookback: 4
+    frequency: Q
+    y_op: pct_change
+    x_op: pct_change
+    horizon: 1
+    beta_sign: -1
+    map: negate
+    note: next-quarter return on the prior twenty-quarter return, controlling for the prior four-quarter return; stored positive because the formula subtracts it
+  - mechanism: B22_intermediary_capacity
+    parameter: elasticity
+    unit: ratio
+    y: FRED:BAA
+    y_minus: FRED:AAA
+    y_scale: 100
+    x: FRED:BOGZ1FL664190005Q
+    x_over: FRED:BOGZ1FL664090005Q
+    frequency: Q
+    y_op: difference
+    x_op: difference
+    horizon: 0
+    beta_sign: 1
+    map: identity
+    note: change in the Baa-Aaa spread in basis points on the change in broker-dealer liabilities over assets
+unavailable:
+  - {mechanism: B06_demand_elasticity, parameter: speed, reason: "partial-adjustment speed is the gap between the short-run and long-run slopes; it is not a separate series"}
+  - {mechanism: B16_fx_passthrough, parameter: pt_cpi, reason: "CPI on the dollar is not pt_cpi. The formula multiplies by a USD invoicing share, and no invoicing series is in the store."}
+  - {mechanism: B21_positioning, parameter: multiplier, reason: "a positioning percentile needs one COT contract. The CFTC connector downloads every contract in the dataset, which is not a single series."}
+  - {mechanism: B23_expectations, parameter: overreaction, reason: "the revision-on-surprise coefficient needs a survey of forecast revisions. A scheduled calendar fetch is blocked on terms, and the SPF median file is not in the store."}
+  - {mechanism: B24_supply_chain, parameter: loss_coeff, reason: "GSCPI is not on FRED and is not a series this store ingests"}
+  - {mechanism: B24_supply_chain, parameter: cushion, reason: "GSCPI is not on FRED and is not a series this store ingests"}
+  - {mechanism: B25_transport, parameter: freight_elasticity, reason: "deep-sea freight prices exist, but no ship-utilization series is published on FRED or EIA"}
+  - {mechanism: C04_breakeven, parameter: irp, reason: "breakeven minus Cleveland expected inflation identifies irp minus the liquidity premium, not each premium"}
+  - {mechanism: C04_breakeven, parameter: liquidity, reason: "breakeven minus Cleveland expected inflation identifies irp minus the liquidity premium, not each premium"}
+  - {mechanism: C09_policy_path, parameter: risk_premium, reason: "no policy-rate futures series is published on the connected sources"}

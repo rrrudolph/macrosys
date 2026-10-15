@@ -55,12 +55,46 @@ series:
       - FRED:ISRATIO
       - FRED:BUSINV
       - FRED:TOTBUSSMSA
+      - FRED:ECIWAG
+      - FRED:PERMIT
+      - FRED:IR
+      - FRED:DRTSCILM
+      - FRED:BUSLOANS
+      - FRED:OPHNFB
+      - FRED:THREEFYTP10
+      - FRED:CP0000EZ19M086NEST
+      - FRED:PRRESCONS
+      - FRED:NROU
+      - FRED:COMPU1USA
+      - FRED:PERMIT1
+      - FRED:PPIACO
+      - FRED:TB3MS
+      - FRED:BAA
+      - FRED:AAA
+      - FRED:SPASTT01USM661N
+      - FRED:BCNSDODNS
+      - FRED:NCBCMDPMVCE
+      - FRED:BOGZ1FL664090005Q
+      - FRED:BOGZ1FL664190005Q
+      - FRED:WPU0561
+      - FRED:IPG21112S
+      - FRED:CAPUTLG211S
+      - FRED:APU000074714
+      - FRED:PCOPPUSDM
+      - FRED:PALUMUSDM
+      - FRED:IPG3313S
+      - FRED:CRDQKRAPABIS
+      - FRED:EXPINF10YR
   - source_id: ECB
     max_lag_days: 5
     series_ids:
       - ECB:EXR.D.USD.EUR.SP00.A
       - ECB:EXR.D.GBP.EUR.SP00.A
       - ECB:EXR.D.JPY.EUR.SP00.A
+  - source_id: ECB
+    max_lag_days: 120
+    series_ids:
+      - ECB:FM.B.U2.EUR.4F.KR.DFR.LEV
   - source_id: CBOE
     max_lag_days: 5
     series_ids:
@@ -71,6 +105,10 @@ series:
     max_lag_days: 14
     series_ids:
       - EIA:petroleum/stoc/wstk:WCESTUS1
+  - source_id: EIA
+    max_lag_days: 120
+    series_ids:
+      - EIA:petroleum/cons/psup:MGFUPUS2
   - source_id: BEA
     max_lag_days: 120
     series_ids:

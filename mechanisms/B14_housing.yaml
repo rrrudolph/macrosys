@@ -13,7 +13,9 @@ form: d_residential_pct = elasticity * d_permits
 parameters:
 - name: elasticity
   unit: ratio
-  source: TODO_estimate
+  low: 0.1515
+  high: 0.3546
+  source: "local_projection:FRED:PRRESCONS on FRED:PERMIT Q horizon 0; HC1; n=134; 1993-06-30..2026-09-30; quarterly residential investment on housing permits"
 horizon:
   impact: 1
   peak: 6

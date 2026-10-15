@@ -48,9 +48,15 @@ FRED_UNIT_MAP: dict[str, str] = {
     "Billions of Dollars": "USD_bn",
     "Millions of Dollars": "USD_mn",
     "Millions of U.S. Dollars": "USD_mn",  # WALCL
+    "Billions of U.S. Dollars": "USD_bn",  # BUSLOANS
+    "Billions of US Dollars": "USD_bn",  # BIS credit on FRED
+    "Billions of South Korean Wons": "KRW_bn",
+    "U.S. Dollars per Metric Ton": "USD_per_t",
     "Thousands of Dollars": "USD_k",
     "Thousands of Persons": "persons_k",   # PAYEMS
+    "Thousands of Units": "count_k",  # PERMIT
     "Dollars": "USD",
+    "U.S. Dollars": "USD",  # BLS average prices carried on FRED
     "Percent": "pct",
     "Percent Change": "pct",
     "Percent Change from Year Ago": "pct",
@@ -59,6 +65,13 @@ FRED_UNIT_MAP: dict[str, str] = {
     "Index 1982-1984=100": "index",
     "Index 2017=100": "index",
     "Index Jan 2006=100": "index",  # DTWEXBGS
+    "Index Dec 2005=100": "index",  # ECIWAG
+    "Index 2000=100": "index",  # IR
+    "Index 2025=100": "index",  # euro-area HICP on FRED
+    "Index 2015=100": "index",  # OECD share-price index
+    "Index 1982=100": "index",  # PPI
+    "Index Jan 2000=100": "index",  # Case-Shiller
+    "Index Jun 1988=100": "index",  # deep-sea freight PPI
     "Basis Points": "bp",
     "Ratio": "ratio",                       # e.g. ISRATIO (inventories/sales)
     "Percent of Capacity": "pct",           # TCU

@@ -162,7 +162,7 @@ def _gate(library: Library, utilization: float):
 
 
 def _abundant(library: Library) -> CapabilityResult:
-    """Low utilization gates B03 off; B08 is who keeps a cost change (spec §10.1 item 8)."""
+    """Low utilization gates B03 off; B08 splits the cost with the estimated capture (spec §10.1 item 8)."""
     gate = _gate(library, 0.55)
     produced, parameter = _call(library.get("B08_pass_through"), {"d_cost": _q(10.0, "pct")})
     details: dict[str, float | str | bool | None] = {
@@ -561,8 +561,10 @@ def _check_abundant(result: CapabilityResult) -> None:
     _require(result)
     retained = float(result.details["retained"])  # type: ignore[arg-type]
     passed_on = float(result.details["passed_on"])  # type: ignore[arg-type]
-    if passed_on <= retained:
-        raise AssertionError("B08 should pass the cost change on to buyers when pricing power is absent")
+    if retained <= 0.0 or passed_on <= 0.0:
+        raise AssertionError("B08 should split a cost increase into a kept share and a passed-on share")
+    if abs(retained + passed_on - 10.0) > 1e-6:
+        raise AssertionError("B08 should account for the whole cost change")
 
 
 def _check_scarce(result: CapabilityResult) -> None:

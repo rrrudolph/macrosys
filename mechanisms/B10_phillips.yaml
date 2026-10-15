@@ -20,7 +20,9 @@ form: d_wage = expectations - slope_wage * unemployment_gap + supply_shock; d_co
 parameters:
 - name: slope_wage
   unit: ratio
-  source: TODO_estimate
+  low: 0.0098
+  high: 0.1109
+  source: "local_projection:FRED:ECIWAG on FRED:UNRATE Q horizon 0; HC1; n=101; 2001-06-30..2026-06-30; quarterly wage growth on the change in the unemployment rate"
 - name: slope_core
   unit: ratio
   source: TODO_estimate
@@ -30,7 +32,7 @@ horizon:
   decay: null
 state_dependence: []
 assumptions:
-- the slopes are small and unstable; the spec gives no number, so both are TODO_estimate
+- slope_wage is the local-projection range on the card; slope_core stayed TODO_estimate because its sign is not the same in every window
 competing:
 - B26_productivity
 - B08_pass_through

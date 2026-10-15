@@ -48,8 +48,8 @@ class PassThrough(Ungated):
 class Phillips(Ungated):
     """Wage and core pressure from slack, expectations, and a supply shock (spec §3.3 B10).
 
-    Input to a policy reaction, not a standalone inflation forecast. The slopes are
-    ``TODO_estimate``; the spec says they are small and unstable and gives no number.
+    Input to a policy reaction, not a standalone inflation forecast. ``slope_wage`` is
+    the local-projection range on the card. ``slope_core`` is still ``TODO_estimate``.
     """
 
     def apply(self, inputs: dict[str, Quantity], params: dict[str, Quantity]) -> dict[str, Quantity]:

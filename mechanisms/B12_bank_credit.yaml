@@ -14,7 +14,9 @@ form: d_credit_pct = -elasticity * standards_tightening
 parameters:
 - name: elasticity
   unit: ratio
-  source: TODO_estimate
+  low: 0.0101
+  high: 0.0535
+  source: "local_projection:FRED:BUSLOANS on FRED:DRTSCILM Q horizon 0; HC1; n=146; 1990-06-30..2026-09-30; quarterly loan growth on the SLOOS net percent of banks tightening"
 horizon:
   impact: 2
   peak: 4

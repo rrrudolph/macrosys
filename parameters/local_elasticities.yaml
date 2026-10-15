@@ -1,0 +1,388 @@
+generated_at: '2026-10-15T15:08:45.785282+00:00'
+method: 'Local projection: HC1 slope of the transformed outcome on the transformed
+  input, with an intercept. A coefficient is installed only when the 95% interval
+  excludes zero and the slope''s sign agrees in every re-estimation window. A half-life
+  maps that autocorrelation through ln(0.5)/ln(rho). A shortfall is a mean inside
+  (0, 1). A ceiling is the upper tail of a utilization series (spec 8.4).'
+entries:
+- mechanism: C05_equity_duration
+  parameter: duration
+  status: rejected
+  reason: slope sign 1 is not the formula sign -1
+  unit: y
+  low: null
+  high: null
+  beta: 0.1097
+  n: 775
+  source: null
+- mechanism: B11_monetary_transmission
+  parameter: multiplier
+  status: rejected
+  reason: the HC1 interval contains zero
+  unit: ratio
+  low: null
+  high: null
+  beta: -0.4813
+  n: 279
+  source: null
+- mechanism: B27_funding_squeeze
+  parameter: elasticity
+  status: rejected
+  reason: the HC1 interval contains zero
+  unit: ratio
+  low: null
+  high: null
+  beta: 0.0038
+  n: 866
+  source: null
+- mechanism: B10_phillips
+  parameter: slope_wage
+  status: installed
+  reason: interval excludes zero and the sign is stable
+  unit: ratio
+  low: 0.0098
+  high: 0.1109
+  beta: -0.0603
+  n: 101
+  source: local_projection:FRED:ECIWAG on FRED:UNRATE Q slope horizon 0; HC1; n=101;
+    2001-06-30..2026-06-30; quarterly wage growth on the change in the unemployment
+    rate
+- mechanism: B10_phillips
+  parameter: slope_core
+  status: rejected
+  reason: the slope sign is not the same in every window
+  unit: ratio
+  low: null
+  high: null
+  beta: -0.0504
+  n: 278
+  source: null
+- mechanism: B12_bank_credit
+  parameter: elasticity
+  status: installed
+  reason: interval excludes zero and the sign is stable
+  unit: ratio
+  low: 0.0101
+  high: 0.0535
+  beta: -0.0318
+  n: 146
+  source: local_projection:FRED:BUSLOANS on FRED:DRTSCILM Q slope horizon 0; HC1;
+    n=146; 1990-06-30..2026-09-30; quarterly loan growth on the SLOOS net percent
+    of banks tightening
+- mechanism: B14_housing
+  parameter: elasticity
+  status: installed
+  reason: interval excludes zero and the sign is stable
+  unit: ratio
+  low: 0.1515
+  high: 0.3546
+  beta: 0.2531
+  n: 134
+  source: local_projection:FRED:PRRESCONS on FRED:PERMIT Q slope horizon 0; HC1; n=134;
+    1993-06-30..2026-09-30; quarterly residential investment on housing permits
+- mechanism: B16_fx_passthrough
+  parameter: pt_import
+  status: rejected
+  reason: recorded only; not written onto the card. import-price change on the broad
+    dollar is the aggregate pass-through. The card multiplies pt_import by an invoicing
+    share, so this number is not that parameter.
+  unit: share
+  low: null
+  high: null
+  beta: -0.4669
+  n: 82
+  source: null
+- mechanism: B26_productivity
+  parameter: pass_through
+  status: installed
+  reason: interval excludes zero and the sign is stable
+  unit: share
+  low: 0.0631
+  high: 0.3164
+  beta: -0.1898
+  n: 317
+  source: local_projection:FRED:CPIAUCSL on FRED:OPHNFB Q slope horizon 0; HC1; n=317;
+    1947-06-30..2026-06-30; quarterly CPI inflation on labor-productivity growth
+- mechanism: C11_ppp
+  parameter: half_life
+  status: rejected
+  reason: the autocorrelation interval is not inside (0, 1), so the half-life is not
+    finite
+  unit: y
+  low: null
+  high: null
+  beta: 0.9806
+  n: 330
+  source: null
+- mechanism: B03_bottleneck_pricing
+  parameter: u_cap
+  status: installed
+  reason: historical upper tail of utilization stays above the kink
+  unit: share
+  low: 0.8719
+  high: 0.8939
+  beta: 0.8939
+  n: 716
+  source: local_projection:FRED:TCU on FRED:TCU M ceiling horizon 0; HC1; n=716; 1967-01-31..2026-08-31;
+    95th percentile to the sample maximum of total capacity utilization, divided by
+    100
+- mechanism: B03_bottleneck_pricing
+  parameter: eps_s_slack
+  status: rejected
+  reason: the slope sign is not the same in every window
+  unit: ratio
+  low: null
+  high: null
+  beta: 2.9569
+  n: 67
+  source: null
+- mechanism: B03_bottleneck_pricing
+  parameter: eps_s_tight
+  status: rejected
+  reason: slope sign -1 is not the formula sign 1
+  unit: ratio
+  low: null
+  high: null
+  beta: -44.4549
+  n: 76
+  source: null
+- mechanism: B03_bottleneck_pricing
+  parameter: eps_d
+  status: rejected
+  reason: slope sign 1 is not the formula sign -1
+  unit: ratio
+  low: null
+  high: null
+  beta: 0.1273
+  n: 606
+  source: null
+- mechanism: B05_capacity_pipeline
+  parameter: slippage
+  status: rejected
+  reason: the mean is not a share whose interval lies inside (0, 1)
+  unit: share
+  low: null
+  high: null
+  beta: -0.1184
+  n: 704
+  source: null
+- mechanism: B06_demand_elasticity
+  parameter: eps_sr
+  status: rejected
+  reason: slope sign 1 is not the formula sign -1
+  unit: ratio
+  low: null
+  high: null
+  beta: 0.1273
+  n: 606
+  source: null
+- mechanism: B06_demand_elasticity
+  parameter: eps_lr
+  status: rejected
+  reason: the HC1 interval contains zero
+  unit: ratio
+  low: null
+  high: null
+  beta: -0.1386
+  n: 594
+  source: null
+- mechanism: B07_substitution
+  parameter: sigma
+  status: rejected
+  reason: slope sign 1 is not the formula sign -1
+  unit: ratio
+  low: null
+  high: null
+  beta: 0.0985
+  n: 414
+  source: null
+- mechanism: B08_pass_through
+  parameter: capture
+  status: installed
+  reason: interval excludes zero and the sign is stable
+  unit: share
+  low: 0.6788
+  high: 0.7561
+  beta: 0.2825
+  n: 318
+  source: local_projection:FRED:CPIAUCSL on FRED:PPIACO Q slope horizon 0; HC1; n=318;
+    1947-06-30..2026-09-30; one minus the slope of CPI inflation on all-commodities
+    PPI inflation
+- mechanism: B13_financial_accelerator
+  parameter: elasticity
+  status: rejected
+  reason: slope sign -1 is not the formula sign 1
+  unit: ratio
+  low: null
+  high: null
+  beta: -0.0359
+  n: 277
+  source: null
+- mechanism: B18_global_financial_cycle
+  parameter: elasticity
+  status: rejected
+  reason: slope sign 1 is not the formula sign -1
+  unit: ratio
+  low: null
+  high: null
+  beta: 0.0213
+  n: 79
+  source: null
+- mechanism: B19_carry
+  parameter: carry_coeff
+  status: rejected
+  reason: the HC1 interval contains zero
+  unit: ratio
+  low: null
+  high: null
+  beta: 0.3244
+  n: 110
+  source: null
+- mechanism: B19_carry
+  parameter: crash_coeff
+  status: rejected
+  reason: slope sign 1 is not the formula sign -1
+  unit: ratio
+  low: null
+  high: null
+  beta: 1.582
+  n: 110
+  source: null
+- mechanism: B20_momentum
+  parameter: continuation
+  status: rejected
+  reason: slope sign -1 is not the formula sign 1
+  unit: ratio
+  low: null
+  high: null
+  beta: -0.016
+  n: 258
+  source: null
+- mechanism: B20_momentum
+  parameter: reversal
+  status: rejected
+  reason: the HC1 interval contains zero
+  unit: ratio
+  low: null
+  high: null
+  beta: -0.0132
+  n: 258
+  source: null
+- mechanism: B22_intermediary_capacity
+  parameter: elasticity
+  status: rejected
+  reason: the HC1 interval contains zero
+  unit: ratio
+  low: null
+  high: null
+  beta: 205.6687
+  n: 304
+  source: null
+- mechanism: B06_demand_elasticity
+  parameter: speed
+  status: unavailable
+  reason: partial-adjustment speed is the gap between the short-run and long-run slopes;
+    it is not a separate series
+  unit: null
+  low: null
+  high: null
+  beta: null
+  n: null
+  source: null
+- mechanism: B16_fx_passthrough
+  parameter: pt_cpi
+  status: unavailable
+  reason: CPI on the dollar is not pt_cpi. The formula multiplies by a USD invoicing
+    share, and no invoicing series is in the store.
+  unit: null
+  low: null
+  high: null
+  beta: null
+  n: null
+  source: null
+- mechanism: B21_positioning
+  parameter: multiplier
+  status: unavailable
+  reason: a positioning percentile needs one COT contract. The CFTC connector downloads
+    every contract in the dataset, which is not a single series.
+  unit: null
+  low: null
+  high: null
+  beta: null
+  n: null
+  source: null
+- mechanism: B23_expectations
+  parameter: overreaction
+  status: unavailable
+  reason: the revision-on-surprise coefficient needs a survey of forecast revisions.
+    A scheduled calendar fetch is blocked on terms, and the SPF median file is not
+    in the store.
+  unit: null
+  low: null
+  high: null
+  beta: null
+  n: null
+  source: null
+- mechanism: B24_supply_chain
+  parameter: loss_coeff
+  status: unavailable
+  reason: GSCPI is not on FRED and is not a series this store ingests
+  unit: null
+  low: null
+  high: null
+  beta: null
+  n: null
+  source: null
+- mechanism: B24_supply_chain
+  parameter: cushion
+  status: unavailable
+  reason: GSCPI is not on FRED and is not a series this store ingests
+  unit: null
+  low: null
+  high: null
+  beta: null
+  n: null
+  source: null
+- mechanism: B25_transport
+  parameter: freight_elasticity
+  status: unavailable
+  reason: deep-sea freight prices exist, but no ship-utilization series is published
+    on FRED or EIA
+  unit: null
+  low: null
+  high: null
+  beta: null
+  n: null
+  source: null
+- mechanism: C04_breakeven
+  parameter: irp
+  status: unavailable
+  reason: breakeven minus Cleveland expected inflation identifies irp minus the liquidity
+    premium, not each premium
+  unit: null
+  low: null
+  high: null
+  beta: null
+  n: null
+  source: null
+- mechanism: C04_breakeven
+  parameter: liquidity
+  status: unavailable
+  reason: breakeven minus Cleveland expected inflation identifies irp minus the liquidity
+    premium, not each premium
+  unit: null
+  low: null
+  high: null
+  beta: null
+  n: null
+  source: null
+- mechanism: C09_policy_path
+  parameter: risk_premium
+  status: unavailable
+  reason: no policy-rate futures series is published on the connected sources
+  unit: null
+  low: null
+  high: null
+  beta: null
+  n: null
+  source: null
